@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   createSessionStream,
   extractFields,
   lookupInterviewer,
   getResume,
   saveResume,
+  parseResumeFile,
   type InterviewerInfo,
 } from "../lib/api";
 
@@ -41,6 +43,7 @@ export default function NewSession() {
   const [customStage, setCustomStage] = useState("");
   const [progress, setProgress] = useState<string[]>([]);
   const [lookingUp, setLookingUp] = useState<number | null>(null);
+  const [uploadingResume, setUploadingResume] = useState(false);
 
   const [form, setForm] = useState({
     company: "",
@@ -103,6 +106,23 @@ export default function NewSession() {
       /* silent fail */
     } finally {
       setLookingUp(null);
+    }
+  };
+
+  const handleResumeFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingResume(true);
+    setError("");
+    try {
+      const text = await parseResumeFile(file);
+      setForm((prev) => ({ ...prev, resume: text }));
+      setResumeOverride(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to parse resume file");
+    } finally {
+      setUploadingResume(false);
+      e.target.value = "";
     }
   };
 
@@ -183,6 +203,15 @@ export default function NewSession() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-400 transition-colors mb-4"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        Back to Sessions
+      </Link>
       <h1 className="text-3xl font-bold mb-2">Start a Prep Session</h1>
       <p className="text-gray-400 mb-8">
         Paste the job description or URL and we'll generate tailored prep
@@ -456,10 +485,37 @@ export default function NewSession() {
 
           {/* Resume */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Resume / Background{" "}
-              <span className="text-gray-500">(optional)</span>
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm font-medium text-gray-300">
+                Resume / Background{" "}
+                <span className="text-gray-500">(optional)</span>
+              </label>
+              <label className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300 cursor-pointer">
+                {uploadingResume ? (
+                  <>
+                    <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Parsing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Upload PDF / DOCX
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  onChange={handleResumeFile}
+                  className="hidden"
+                  disabled={uploadingResume}
+                />
+              </label>
+            </div>
             {savedResume && !resumeOverride ? (
               <div className="rounded-lg bg-gray-900 border border-gray-700 px-4 py-3 flex items-center justify-between">
                 <div className="min-w-0">

@@ -1,28 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { getSession, submitAnswer, type Session } from "../lib/api";
 import ChatWindow from "../components/ChatWindow";
-import QuestionCard from "../components/QuestionCard";
+import QuestionCard, { QuestionOnlyCard } from "../components/QuestionCard";
 
 const TABS = ["Analysis", "Q&A", "Role-Play"] as const;
 type Tab = (typeof TABS)[number];
-
-const THEME_COLORS: Record<string, string> = {
-  "Technical Depth": "bg-blue-900/50 text-blue-300 border-blue-800",
-  "Soft Skills & Communication": "bg-pink-900/50 text-pink-300 border-pink-800",
-  "Leadership & Management": "bg-purple-900/50 text-purple-300 border-purple-800",
-  "Problem Solving": "bg-cyan-900/50 text-cyan-300 border-cyan-800",
-  "Culture Fit & Motivation": "bg-green-900/50 text-green-300 border-green-800",
-  "Stakeholder Management": "bg-orange-900/50 text-orange-300 border-orange-800",
-  "Strategic Thinking": "bg-indigo-900/50 text-indigo-300 border-indigo-800",
-  "Partnership & Collaboration": "bg-teal-900/50 text-teal-300 border-teal-800",
-  "Domain Knowledge": "bg-amber-900/50 text-amber-300 border-amber-800",
-  "Self-Awareness & Growth": "bg-rose-900/50 text-rose-300 border-rose-800",
-};
-
-function themeBadgeClass(theme: string): string {
-  return THEME_COLORS[theme] || "bg-gray-800 text-gray-300 border-gray-700";
-}
 
 export default function PrepDetail() {
   const { id } = useParams<{ id: string }>();
@@ -91,6 +74,15 @@ export default function PrepDetail() {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-8">
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-400 transition-colors mb-4"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        Back to Sessions
+      </Link>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">
           {session.role} <span className="text-gray-400">at</span>{" "}
@@ -234,42 +226,18 @@ export default function PrepDetail() {
 
       {tab === "Q&A" && (
         <div className="space-y-4">
-          {session.mode === "prep" && session.answers?.length ? (
+          {session.answers?.length ? (
             session.answers.map((a, i) => (
-              <QuestionCard key={i} answer={a} index={i} />
+              <QuestionCard
+                key={i}
+                answer={a}
+                question={session.questions?.[i]}
+                index={i}
+              />
             ))
           ) : session.questions?.length ? (
             session.questions.map((q, i) => (
-              <div
-                key={i}
-                className="bg-gray-900 rounded-lg p-4 border border-gray-800"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="text-indigo-400 font-bold text-sm mt-0.5">
-                    {i + 1}
-                  </span>
-                  <div>
-                    <p className="text-white font-medium">{q.question}</p>
-                    <div className="flex gap-2 mt-2 flex-wrap">
-                      {q.theme && (
-                        <span
-                          className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${themeBadgeClass(
-                            q.theme
-                          )}`}
-                        >
-                          {q.theme}
-                        </span>
-                      )}
-                      <span className="text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-400">
-                        {q.category}
-                      </span>
-                    </div>
-                    <p className="text-gray-500 text-sm mt-1">
-                      {q.why_asked}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <QuestionOnlyCard key={i} question={q} index={i} />
             ))
           ) : (
             <p className="text-gray-500">No questions generated yet.</p>

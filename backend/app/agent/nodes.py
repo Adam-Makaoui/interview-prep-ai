@@ -271,6 +271,17 @@ def generate_questions(state: AgentState) -> dict:
     analysis = state.get("analysis", {})
     logger.info(f"Generating questions for stage: {stage}")
 
+    interviewers = state.get("interviewers", [])
+    interviewer_ctx = _format_interviewers(interviewers) if interviewers else ""
+
+    asked_by_field = ""
+    if interviewers and any(p.get("name") for p in interviewers):
+        names = [p.get("name", "") for p in interviewers if p.get("name")]
+        asked_by_field = (
+            '"likely_asked_by": "name of the interviewer most likely to ask this '
+            f'(choose from: {", ".join(names)})", '
+        )
+
     result = _llm_json(
         system=(
             "You are an expert interview coach. Generate realistic interview questions.\n\n"
@@ -279,7 +290,8 @@ def generate_questions(state: AgentState) -> dict:
             f"- Key Skills: {json.dumps(analysis.get('key_skills', []))}\n"
             f"- What They Value: {json.dumps(analysis.get('what_they_value', []))}\n"
             f"- Role Focus: {analysis.get('role_focus', '')}\n\n"
-            "Generate 8-10 likely interview questions. Return a JSON object with:\n"
+            + (f"Interviewer Panel Context:{interviewer_ctx}\n\n" if interviewer_ctx else "")
+            + "Generate 8-10 likely interview questions. Return a JSON object with:\n"
             '"questions": [\n'
             '  {"question": "...", '
             '"category": "technical|behavioral|situational|general", '
@@ -287,7 +299,8 @@ def generate_questions(state: AgentState) -> dict:
             "Leadership & Management, Problem Solving, Culture Fit & Motivation, "
             "Stakeholder Management, Strategic Thinking, Partnership & Collaboration, "
             'Domain Knowledge, Self-Awareness & Growth", '
-            '"why_asked": "brief reason why they\'d ask this"}\n'
+            + asked_by_field
+            + '"why_asked": "brief reason why they\'d ask this"}\n'
             "]\n\nReturn ONLY valid JSON."
         ),
         user=f"Company: {state['company']}\nRole: {state['role']}\nInterview Stage: {stage}",
@@ -329,19 +342,18 @@ def draft_answers(state: AgentState) -> dict:
             f"Key Skills They Want: {json.dumps(analysis.get('key_skills', []))}\n"
             f"What They Value: {json.dumps(analysis.get('what_they_value', []))}"
             f"{resume_section}\n\n"
-            "For each question, provide:\n"
-            "- A structured answer framework (use STAR method where applicable)\n"
-            "- Key points to hit\n"
-            "- A specific example to mention (from resume if available)\n"
-            "- What to avoid saying\n\n"
+            "For each question, provide a comprehensive coaching breakdown.\n\n"
             "Return a JSON object with:\n"
             '"answers": [\n'
             "  {\n"
             '    "question": "the original question",\n'
-            '    "answer_framework": "3-5 sentence structured answer",\n'
+            '    "answer_framework": "3-5 sentence structured answer using STAR method where applicable",\n'
             '    "key_points": ["point 1", "point 2", "point 3"],\n'
-            '    "example_to_use": "specific example from background",\n'
-            '    "avoid": "what not to say"\n'
+            '    "example_to_use": "specific example from resume/background to mention",\n'
+            '    "avoid": "what not to say",\n'
+            '    "timing_guidance": "recommended answer length and pacing, e.g. 60-90 seconds, keep concise",\n'
+            '    "red_flags": ["specific thing that would hurt the candidate", "another red flag"],\n'
+            '    "response_strategy": "approach advice, e.g. Lead with metrics, then explain the process"\n'
             "  }\n"
             "]\n\nReturn ONLY valid JSON."
         ),

@@ -7,7 +7,7 @@ import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -172,6 +172,43 @@ async def lookup_interviewer(body: LookupRequest):
         user=f"Person: {body.name}\nCompany: {body.company}\n\nSearch results:\n{snippets}",
     )
     return result
+
+
+@app.post("/api/parse-resume")
+async def parse_resume(file: UploadFile = File(...)):
+    """Extract text from an uploaded resume file (PDF, DOCX, or TXT).
+
+    Supports .pdf (via pdfplumber), .docx (via python-docx), and .txt.
+    Returns the extracted text so the frontend can populate the resume field
+    and the user can review/edit before saving.
+    """
+    filename = (file.filename or "").lower()
+    content = await file.read()
+
+    if filename.endswith(".pdf"):
+        import pdfplumber
+        import io
+        text_parts = []
+        with pdfplumber.open(io.BytesIO(content)) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text_parts.append(page_text)
+        text = "\n".join(text_parts)
+    elif filename.endswith(".docx"):
+        import docx
+        import io
+        doc = docx.Document(io.BytesIO(content))
+        text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+    elif filename.endswith(".txt"):
+        text = content.decode("utf-8", errors="ignore")
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported file type. Use PDF, DOCX, or TXT.")
+
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="Could not extract text from file.")
+
+    return {"text": text.strip()}
 
 
 @app.post("/api/extract-fields")

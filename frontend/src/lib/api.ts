@@ -22,6 +22,7 @@ export interface Question {
   category: string;
   theme: string;
   why_asked: string;
+  likely_asked_by?: string;
 }
 
 export interface Answer {
@@ -30,6 +31,9 @@ export interface Answer {
   key_points: string[];
   example_to_use: string;
   avoid: string;
+  timing_guidance?: string;
+  red_flags?: string[];
+  response_strategy?: string;
 }
 
 export interface CurrentQuestion {
@@ -59,6 +63,21 @@ export interface ExtractedFields {
   role: string;
   stage_suggestion: string;
   job_description: string;
+}
+
+export async function parseResumeFile(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${BASE}/parse-resume`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => null);
+    throw new Error(detail?.detail || `Failed: ${res.status}`);
+  }
+  const data = await res.json();
+  return data.text;
 }
 
 export async function extractFields(data: {
