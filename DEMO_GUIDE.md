@@ -58,16 +58,21 @@ Interview prep today is **fragmented and generic**:
 
 2. **`check_continue`** — After evaluating each roleplay answer, the graph decides whether to ask the next question or wrap up with a summary. The agent tracks state (`current_q_index`) and makes the routing decision.
 
-### Human-in-the-Loop
+### Human-in-the-Loop (Two-Pause Pattern)
 
 ```python
 agent = build_graph().compile(
     checkpointer=checkpointer,
-    interrupt_before=["evaluate"],  # ← THIS LINE
+    interrupt_before=["evaluate"],   # PAUSE 1: user types their answer
+    interrupt_after=["evaluate"],    # PAUSE 2: user reads their feedback
 )
 ```
 
-The `interrupt_before=["evaluate"]` is what makes role-play interactive. The graph runs through `roleplay_ask` (which presents a question), then **pauses**. The user submits their answer via the API, which resumes the graph. This is fundamentally different from a batch pipeline — it's a stateful, interruptible conversation.
+This creates a two-pause roleplay loop:
+1. **Pause 1** (`interrupt_before`): Graph stops after `roleplay_ask` presents a question. User types their answer. API call `POST /sessions/:id/answer` resumes the graph into `evaluate`.
+2. **Pause 2** (`interrupt_after`): Graph stops after `evaluate` scores the answer. User reads their feedback card. API call `POST /sessions/:id/continue` resumes into the next `roleplay_ask`.
+
+This is fundamentally different from a batch pipeline — it's a stateful, interruptible conversation where the user controls the pace.
 
 ---
 
@@ -116,37 +121,56 @@ When interviewers are provided, the analysis node generates `interviewer_focus` 
 
 ### Demo Flow
 
-1. **Land on Dashboard** — Show the session history (empty or with previous sessions)
+1. **Land on Dashboard** — Show the session history (empty or with previous sessions). Point out "Back to Sessions" navigation.
 
 2. **Click "+ New Session"** — Show the form
 
 3. **Paste a Job Description** — Use a real JD (DataRobot SE role works well)
+   - Toggle between "Paste Text" and "Paste URL" modes
    - Click **"Auto-Fill Company, Role & Stage"** — watch it extract fields
    - Point out that the user can **edit** the auto-filled values
 
-4. **Add an Interviewer** — Click "+ Add Interviewer", enter a name and title (e.g., "Sarah Chen, VP Solutions Engineering")
+4. **Upload Resume** — Click "Upload PDF / DOCX" to upload a resume file
+   - "The backend uses pdfplumber to extract text from the PDF, then I can edit it and save as my default"
+   - Or show the "Saved resume loaded" state if already saved
 
-5. **Set Stage** — Pick "Hiring Manager" or select "Other" and type a custom stage
+5. **Add an Interviewer** — Click "+ Add Interviewer", enter a name
+   - Click the **search icon** — watch it auto-lookup their title via DuckDuckGo
+   - "This uses web search + LLM extraction — no LinkedIn API key needed"
 
-6. **Start Prep Session** — Click submit, wait ~15 seconds
+6. **Set Stage** — Pick "Hiring Manager" or select "Other" and type a custom stage
 
-7. **Show Analysis Tab** — Point out:
+7. **Start Prep Session** — Click submit
+   - Watch the **live SSE progress**: Parsing → Analyzing → Generating
+   - **As soon as questions are generated, you land on the session page** — no waiting for answer drafting
+   - "Notice I'm already seeing questions while answer frameworks are still being drafted in the background"
+
+8. **Show Q&A Tab** — Point out:
+   - "Drafting answer frameworks..." spinner (if answers aren't ready yet)
+   - Questions appear with **theme badges** (Technical Depth, Soft Skills, etc.)
+   - **"Likely: [interviewer name]"** badges showing which interviewer would ask each question
+   - Click a question to **expand** — shows answer framework, key points, timing guidance, response strategy, red flags
+   - "Each card is collapsible — collapsed shows the summary, expanded shows the full coaching breakdown"
+
+9. **Show Analysis Tab** — Point out:
    - Key Skills (extracted from JD, not hardcoded)
    - Culture Signals (inferred from JD language)
    - Interviewer Focus Areas (generated because we added an interviewer)
 
-8. **Show Q&A Tab** — Questions are stage-specific. Point out the "why_asked" field — the agent explains its reasoning.
+10. **Switch to Role-Play** — Click the Role-Play tab, then "Start Practice Interview"
+    - Answer one question naturally
+    - Show the **feedback card**: score badge (color-coded), strengths, improvements, improved answer, tip
+    - "Notice I have a 'Next Question' button — the graph paused AFTER evaluating so I can read my feedback first"
 
-9. **Switch to Role-Play** — Click the Role-Play tab, then "Start Practice Interview"
-   - Answer one question naturally
-   - Show the coach feedback (score, strengths, improvements, improved answer)
-
-10. **If time**: Complete all questions and show the final **readiness scorecard**
+11. **If time**: Answer 5 questions and show the **checkpoint card** with score trends and "Continue Drilling" vs "Finish & See Summary"
 
 ### Talking Points During Demo
 - "The graph paused here waiting for my answer — that's `interrupt_before` in action"
+- "After I got feedback, it paused AGAIN — that's `interrupt_after`. Two pauses create the feedback loop."
 - "Notice the questions changed because I picked a different stage — that's the STAGE_CONTEXT routing"
+- "I navigated here before answers were ready — the backend is still drafting in a background thread, and the page polls every 2 seconds"
 - "The auto-fill is a separate lightweight LLM call, not a full session creation"
+- "Each question says which interviewer would likely ask it — that's the panel awareness"
 
 ---
 
@@ -190,63 +214,149 @@ This is exactly what DataRobot's solutions engineering team would help customers
 
 ---
 
-## 8. Key Code Walkthrough
+## 8. Where Everything Happens — Code Map
 
-### Conditional Edge (agentic routing)
+If someone says "show me where X happens in the code", here's your answer:
+
+### File Structure
+```
+backend/
+  app/
+    config.py          ← loads OPENAI_API_KEY from .env
+    models.py          ← Pydantic request/response models
+    main.py            ← FastAPI routes (all API endpoints)
+    agent/
+      state.py         ← AgentState TypedDict (the state that flows through the graph)
+      graph.py         ← StateGraph wiring: nodes, edges, checkpointer, interrupt points
+      nodes.py         ← THE CORE: all 7 node functions + LLM calls + prompts
+  resume_profile.json  ← saved resume (local file, persists on disk)
+  .env                 ← API key (not committed)
+
+frontend/
+  src/
+    lib/api.ts         ← all API calls + TypeScript interfaces
+    App.tsx            ← React Router: / → Dashboard, /new → NewSession, /prep/:id → PrepDetail
+    pages/
+      Dashboard.tsx    ← session list
+      NewSession.tsx   ← form + SSE streaming + early navigation
+      PrepDetail.tsx   ← Analysis/Q&A/Role-Play tabs + answer polling
+    components/
+      QuestionCard.tsx ← collapsible Q&A card with richer details
+      ChatWindow.tsx   ← roleplay chat + FeedbackCard + CheckpointCard
+```
+
+### "When I upload a PDF resume, where does it go?"
+
+1. **Frontend** (`NewSession.tsx`): File picker triggers `parseResumeFile()` in `api.ts`
+2. **API call**: `POST /api/parse-resume` with multipart form data
+3. **Backend** (`main.py` → `parse_resume()`): pdfplumber extracts text from the PDF bytes
+4. **Response**: Extracted text goes back to the frontend textarea — user can edit it
+5. **If they click "Save as default"**: `PUT /api/profile/resume` writes to `resume_profile.json`
+
+### "When the user submits the form, what happens?"
+
+1. **Frontend** (`NewSession.tsx`): Calls `createSessionStream()` → `POST /api/sessions/stream`
+2. **Backend** (`main.py`): Spawns a **background thread** running `agent.stream(initial_state, config, stream_mode="updates")`
+3. **SSE events** fire as each node completes: `parse` → `analyze` → `generate` → `draft`
+4. **Frontend receives `generate` complete** → navigates to `/prep/:id` immediately (doesn't wait for `draft`)
+5. **PrepDetail** loads, shows questions. Polls `GET /api/sessions/:id` every 2 seconds until answers arrive.
+6. **Background thread** finishes `draft` → answers appear on next poll
+
+### "In role-play, what happens when I submit an answer?"
+
+1. **Frontend** (`ChatWindow.tsx`): Calls `submitAnswer()` → `POST /api/sessions/:id/answer`
+2. **Backend** (`main.py` → `submit_answer()`): Appends user answer to `chat_history`, calls `agent.invoke()`
+3. **Graph resumes** into `evaluate_answer` node (`nodes.py`): LLM scores the answer 1-10, generates strengths/improvements/improved_answer
+4. **Graph pauses** at `interrupt_after=["evaluate"]` — status becomes `"reviewing_feedback"`
+5. **Frontend** sees `reviewing_feedback` status → shows `FeedbackCard` (score, strengths, improvements)
+6. **User clicks "Next Question"** → `POST /api/sessions/:id/continue` → graph resumes into `roleplay_ask`
+7. **Every 5 questions**: `CheckpointCard` appears with score trends and "Continue" vs "Finish" buttons
+
+### "How do conditional edges work?"
+
+**File**: `backend/app/agent/graph.py` + `nodes.py`
+
+```python
+# In graph.py — after generate, route based on mode:
+graph.add_conditional_edges("generate", route_by_mode, {"prep": "draft", "roleplay": "roleplay_ask"})
+
+# In nodes.py — the routing function:
+def route_by_mode(state: AgentState) -> str:
+    return "roleplay" if state.get("mode") == "roleplay" else "prep"
+
+# In graph.py — after evaluate, continue or stop:
+graph.add_conditional_edges("evaluate", check_continue, {"continue": "roleplay_ask", "done": "summary"})
+
+# In nodes.py:
+def check_continue(state: AgentState) -> str:
+    if state.get("session_complete"):
+        return "done"
+    if state.get("current_q_index", 0) >= len(state.get("questions", [])):
+        return "done"
+    return "continue"
+```
+
+### "How does stage-aware prompting work?"
 
 **File**: `backend/app/agent/nodes.py`
 
 ```python
-def route_by_mode(state: AgentState) -> str:
-    """Conditional edge: route to prep or roleplay based on state."""
-    return "roleplay" if state.get("mode") == "roleplay" else "prep"
+STAGE_CONTEXT = {
+    "phone_screen": "Light screening for communication and culture fit...",
+    "recruiter_screen": "Recruiter evaluating basic qualifications...",
+    "hiring_manager": "Hiring manager assessing team fit, leadership, vision...",
+    "technical": "Deep technical evaluation of problem solving...",
+    "behavioral": "STAR-method behavioral questions...",
+    "final_panel": "Cross-functional panel assessing overall fit...",
+}
+
+def _resolve_stage_context(stage: str) -> str:
+    if stage in STAGE_CONTEXT:
+        return STAGE_CONTEXT[stage]
+    # LLM fallback for custom stages like "Case Study"
+    result = _llm_json(system="Describe what this interview stage evaluates...", user=stage)
+    return result.get("stage_context", f"Interview stage: {stage}")
 ```
 
-This is wired in `graph.py`:
-```python
-graph.add_conditional_edges(
-    "generate",
-    route_by_mode,
-    {"prep": "draft", "roleplay": "roleplay_ask"},
-)
-```
+### Multi-Node Context Chain
 
-### Human-in-the-Loop (interrupt_before)
+State grows as it flows through nodes:
+
+1. **Parse**: `{company, role, job_description, stage_context}` ← extracted from raw text/URL
+2. **Analyze**: `{analysis: {key_skills, culture_signals, interviewer_focus, ...}}` ← built from parsed data
+3. **Generate**: `{questions: [{question, category, theme, likely_asked_by, why_asked}, ...]}` ← informed by analysis + stage + interviewers
+4. **Draft**: `{answers: [{answer_framework, key_points, timing_guidance, red_flags, response_strategy, ...}, ...]}` ← personalized against resume + analysis
+
+Each node sees everything the previous nodes produced. This is **context accumulation**, not independent LLM calls.
+
+---
+
+## 9. Key Code Walkthrough Snippets
+
+### Two-Pause Feedback Loop
 
 **File**: `backend/app/agent/graph.py`
 
 ```python
 agent = build_graph().compile(
     checkpointer=checkpointer,
-    interrupt_before=["evaluate"],
+    interrupt_before=["evaluate"],   # pause for user answer
+    interrupt_after=["evaluate"],    # pause for user to read feedback
 )
 ```
 
-The graph pauses AFTER `roleplay_ask` and BEFORE `evaluate`. The user's answer arrives via the API, which resumes the graph.
+### Interviewer Attribution in Questions
 
-### Stage-Aware Context (custom stage LLM fallback)
+**File**: `backend/app/agent/nodes.py` → `generate_questions()`
 
-**File**: `backend/app/agent/nodes.py`
+When interviewers are provided, the prompt includes their names and titles. The output schema adds `"likely_asked_by"` so each question shows which panelist would ask it.
 
-```python
-def _resolve_stage_context(stage: str) -> str:
-    if stage in STAGE_CONTEXT:
-        return STAGE_CONTEXT[stage]
-    # LLM generates context for unknown stages
-    result = _llm_json(...)
-    return result.get("stage_context", f"Interview stage: {stage}")
-```
+### Collapsible Q&A Cards
 
-### Multi-Node Context Chain
+**File**: `frontend/src/components/QuestionCard.tsx`
 
-The state grows as it flows through nodes:
-
-1. **Parse**: `{company, role, job_description}` ← extracted from raw text
-2. **Analyze**: `{analysis: {key_skills, culture_signals, ...}}` ← built from parsed data
-3. **Generate**: `{questions: [...]}` ← informed by analysis + stage context
-4. **Draft**: `{answers: [...]}` ← personalized against resume + analysis
-
-Each node sees everything the previous nodes produced. This is context accumulation, not independent LLM calls.
+Collapsed shows: question + theme badge + category + interviewer attribution + timing guidance
+Expanded shows: answer framework + key points + response strategy + example + avoid + red flags
 
 ---
 
@@ -254,11 +364,16 @@ Each node sees everything the previous nodes produced. This is context accumulat
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| `POST` | `/api/extract-fields` | Auto-fill form fields from JD text or URL |
-| `POST` | `/api/sessions` | Create a new prep/roleplay session |
+| `POST` | `/api/sessions/stream` | **Create session with SSE progress** (primary) |
+| `POST` | `/api/sessions` | Create session (blocking, fallback) |
 | `GET` | `/api/sessions` | List all sessions |
-| `GET` | `/api/sessions/:id` | Get session details |
+| `GET` | `/api/sessions/:id` | Get session details (used by polling) |
 | `POST` | `/api/sessions/:id/answer` | Submit a roleplay answer |
+| `POST` | `/api/sessions/:id/continue` | Advance past feedback pause |
+| `POST` | `/api/sessions/:id/finish` | End roleplay early → summary |
 | `POST` | `/api/sessions/:id/start-roleplay` | Switch prep → roleplay |
+| `POST` | `/api/extract-fields` | Auto-fill form fields from JD |
+| `POST` | `/api/lookup-interviewer` | Web search for interviewer title |
+| `POST` | `/api/parse-resume` | Extract text from PDF/DOCX/TXT |
 | `GET` | `/api/profile/resume` | Get saved resume |
 | `PUT` | `/api/profile/resume` | Save/update resume |

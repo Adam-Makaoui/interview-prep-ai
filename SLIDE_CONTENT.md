@@ -60,13 +60,15 @@ Key: Each node is a focused LLM call. State accumulates as it flows through the 
 
 2. **Autonomous Routing** — `route_by_mode` decides prep vs. roleplay. `check_continue` decides next question vs. summary. The graph topology changes based on input.
 
-3. **Human-in-the-Loop** — `interrupt_before` and `interrupt_after` create a two-pause roleplay loop: pause for user to answer, pause for user to read feedback. The agent waits, doesn't race ahead.
+3. **Human-in-the-Loop (Two-Pause Pattern)** — `interrupt_before` pauses for the user's answer. `interrupt_after` pauses so the user can read their feedback before the next question. Two interrupts create a controlled coaching loop.
 
 4. **Stage-Aware Intelligence** — A recruiter screen generates "walk me through your resume" questions. A technical round generates system design questions. Custom stages get LLM-generated context on the fly.
 
-5. **Panel Interview Awareness** — When interviewers are provided, analysis generates focus areas per interviewer title.
+5. **Panel Interview Awareness** — Each question is attributed to the interviewer most likely to ask it based on their title. The analysis node generates per-interviewer focus areas.
 
-> **Speaker notes**: "The differentiator isn't the LLM — anyone can call GPT-4. It's the state machine around the LLM: conditional routing that changes behavior based on context, human-in-the-loop gates at the right points, session persistence across interactions, and multi-node context chains."
+6. **Async Background Processing** — After questions are generated, the user navigates to the session page immediately. Answer drafting runs in a background thread; the frontend polls until answers arrive. No blocking wait.
+
+> **Speaker notes**: "The differentiator isn't the LLM — anyone can call GPT-4. It's the state machine around the LLM: conditional routing that changes behavior based on context, human-in-the-loop gates at the right points, background processing with polling, session persistence across interactions, and multi-node context chains."
 
 ---
 
@@ -74,18 +76,20 @@ Key: Each node is a focused LLM call. State accumulates as it flows through the 
 
 **Demo flow**:
 
-1. **Dashboard** → Show session history
-2. **New Session** → Paste a real JD
-3. **Auto-Fill** → One click extracts company, role, stage
-4. **Add Interviewer** → Name + auto-lookup title via web search
-5. **Live Progress** → Watch SSE stream as each node completes
-6. **Analysis Tab** → Key skills, culture signals, interviewer focus areas
-7. **Q&A Tab** → Stage-specific questions with theme badges
-8. **Role-Play** → Answer a question, see feedback card with score
-9. **Next Question / Checkpoint** → 5-question progress check
-10. **Summary** → Readiness scorecard
+1. **Dashboard** → Show session history with navigation
+2. **New Session** → Paste a real JD (text or URL)
+3. **Auto-Fill** → One click extracts company, role, stage from JD
+4. **Upload Resume** → Upload a PDF, text gets extracted and editable
+5. **Add Interviewer** → Name + auto-lookup title via DuckDuckGo web search
+6. **SSE Progress** → Watch parse → analyze → generate stream live
+7. **Instant Navigation** → Land on session page as soon as questions are ready (answers draft in background)
+8. **Q&A Tab** → Collapsible cards: click to expand answer framework, timing, strategy, red flags
+9. **Theme Badges** → "Technical Depth", "Soft Skills", "Culture Fit" per question
+10. **Interviewer Attribution** → "Likely: Sarah Chen" badge on each question
+11. **Role-Play** → Answer a question → feedback card (score, strengths, improvements) → "Next Question" button
+12. **Checkpoint** → After 5 questions: score trends + "Continue" vs "Finish"
 
-> **Speaker notes**: "I'll walk through the full flow. Notice the streaming progress — the user sees each step complete in real-time. The questions adapt to the stage I selected. When I answer in role-play, the graph pauses, evaluates my answer, shows me a feedback card with score, strengths, and improvements, then I explicitly advance to the next question. After 5 questions there's a checkpoint with score trends."
+> **Speaker notes**: "I'll walk through the full flow. Notice the streaming — as each node completes, you see it. Once questions generate, I land on the session page immediately while answers draft in the background. The questions adapt to the stage and show which interviewer would ask them. In role-play, the graph pauses TWICE — once for my answer, once for me to read feedback — that's the two-pause interrupt pattern. After 5 questions there's a checkpoint with score trends."
 
 ---
 
@@ -106,23 +110,27 @@ Key: Each node is a focused LLM call. State accumulates as it flows through the 
 
 ## Slide 7: Key Feature Highlights
 
-**Interviewer Web Search Lookup**
-- User types a name, clicks the search icon
-- DuckDuckGo search finds their LinkedIn profile
-- LLM extracts their job title from search snippets
-- Zero API keys needed, no LinkedIn scraping
+**Interviewer Web Search + Panel Attribution**
+- User types a name, clicks the search icon → DuckDuckGo finds their LinkedIn → LLM extracts title
+- Questions are attributed: "Likely asked by: Sarah Chen" based on their title vs. question theme
+- Zero API keys, no LinkedIn scraping
 
-**SSE Streaming Progress**
-- Session creation uses `agent.stream(stream_mode="updates")`
-- Each node completion fires an SSE event
-- Frontend shows step-by-step progress instead of a blank spinner
+**Async Q&A with Background Processing**
+- `agent.stream(stream_mode="updates")` fires SSE events per node
+- Frontend navigates on `generate` complete — doesn't wait for `draft`
+- PrepDetail polls every 2s. "Drafting answer frameworks..." banner until answers arrive
 
-**Roleplay Feedback Loop**
-- `interrupt_after=["evaluate"]` — new LangGraph primitive
-- Feedback card: score (color-coded), strengths, improvements, improved answer, tip
-- Every 5 questions: checkpoint with score trends and progress analysis
+**Two-Pause Roleplay Feedback Loop**
+- `interrupt_before=["evaluate"]` → pause for user answer
+- `interrupt_after=["evaluate"]` → pause for user to read feedback
+- Feedback card: color-coded score, strengths, improvements, improved answer, tip
+- Every 5 questions: checkpoint with score trends and "Continue Drilling" vs "Finish & See Summary"
 
-> **Speaker notes**: "These features demonstrate three patterns DataRobot customers care about: external data enrichment via web search, real-time streaming for user experience, and the interrupt_after pattern for controlled feedback loops."
+**Resume File Upload**
+- PDF/DOCX/TXT → `pdfplumber` or `python-docx` extracts text → user edits → save as default
+- Persistent across sessions in `resume_profile.json`
+
+> **Speaker notes**: "These features demonstrate patterns DataRobot customers care about: external data enrichment via web search, real-time streaming for UX, background processing with polling, the two-pause interrupt pattern for controlled feedback loops, and document parsing for structured input."
 
 ---
 
@@ -146,9 +154,12 @@ Key: Each node is a focused LLM call. State accumulates as it flows through the 
 
 **Key talking points if asked:**
 
-- *"Why not use CrewAI?"* — CrewAI is for multi-agent collaboration. This is a single-agent pipeline with branches. LangGraph's state machine gives us more control.
-- *"How does this scale?"* — Swap MemorySaver for PostgreSQL checkpointer. Add Redis caching for LLM calls. Async workers for session creation. All supported by LangGraph out of the box.
+- *"Why not use CrewAI?"* — CrewAI is for multi-agent collaboration. This is a single-agent pipeline with branches. LangGraph's state machine gives us more control over flow and interrupts.
+- *"Why LangGraph over plain LangChain?"* — LangChain gives you chains and tools. LangGraph gives you a state machine with conditional edges, checkpointed state, and interrupt points. Our problem is a structured pipeline with branches and human-in-the-loop — not a reasoning loop.
+- *"How does this scale?"* — Swap MemorySaver for PostgreSQL checkpointer (one line). Add Redis caching for LLM calls. Async workers for session creation. All supported by LangGraph out of the box.
 - *"What about hallucination?"* — JSON-mode constrains output structure. Each node has a narrow, specific prompt. The context chain means later nodes validate earlier output implicitly.
-- *"Why build this vs. using an existing tool?"* — Existing tools aren't agentic. They don't do conditional routing, don't have human-in-the-loop, and don't personalize to stage + interviewer.
+- *"Where is the resume stored?"* — File-based JSON for the demo (`resume_profile.json`). Production: user profile table in Postgres — same swap pattern as the checkpointer.
+- *"Why build this vs. using an existing tool?"* — Existing tools aren't agentic. They don't do conditional routing, don't have human-in-the-loop, and don't personalize to stage + interviewer + resume.
+- *"Walk me through the code"* — Start at `graph.py` (7 nodes, 2 conditional edges). Open `nodes.py` to show a node function. Open `main.py` to show the SSE streaming endpoint. Show `state.py` for the TypedDict.
 
-> **Speaker notes**: "Be ready for these questions. The key message: this demonstrates that I can architect and build agentic systems with production-ready patterns, not just call an LLM API."
+> **Speaker notes**: "Be ready for these questions. The key message: this demonstrates that I can architect and build agentic systems with production-ready patterns, not just call an LLM API. If they ask to see code, start with graph.py — it's 56 lines and shows the entire state machine topology. Then nodes.py for any specific node."
