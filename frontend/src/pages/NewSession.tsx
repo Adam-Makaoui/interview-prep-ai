@@ -195,6 +195,12 @@ export default function NewSession() {
     setResumeOverride(false);
   };
 
+  function parseNameTitle(raw: string): { name: string; title: string } | null {
+    const match = raw.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+    if (!match) return null;
+    return { name: match[1].trim(), title: match[2].trim() };
+  }
+
   const addInterviewer = () =>
     setInterviewers([...interviewers, { name: "", title: "" }]);
 
@@ -452,53 +458,71 @@ export default function NewSession() {
               </p>
             ) : (
               <div className="space-y-2">
-                {interviewers.map((person, i) => (
-                  <div key={i} className="flex gap-2 items-center">
-                    <input
-                      value={person.name}
-                      onChange={(e) =>
-                        updateInterviewer(i, "name", e.target.value)
-                      }
-                      placeholder="Name"
-                      className={`${inputClass} flex-1`}
-                    />
-                    <input
-                      value={person.title}
-                      onChange={(e) =>
-                        updateInterviewer(i, "title", e.target.value)
-                      }
-                      placeholder="Title (e.g. VP Engineering)"
-                      className={`${inputClass} flex-1`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleLookup(i)}
-                      disabled={lookingUp === i || !person.name.trim()}
-                      className="text-xs font-medium text-indigo-400 hover:text-indigo-300 disabled:opacity-30 shrink-0 px-2 py-1"
-                      title="Look up title"
-                    >
-                      {lookingUp === i ? (
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                      ) : (
+                {interviewers.map((person, i) => {
+                  const parsed = parseNameTitle(person.name);
+                  return (
+                  <div key={i} className="space-y-1">
+                    <div className="flex gap-2 items-center">
+                      <input
+                        value={person.name}
+                        onChange={(e) =>
+                          updateInterviewer(i, "name", e.target.value)
+                        }
+                        placeholder="Name"
+                        className={`${inputClass} flex-1`}
+                      />
+                      <input
+                        value={person.title}
+                        onChange={(e) =>
+                          updateInterviewer(i, "title", e.target.value)
+                        }
+                        placeholder="Title (e.g. VP Engineering)"
+                        className={`${inputClass} flex-1`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleLookup(i)}
+                        disabled={lookingUp === i || !person.name.trim()}
+                        className="text-xs font-medium text-indigo-400 hover:text-indigo-300 disabled:opacity-30 shrink-0 px-2 py-1"
+                        title="Look up title"
+                      >
+                        {lookingUp === i ? (
+                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeInterviewer(i)}
+                        className="text-gray-500 hover:text-red-400 shrink-0 p-1"
+                        title="Remove"
+                      >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeInterviewer(i)}
-                      className="text-gray-500 hover:text-red-400 shrink-0 p-1"
-                      title="Remove"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                      </button>
+                    </div>
+                    {parsed && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = [...interviewers];
+                          updated[i] = { name: parsed.name, title: parsed.title };
+                          setInterviewers(updated);
+                        }}
+                        className="ml-1 inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 bg-indigo-900/30 hover:bg-indigo-900/50 border border-indigo-800/40 rounded-full px-3 py-1 transition-colors"
+                      >
+                        Move &ldquo;{parsed.title}&rdquo; to title?
+                      </button>
+                    )}
                   </div>
+                  );}}
                 ))}
               </div>
             )}
