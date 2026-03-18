@@ -2,32 +2,26 @@ from pydantic import BaseModel, Field
 
 
 class SessionCreate(BaseModel):
-    company: str
-    role: str
-    job_description: str
+    company: str = ""
+    role: str = ""
+    job_description: str = ""
+    job_url: str = ""
     stage: str = Field(
-        pattern="^(phone_screen|technical|behavioral|final_panel)$"
+        default="phone_screen",
+        pattern="^(phone_screen|technical|behavioral|final_panel)$",
     )
     resume: str = ""
     mode: str = Field(default="prep", pattern="^(prep|roleplay)$")
+    interviewer_name: str = ""
+    interviewer_title: str = ""
 
 
 class AnswerSubmit(BaseModel):
     answer: str
 
 
-class QuestionOut(BaseModel):
-    question: str
-    category: str
-    why_asked: str
-
-
-class FeedbackOut(BaseModel):
-    question: str
-    user_answer: str
-    score: int
-    feedback: str
-    improved_answer: str
+class ResumeProfile(BaseModel):
+    resume: str
 
 
 class SessionOut(BaseModel):
@@ -44,3 +38,4 @@ class SessionOut(BaseModel):
     feedback: list | None = None
     summary: dict | None = None
     chat_history: list | None = None
+    created_at: str = ""

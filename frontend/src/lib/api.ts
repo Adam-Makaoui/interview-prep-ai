@@ -14,6 +14,7 @@ export interface Session {
   feedback: Feedback[] | null;
   summary: Record<string, unknown> | null;
   chat_history: { role: string; content: string; question_index?: number }[] | null;
+  created_at: string;
 }
 
 export interface Question {
@@ -47,13 +48,22 @@ export interface Feedback {
   tip: string;
 }
 
+export async function listSessions(): Promise<Session[]> {
+  const res = await fetch(`${BASE}/sessions`);
+  if (!res.ok) throw new Error(`Failed: ${res.status}`);
+  return res.json();
+}
+
 export async function createSession(data: {
   company: string;
   role: string;
   job_description: string;
+  job_url?: string;
   stage: string;
   resume: string;
   mode: string;
+  interviewer_name?: string;
+  interviewer_title?: string;
 }): Promise<Session> {
   const res = await fetch(`${BASE}/sessions`, {
     method: "POST",
@@ -81,4 +91,27 @@ export async function submitAnswer(
   });
   if (!res.ok) throw new Error(`Failed: ${res.status}`);
   return res.json();
+}
+
+export async function startRoleplay(id: string): Promise<Session> {
+  const res = await fetch(`${BASE}/sessions/${id}/start-roleplay`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getResume(): Promise<string> {
+  const res = await fetch(`${BASE}/profile/resume`);
+  if (!res.ok) return "";
+  const data = await res.json();
+  return data.resume || "";
+}
+
+export async function saveResume(resume: string): Promise<void> {
+  await fetch(`${BASE}/profile/resume`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ resume }),
+  });
 }

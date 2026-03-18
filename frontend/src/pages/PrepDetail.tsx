@@ -36,6 +36,11 @@ export default function PrepDetail() {
     }
   };
 
+  const handleSessionUpdate = (updated: Session) => {
+    setSession(updated);
+    setTab("Role-Play");
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -58,7 +63,6 @@ export default function PrepDetail() {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-8">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold">
           {session.role} <span className="text-gray-400">at</span> {session.company}
@@ -66,6 +70,13 @@ export default function PrepDetail() {
         <div className="flex gap-3 mt-2">
           <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-indigo-900/60 text-indigo-300">
             {session.stage.replace("_", " ")}
+          </span>
+          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+            session.mode === "roleplay"
+              ? "bg-purple-900/60 text-purple-300"
+              : "bg-indigo-900/60 text-indigo-300"
+          }`}>
+            {session.mode === "roleplay" ? "role-play" : "prep"}
           </span>
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
             session.status === "complete"
@@ -79,7 +90,6 @@ export default function PrepDetail() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex border-b border-gray-800 mb-6">
         {TABS.map((t) => (
           <button
@@ -96,10 +106,8 @@ export default function PrepDetail() {
         ))}
       </div>
 
-      {/* Tab content */}
       {tab === "Analysis" && analysis && (
         <div className="space-y-6">
-          {/* Role Focus */}
           {analysis.role_focus && (
             <section>
               <h2 className="text-lg font-semibold mb-2 text-indigo-300">Role Focus</h2>
@@ -107,7 +115,6 @@ export default function PrepDetail() {
             </section>
           )}
 
-          {/* Key Skills */}
           {Array.isArray(analysis.key_skills) && (
             <section>
               <h2 className="text-lg font-semibold mb-2 text-indigo-300">Key Skills</h2>
@@ -121,7 +128,6 @@ export default function PrepDetail() {
             </section>
           )}
 
-          {/* Culture Signals */}
           {Array.isArray(analysis.culture_signals) && (
             <section>
               <h2 className="text-lg font-semibold mb-2 text-indigo-300">Culture Signals</h2>
@@ -135,7 +141,6 @@ export default function PrepDetail() {
             </section>
           )}
 
-          {/* Interview Tips */}
           {Array.isArray(analysis.interview_tips) && (
             <section>
               <h2 className="text-lg font-semibold mb-2 text-indigo-300">Interview Tips</h2>
@@ -143,6 +148,19 @@ export default function PrepDetail() {
                 {(analysis.interview_tips as string[]).map((tip, i) => (
                   <div key={i} className="bg-gray-900 rounded-lg p-3 text-gray-300 text-sm border border-gray-800">
                     {tip}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {Array.isArray(analysis.interviewer_focus) && (
+            <section>
+              <h2 className="text-lg font-semibold mb-2 text-amber-300">Interviewer Focus Areas</h2>
+              <div className="space-y-2">
+                {(analysis.interviewer_focus as string[]).map((f, i) => (
+                  <div key={i} className="bg-gray-900 rounded-lg p-3 text-gray-300 text-sm border border-amber-900/40">
+                    {f}
                   </div>
                 ))}
               </div>
@@ -184,6 +202,7 @@ export default function PrepDetail() {
         <ChatWindow
           session={session}
           onSubmitAnswer={handleAnswer}
+          onSessionUpdate={handleSessionUpdate}
           submitting={submitting}
         />
       )}

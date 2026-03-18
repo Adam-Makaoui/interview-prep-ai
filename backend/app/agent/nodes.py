@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 
+import httpx
+from bs4 import BeautifulSoup
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
@@ -48,17 +51,44 @@ def _llm_json(system: str, user: str) -> dict:
 
 # ── Node 1: Parse Job Posting ────────────────────────────────────────
 
+def _fetch_url(url: str) -> str:
+    """Fetch a URL and extract readable text content."""
+    try:
+        resp = httpx.get(url, follow_redirects=True, timeout=15, headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+        })
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for tag in soup(["script", "style", "nav", "footer", "header"]):
+            tag.decompose()
+        text = soup.get_text(separator="\n", strip=True)
+        return text[:8000]
+    except Exception as e:
+        logger.warning(f"Failed to fetch URL {url}: {e}")
+        return ""
+
+
 def parse_job_posting(state: AgentState) -> dict:
-    """Extract structured fields from raw job description text.
+    """Extract structured fields from raw job description text or URL.
 
-    If company/role are already filled (manual entry), pass through.
-    Otherwise use LLM to extract them from the JD text.
+    Handles three cases:
+    1. job_url provided -> fetch page, extract text, then LLM parse
+    2. company/role already filled -> pass through
+    3. raw JD text only -> LLM extracts company/role
     """
-    if state.get("company") and state.get("role"):
-        logger.info("Fields already provided, skipping parse")
-        return {}
-
     jd = state.get("job_description", "")
+    job_url = state.get("job_url", "")
+
+    if job_url and re.match(r"https?://", job_url):
+        logger.info(f"Fetching job URL: {job_url}")
+        fetched = _fetch_url(job_url)
+        if fetched:
+            jd = fetched
+
+    if state.get("company") and state.get("role") and jd:
+        logger.info("Fields already provided, skipping LLM parse")
+        return {"job_description": jd} if job_url else {}
+
     if not jd:
         return {}
 
@@ -87,6 +117,16 @@ def analyze_role(state: AgentState) -> dict:
     """Analyze the role, company, and JD to extract prep-relevant insights."""
     logger.info(f"Analyzing role: {state['role']} at {state['company']}")
 
+    interviewer_ctx = ""
+    name = state.get("interviewer_name", "")
+    title = state.get("interviewer_title", "")
+    if name or title:
+        interviewer_ctx = (
+            f"\n\nInterviewer Info: {name}{' - ' + title if title else ''}\n"
+            "Factor in the interviewer's likely perspective and focus areas "
+            "based on their role when generating tips."
+        )
+
     result = _llm_json(
         system=(
             "You are an expert career analyst and interview coach. "
@@ -96,12 +136,14 @@ def analyze_role(state: AgentState) -> dict:
             '- "what_they_value": list of 3-5 things the company values\n'
             '- "role_focus": 2-3 sentence summary of what this role is really about\n'
             '- "interview_tips": list of 3-5 specific tips for this role\n'
-            "\nReturn ONLY valid JSON."
+            + (f'- "interviewer_focus": 2-3 things the interviewer ({title}) will likely focus on\n' if title else "")
+            + "\nReturn ONLY valid JSON."
         ),
         user=(
             f"Company: {state['company']}\n"
             f"Role: {state['role']}\n\n"
             f"Job Description:\n{state['job_description']}"
+            f"{interviewer_ctx}"
         ),
     )
     logger.info(f"Analysis complete: {list(result.keys())}")

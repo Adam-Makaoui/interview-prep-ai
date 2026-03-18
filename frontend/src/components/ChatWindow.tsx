@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import type { Session } from "../lib/api";
+import { startRoleplay } from "../lib/api";
 
 interface Props {
   session: Session;
   onSubmitAnswer: (answer: string) => Promise<void>;
+  onSessionUpdate: (s: Session) => void;
   submitting: boolean;
 }
 
-export default function ChatWindow({ session, onSubmitAnswer, submitting }: Props) {
+export default function ChatWindow({ session, onSubmitAnswer, onSessionUpdate, submitting }: Props) {
   const [input, setInput] = useState("");
+  const [switching, setSwitching] = useState(false);
   const messagesEnd = useRef<HTMLDivElement>(null);
 
   type ChatMsg = NonNullable<Session["chat_history"]>[number];
@@ -16,7 +19,7 @@ export default function ChatWindow({ session, onSubmitAnswer, submitting }: Prop
 
   useEffect(() => {
     messagesEnd.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chat?.length]);
+  }, [chat.length]);
 
   const handleSend = async () => {
     if (!input.trim() || submitting) return;
@@ -25,15 +28,54 @@ export default function ChatWindow({ session, onSubmitAnswer, submitting }: Prop
     await onSubmitAnswer(answer);
   };
 
+  const handleStartRoleplay = async () => {
+    setSwitching(true);
+    try {
+      const updated = await startRoleplay(session.session_id);
+      onSessionUpdate(updated);
+    } catch {
+      alert("Failed to start role-play. Questions may not have been generated yet.");
+    } finally {
+      setSwitching(false);
+    }
+  };
+
   if (session.mode !== "roleplay") {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-400 mb-4">
-          This session is in prep mode. Switch to role-play mode to practice answering questions.
-        </p>
-        <p className="text-gray-500 text-sm">
-          Create a new session with "Let Me Practice" mode to try the interactive interview.
-        </p>
+        <div className="mb-6">
+          <div className="w-16 h-16 rounded-full bg-indigo-900/40 border border-indigo-800 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+            </svg>
+          </div>
+          <p className="text-gray-300 mb-2 font-medium">
+            Ready to practice? Start a mock interview based on these questions.
+          </p>
+          <p className="text-gray-500 text-sm mb-6">
+            An AI interviewer will ask you each question and a coach will give you real-time feedback.
+          </p>
+        </div>
+        <button
+          onClick={handleStartRoleplay}
+          disabled={switching || !session.questions?.length}
+          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {switching ? (
+            <>
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Starting Practice...
+            </>
+          ) : (
+            "Start Practice Interview"
+          )}
+        </button>
+        {!session.questions?.length && (
+          <p className="text-xs text-gray-600 mt-2">Questions must be generated first.</p>
+        )}
       </div>
     );
   }
@@ -90,7 +132,6 @@ export default function ChatWindow({ session, onSubmitAnswer, submitting }: Prop
           </section>
         )}
 
-        {/* Individual feedback */}
         {session.feedback?.length ? (
           <section>
             <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">Question Breakdown</h3>
@@ -118,9 +159,8 @@ export default function ChatWindow({ session, onSubmitAnswer, submitting }: Prop
 
   return (
     <div className="flex flex-col h-[500px]">
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
-        {chat?.map((msg: ChatMsg, i: number) => (
+        {chat.map((msg: ChatMsg, i: number) => (
           <div
             key={i}
             className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
@@ -146,7 +186,6 @@ export default function ChatWindow({ session, onSubmitAnswer, submitting }: Prop
         <div ref={messagesEnd} />
       </div>
 
-      {/* Input */}
       {session.status === "awaiting_answer" && (
         <div className="flex gap-2">
           <input

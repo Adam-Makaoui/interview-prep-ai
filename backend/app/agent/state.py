@@ -8,8 +8,11 @@ class AgentState(TypedDict):
     company: str
     role: str
     job_description: str
+    job_url: str
     stage: str
     resume: str
+    interviewer_name: str
+    interviewer_title: str
 
     analysis: dict
     questions: list
