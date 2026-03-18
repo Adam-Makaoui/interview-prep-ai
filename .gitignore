@@ -1,51 +1,8 @@
-# OS files
-.DS_Store
-Thumbs.db
-
-# IDE / Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.cursor/
-
-# Environment variables (NEVER commit API keys)
-.env
-.env.local
-.env.*.local
-!.env.example
-
-# Dependencies
-node_modules/
-vendor/
 __pycache__/
 *.pyc
+.env
 .venv/
-venv/
-
-# Build output
+*.db
+node_modules/
 dist/
-build/
-out/
-bin/
-*.o
-*.exe
-
-# Logs
-*.log
-npm-debug.log*
-
-# Docker
-docker-compose.override.yml
-
-# Terraform
-.terraform/
-*.tfstate
-*.tfstate.*
-*.tfvars
-
-# Misc
-*.bak
-*.tmp
-coverage/
+.DS_Store
