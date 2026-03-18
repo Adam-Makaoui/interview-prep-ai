@@ -142,8 +142,8 @@ export async function createSessionStream(
     mode: string;
     interviewers?: InterviewerInfo[];
   },
-  onProgress: (node: string) => void
-): Promise<Session> {
+  onProgress: (node: string, sessionId: string) => void
+): Promise<Session | null> {
   const res = await fetch(`${BASE}/sessions/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -173,7 +173,7 @@ export async function createSessionStream(
           if (payload.error) throw new Error(payload.error);
           session = payload.session;
         } else {
-          onProgress(payload.node);
+          onProgress(payload.node, payload.session_id);
         }
       } catch (e) {
         if (e instanceof SyntaxError) continue;
@@ -182,7 +182,6 @@ export async function createSessionStream(
     }
   }
 
-  if (!session) throw new Error("Session creation failed");
   return session;
 }
 

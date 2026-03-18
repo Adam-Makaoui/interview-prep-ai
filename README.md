@@ -90,12 +90,18 @@ Open http://localhost:5173
 
 ## Roadmap (Post-MVP)
 
-1. **Multi-modal input**: Screenshot (GPT-4o vision), URL scraping, PDF upload
-2. **Auto-enrichment**: Web search for company culture, interview reviews
-3. **Resume profiles**: Upload once, reuse across sessions
-4. **Auth + subscriptions**: Clerk + Stripe for monetization
-5. **Chrome extension**: Side panel that detects job postings and triggers prep
-6. **Production deploy**: Vercel (frontend) + Railway (backend)
+### Phase 2 -- Production & Intelligence
+1. **Persistent storage**: Swap `MemorySaver` to `SQLiteSaver`/PostgreSQL for session persistence across server restarts
+2. **Candidate profile / "Mastermind" avatar**: Persistent profile that tracks strengths, weaknesses, and patterns across all interview sessions. Learns what question types the user struggles with, which examples they overuse, and generates increasingly targeted practice
+3. **Cross-session analytics**: Dashboard showing improvement trends, recurring weak areas, and readiness scores per interview type
+4. **Interview outcome tracking**: Record pass/fail outcomes per round to correlate prep quality with real results and refine coaching over time
+5. **Auto-enrichment**: Web search for company culture, Glassdoor reviews, and recent news to enrich prep context
+
+### Phase 3 -- Monetization & Distribution
+6. **Auth + subscriptions**: Clerk + Stripe for multi-user support and tiered pricing (Free: 3 sessions, Pro: unlimited + role-play + history)
+7. **Chrome extension**: Side panel that detects job postings and triggers prep directly from LinkedIn, Greenhouse, etc.
+8. **Production deploy**: Vercel (frontend) + Railway (backend)
+9. **Multi-modal input**: Screenshot (GPT-4o vision) for quick JD capture from any source
 
 ## DataRobot Presentation Notes
 

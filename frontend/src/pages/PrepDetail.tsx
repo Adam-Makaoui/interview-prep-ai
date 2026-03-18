@@ -28,6 +28,27 @@ export default function PrepDetail() {
     });
   }, [id]);
 
+  useEffect(() => {
+    if (!id || !session) return;
+    const needsPolling =
+      session.mode === "prep" &&
+      session.questions?.length &&
+      !session.answers?.length;
+    if (!needsPolling) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const updated = await getSession(id);
+        setSession(updated);
+        if (updated.answers?.length) clearInterval(interval);
+      } catch {
+        /* ignore transient errors */
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [id, session?.questions?.length, session?.answers?.length, session?.mode]);
+
   const handleAnswer = async (answer: string) => {
     if (!id) return;
     setSubmitting(true);
@@ -226,6 +247,20 @@ export default function PrepDetail() {
 
       {tab === "Q&A" && (
         <div className="space-y-4">
+          {!session.answers?.length && session.questions?.length && (
+            <div className="flex items-center gap-2.5 rounded-lg bg-indigo-900/30 border border-indigo-800/40 px-4 py-3 mb-2">
+              <svg
+                className="animate-spin h-4 w-4 text-indigo-400 shrink-0"
+                viewBox="0 0 24 24"
+              >
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <span className="text-sm text-indigo-300">
+                Drafting answer frameworks... Questions are ready below.
+              </span>
+            </div>
+          )}
           {session.answers?.length ? (
             session.answers.map((a, i) => (
               <QuestionCard

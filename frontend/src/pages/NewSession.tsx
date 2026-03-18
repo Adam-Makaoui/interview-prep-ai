@@ -144,11 +144,12 @@ export default function NewSession() {
 
     setLoading(true);
     setProgress([]);
+    let navigated = false;
     try {
       const resume = resumeOverride
         ? form.resume
         : savedResume || form.resume;
-      const session = await createSessionStream(
+      await createSessionStream(
         {
           ...form,
           stage,
@@ -157,13 +158,20 @@ export default function NewSession() {
           job_url: jdMode === "url" ? form.job_url : "",
           interviewers: interviewers.filter((i) => i.name || i.title),
         },
-        (node) => setProgress((prev) => [...prev, node])
+        (node, sessionId) => {
+          setProgress((prev) => [...prev, node]);
+          if (node === "generate" && !navigated) {
+            navigated = true;
+            navigate(`/prep/${sessionId}`);
+          }
+        }
       );
-      navigate(`/prep/${session.session_id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      if (!navigated) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
     } finally {
-      setLoading(false);
+      if (!navigated) setLoading(false);
     }
   };
 

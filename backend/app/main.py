@@ -294,7 +294,7 @@ async def create_session_stream(body: SessionCreate):
         try:
             for chunk in agent.stream(initial_state, config, stream_mode="updates"):
                 node = list(chunk.keys())[0]
-                q.put({"node": node, "status": "complete"})
+                q.put({"node": node, "status": "complete", "session_id": session_id})
             state = _get_state(session_id)
             if state:
                 if state.get("company"):
