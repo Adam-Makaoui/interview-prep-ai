@@ -11,6 +11,7 @@ interface Props {
 
 const CHECKPOINT_INTERVAL = 5;
 
+/** Score display (1–10) with color by range: green ≥8, amber ≥5, red below 5. */
 function ScoreBadge({ score }: { score: number }) {
   const color =
     score >= 8
@@ -27,6 +28,7 @@ function ScoreBadge({ score }: { score: number }) {
   );
 }
 
+/** Shows score, strengths, improvements, and tip after each roleplay answer; includes Next/Finish actions. */
 function FeedbackCard({
   feedback,
   onNext,
@@ -151,6 +153,7 @@ function FeedbackCard({
   );
 }
 
+/** Progress check every 5 questions: avg score, trend (improving/declining/steady). */
 function CheckpointCard({ feedback }: { feedback: Feedback[] }) {
   const scores = feedback.map((f) => f.score);
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
@@ -219,6 +222,15 @@ function CheckpointCard({ feedback }: { feedback: Feedback[] }) {
   );
 }
 
+/**
+ * Interactive roleplay chat interface. Four rendering states:
+ * 1. not-in-roleplay — CTA to start practice
+ * 2. session-complete-summary — overall score, strengths, improvements, question breakdown
+ * 3. reviewing-feedback — FeedbackCard with latest feedback, Next/Finish
+ * 4. active-roleplay-chat — chat messages + answer input
+ *
+ * Key handlers: handleStartRoleplay, handleContinue (next question), handleFinish.
+ */
 export default function ChatWindow({
   session,
   onSubmitAnswer,
@@ -245,6 +257,7 @@ export default function ChatWindow({
     await onSubmitAnswer(answer);
   };
 
+  /** Switches session to roleplay mode via startRoleplay API. */
   const handleStartRoleplay = async () => {
     setSwitching(true);
     try {
@@ -259,6 +272,7 @@ export default function ChatWindow({
     }
   };
 
+  /** Loads next question via continueSession API. */
   const handleContinue = async () => {
     setAdvancing(true);
     try {
@@ -271,6 +285,7 @@ export default function ChatWindow({
     }
   };
 
+  /** Finishes session and generates summary via finishSession API. */
   const handleFinish = async () => {
     setAdvancing(true);
     try {

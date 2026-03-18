@@ -1,70 +1,143 @@
 const BASE = "/api";
 
+/**
+ * Main data model returned by all session endpoints.
+ * Represents an interview prep or roleplay session with its state and generated content.
+ */
 export interface Session {
+  /** Unique session identifier */
   session_id: string;
+  /** Company name from JD or user input */
   company: string;
+  /** Job role/title */
   role: string;
+  /** Interview stage (e.g., phone, onsite, final) */
   stage: string;
+  /** Session mode: "prep" or "roleplay" */
   mode: string;
+  /** Current status (e.g., generating, ready, paused, finished) */
   status: string;
+  /** Resume/JD analysis output, or null if not yet generated */
   analysis: Record<string, unknown> | null;
+  /** Generated interview questions, or null if not yet generated */
   questions: Question[] | null;
+  /** Drafted answer frameworks with coaching, or null if not yet generated */
   answers: Answer[] | null;
+  /** Active question in roleplay mode; null when not in roleplay or between questions */
   current_question: CurrentQuestion | null;
+  /** Evaluations of user roleplay answers; populated after each answer is scored */
   feedback: Feedback[] | null;
+  /** Session summary; populated when roleplay finishes */
   summary: Record<string, unknown> | null;
+  /** Chat messages for prep mode Q&A; includes optional question_index for context */
   chat_history: { role: string; content: string; question_index?: number }[] | null;
+  /** ISO 8601 timestamp when session was created */
   created_at: string;
 }
 
+/**
+ * A generated interview question with metadata for prep and roleplay.
+ */
 export interface Question {
+  /** The question text */
   question: string;
+  /** Question category (e.g., behavioral, technical) */
   category: string;
+  /** Underlying theme or competency being assessed */
   theme: string;
+  /** Why the interviewer might ask this question */
   why_asked: string;
+  /** Optional role/title of likely asker (e.g., hiring manager, recruiter) */
   likely_asked_by?: string;
 }
 
+/**
+ * A drafted answer framework with coaching details for a question.
+ */
 export interface Answer {
+  /** The question this answer addresses */
   question: string;
+  /** Suggested structure and talking points for the answer */
   answer_framework: string;
+  /** Key points to cover */
   key_points: string[];
+  /** Example or story to use from resume/experience */
   example_to_use: string;
+  /** What to avoid saying or doing */
   avoid: string;
+  /** Optional guidance on answer length or pacing */
   timing_guidance?: string;
+  /** Optional red flags to avoid */
   red_flags?: string[];
+  /** Optional high-level strategy for responding */
   response_strategy?: string;
 }
 
+/**
+ * The active question in roleplay mode, with position and interviewer prompt.
+ */
 export interface CurrentQuestion {
+  /** 0-based index of current question */
   index: number;
+  /** Total number of questions in the roleplay */
   total: number;
+  /** The question text */
   question: string;
+  /** Full prompt the interviewer says (may include setup or follow-up) */
   interviewer_says: string;
 }
 
+/**
+ * Evaluation of a user's roleplay answer.
+ */
 export interface Feedback {
+  /** The question that was answered */
   question: string;
+  /** The user's submitted answer text */
   user_answer: string;
+  /** Numeric score (typically 0–100 or similar scale) */
   score: number;
+  /** What the user did well */
   strengths: string[];
+  /** Suggested improvements */
   improvements: string[];
+  /** Model-generated improved version of the answer */
   improved_answer: string;
+  /** Coaching tip for future answers */
   tip: string;
 }
 
+/**
+ * Name and title for a panel interviewer.
+ */
 export interface InterviewerInfo {
+  /** Interviewer's name */
   name: string;
+  /** Job title or role (e.g., Hiring Manager, Recruiter) */
   title: string;
 }
 
+/**
+ * Auto-extracted fields from a job description (text or URL).
+ */
 export interface ExtractedFields {
+  /** Extracted company name */
   company: string;
+  /** Extracted job role/title */
   role: string;
+  /** Suggested interview stage based on JD */
   stage_suggestion: string;
+  /** Full or cleaned job description text */
   job_description: string;
 }
 
+/**
+ * Uploads a resume file (PDF or DOCX) and returns extracted plain text.
+ *
+ * @param file - Resume file to parse (PDF or DOCX)
+ * @returns Extracted text content from the resume
+ * @throws Error when upload fails or parsing returns an error
+ */
 export async function parseResumeFile(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
@@ -80,6 +153,13 @@ export async function parseResumeFile(file: File): Promise<string> {
   return data.text;
 }
 
+/**
+ * Sends job description text or URL to the backend and returns extracted company, role, and stage.
+ *
+ * @param data - Either job_description (raw text) or job_url; at least one required
+ * @returns Extracted company, role, stage suggestion, and job description text
+ * @throws Error when the request fails
+ */
 export async function extractFields(data: {
   job_description?: string;
   job_url?: string;
@@ -93,6 +173,14 @@ export async function extractFields(data: {
   return res.json();
 }
 
+/**
+ * Performs a web search to find an interviewer's job title at a given company.
+ *
+ * @param name - Interviewer's name
+ * @param company - Company name for context
+ * @returns Object with title and source of the lookup
+ * @throws Error when the request fails
+ */
 export async function lookupInterviewer(
   name: string,
   company: string
@@ -106,12 +194,25 @@ export async function lookupInterviewer(
   return res.json();
 }
 
+/**
+ * Fetches all sessions from the backend.
+ *
+ * @returns Array of all sessions
+ * @throws Error when the request fails
+ */
 export async function listSessions(): Promise<Session[]> {
   const res = await fetch(`${BASE}/sessions`);
   if (!res.ok) throw new Error(`Failed: ${res.status}`);
   return res.json();
 }
 
+/**
+ * Creates a new session (blocking). Waits for full generation before returning.
+ *
+ * @param data - Session config: company, role, job_description, stage, resume, mode; optional job_url and interviewers
+ * @returns The created session with questions and answers populated
+ * @throws Error when the request fails
+ */
 export async function createSession(data: {
   company: string;
   role: string;
@@ -131,6 +232,14 @@ export async function createSession(data: {
   return res.json();
 }
 
+/**
+ * Creates a session with SSE progress events. Calls onProgress for each completed graph node.
+ *
+ * @param data - Session config: company, role, job_description, stage, resume, mode; optional job_url and interviewers
+ * @param onProgress - Callback invoked per completed node with node name and session ID
+ * @returns The final session when done, or null if stream ends without a session payload
+ * @throws Error when the request fails or the stream reports an error
+ */
 export async function createSessionStream(
   data: {
     company: string;
@@ -185,12 +294,27 @@ export async function createSessionStream(
   return session;
 }
 
+/**
+ * Fetches a single session by ID.
+ *
+ * @param id - Session ID
+ * @returns The session
+ * @throws Error when the request fails
+ */
 export async function getSession(id: string): Promise<Session> {
   const res = await fetch(`${BASE}/sessions/${id}`);
   if (!res.ok) throw new Error(`Failed: ${res.status}`);
   return res.json();
 }
 
+/**
+ * Submits the user's roleplay answer and resumes the graph into the evaluate node.
+ *
+ * @param id - Session ID
+ * @param answer - User's answer text
+ * @returns Updated session with feedback for the submitted answer
+ * @throws Error when the request fails
+ */
 export async function submitAnswer(
   id: string,
   answer: string
@@ -204,6 +328,13 @@ export async function submitAnswer(
   return res.json();
 }
 
+/**
+ * Advances past the feedback pause to the next question in roleplay.
+ *
+ * @param id - Session ID
+ * @returns Updated session with next current_question
+ * @throws Error when the request fails
+ */
 export async function continueSession(id: string): Promise<Session> {
   const res = await fetch(`${BASE}/sessions/${id}/continue`, {
     method: "POST",
@@ -212,6 +343,13 @@ export async function continueSession(id: string): Promise<Session> {
   return res.json();
 }
 
+/**
+ * Ends roleplay early and triggers session summary generation.
+ *
+ * @param id - Session ID
+ * @returns Updated session with summary populated
+ * @throws Error when the request fails
+ */
 export async function finishSession(id: string): Promise<Session> {
   const res = await fetch(`${BASE}/sessions/${id}/finish`, {
     method: "POST",
@@ -220,6 +358,13 @@ export async function finishSession(id: string): Promise<Session> {
   return res.json();
 }
 
+/**
+ * Switches a prep session to roleplay mode.
+ *
+ * @param id - Session ID
+ * @returns Updated session with mode "roleplay" and first current_question
+ * @throws Error when the request fails
+ */
 export async function startRoleplay(id: string): Promise<Session> {
   const res = await fetch(`${BASE}/sessions/${id}/start-roleplay`, {
     method: "POST",
@@ -228,6 +373,11 @@ export async function startRoleplay(id: string): Promise<Session> {
   return res.json();
 }
 
+/**
+ * Loads the saved resume from the backend.
+ *
+ * @returns Resume text, or empty string if none saved or request fails
+ */
 export async function getResume(): Promise<string> {
   const res = await fetch(`${BASE}/profile/resume`);
   if (!res.ok) return "";
@@ -235,6 +385,11 @@ export async function getResume(): Promise<string> {
   return data.resume || "";
 }
 
+/**
+ * Persists resume text to the backend.
+ *
+ * @param resume - Resume text to save
+ */
 export async function saveResume(resume: string): Promise<void> {
   await fetch(`${BASE}/profile/resume`, {
     method: "PUT",

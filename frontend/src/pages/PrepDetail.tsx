@@ -7,6 +7,10 @@ import QuestionCard, { QuestionOnlyCard } from "../components/QuestionCard";
 const TABS = ["Analysis", "Q&A", "Role-Play"] as const;
 type Tab = (typeof TABS)[number];
 
+/**
+ * Session detail page with Analysis, Q&A, and Role-Play tabs.
+ * Polls for answers when questions exist but answers don't (prep mode).
+ */
 export default function PrepDetail() {
   const { id } = useParams<{ id: string }>();
   const [session, setSession] = useState<Session | null>(null);
@@ -28,6 +32,7 @@ export default function PrepDetail() {
     });
   }, [id]);
 
+  /** Polls getSession every 2s when prep mode has questions but no answers yet. */
   useEffect(() => {
     if (!id || !session) return;
     const needsPolling =
@@ -49,6 +54,7 @@ export default function PrepDetail() {
     return () => clearInterval(interval);
   }, [id, session?.questions?.length, session?.answers?.length, session?.mode]);
 
+  /** Submits roleplay answer via submitAnswer API and updates session state. */
   const handleAnswer = async (answer: string) => {
     if (!id) return;
     setSubmitting(true);
@@ -60,6 +66,7 @@ export default function PrepDetail() {
     }
   };
 
+  /** Updates session state and switches to Role-Play tab. */
   const handleSessionUpdate = (updated: Session) => {
     setSession(updated);
     setTab("Role-Play");

@@ -1,3 +1,9 @@
+/**
+ * Root component with React Router. Routes:
+ * - `/` — Dashboard (session list)
+ * - `/new` — NewSession (create prep session)
+ * - `/prep/:id` — PrepDetail (session detail with Analysis/Q&A/Role-Play tabs)
+ */
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import NewSession from "./pages/NewSession";

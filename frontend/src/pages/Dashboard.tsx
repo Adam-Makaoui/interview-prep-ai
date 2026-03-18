@@ -9,6 +9,10 @@ const STAGE_LABELS: Record<string, string> = {
   final_panel: "Final Panel",
 };
 
+/**
+ * Fetches and displays all sessions as clickable cards.
+ * Uses {@link listSessions} from api.ts.
+ */
 export default function Dashboard() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);

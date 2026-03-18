@@ -11,6 +11,7 @@ import {
   type InterviewerInfo,
 } from "../lib/api";
 
+/** Interview stage options for the form. */
 const STAGES = [
   { value: "phone_screen", label: "Phone Screen" },
   { value: "recruiter_screen", label: "Recruiter Screen" },
@@ -21,6 +22,7 @@ const STAGES = [
   { value: "other", label: "Other (custom)" },
 ];
 
+/** Labels for backend pipeline nodes shown during session creation. */
 const NODE_LABELS: Record<string, string> = {
   parse: "Parsing job description...",
   analyze: "Analyzing role & company...",
@@ -32,6 +34,12 @@ const NODE_LABELS: Record<string, string> = {
 
 type JdMode = "text" | "url";
 
+/**
+ * Form for creating prep sessions. Key handlers: handleAutoFill (extracts fields from JD),
+ * handleLookup (web search for interviewer title), handleResumeFile (PDF/DOCX upload),
+ * handleSubmit (creates session via SSE stream, navigates early on generate complete),
+ * handleSaveResume (persists resume).
+ */
 export default function NewSession() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -71,6 +79,7 @@ export default function NewSession() {
       >
     ) => setForm({ ...form, [field]: e.target.value });
 
+  /** Extracts company, role, stage from JD text or URL via extractFields API. */
   const handleAutoFill = async () => {
     setExtracting(true);
     setError("");
@@ -93,6 +102,7 @@ export default function NewSession() {
     }
   };
 
+  /** Web search for interviewer title by name and company. */
   const handleLookup = async (idx: number) => {
     const person = interviewers[idx];
     if (!person.name.trim()) return;
@@ -109,6 +119,7 @@ export default function NewSession() {
     }
   };
 
+  /** Parses uploaded PDF/DOCX and populates resume field. */
   const handleResumeFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -126,6 +137,7 @@ export default function NewSession() {
     }
   };
 
+  /** Creates session via SSE stream; navigates to prep detail when generate node completes. */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -175,6 +187,7 @@ export default function NewSession() {
     }
   };
 
+  /** Persists current resume as default for future sessions. */
   const handleSaveResume = async () => {
     if (!form.resume.trim()) return;
     await saveResume(form.resume);

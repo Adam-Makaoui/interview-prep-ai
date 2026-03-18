@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Answer, Question } from "../lib/api";
 
+/** Tailwind classes for theme badges (question categories). */
 const THEME_COLORS: Record<string, string> = {
   "Technical Depth": "bg-blue-900/50 text-blue-300 border-blue-800",
   "Soft Skills & Communication": "bg-pink-900/50 text-pink-300 border-pink-800",
@@ -29,6 +30,7 @@ interface AnswerCardProps {
   index: number;
 }
 
+/** Collapsible card showing question with full answer details (framework, key points, strategy, etc.). */
 export default function QuestionCard({ answer, question, index }: AnswerCardProps) {
   const [open, setOpen] = useState(false);
 
@@ -166,6 +168,7 @@ interface QuestionOnlyCardProps {
   index: number;
 }
 
+/** Collapsible card showing only the question (used when answers are still being generated). */
 export function QuestionOnlyCard({ question, index }: QuestionOnlyCardProps) {
   const [open, setOpen] = useState(false);
 
