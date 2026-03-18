@@ -522,8 +522,8 @@ export default function NewSession() {
                       </button>
                     )}
                   </div>
-                  );}}
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
