@@ -55,17 +55,21 @@ Each node is a focused LLM call. State accumulates across nodes. Two conditional
 
 ---
 
-## Slide 5: Why LangGraph Over Alternatives
+## Slide 5: LangChain + LangGraph — Why Both
 
-| | LangGraph | Plain LangChain | CrewAI |
-|---|---|---|---|
-| **State machine** | Explicit nodes + edges | Chain of calls | Multi-agent collaboration |
-| **Conditional routing** | Built-in conditional edges | Manual if/else | Role-based delegation |
-| **Human-in-the-loop** | `interrupt_before` / `interrupt_after` | Not native | Not native |
-| **Checkpointed state** | MemorySaver → swap to Postgres in 1 line | Manual | Framework-managed |
-| **Our use case** | Structured pipeline with branches + pauses | Too simple | Overkill — we need one agent, not a crew |
+**LangChain** — the foundation
+- LLM integrations (OpenAI, Anthropic, etc.) with a unified interface
+- Prompt templates, output parsers, and structured JSON mode
+- Tools and retrievers for external data (web search, document parsing)
 
-**LangGraph gives us a DAG with interrupts. That's exactly what a coaching loop needs.**
+**LangGraph** — the orchestration layer (built on LangChain)
+- Turns LLM calls into a **state machine**: nodes, edges, conditional branches
+- **Checkpointed state** — every step is saved; swap MemorySaver → Postgres in one line
+- **`interrupt_before` / `interrupt_after`** — native human-in-the-loop gates
+- **Conditional edges** — the graph decides its own path based on accumulated context
+- **Streaming** — fires events per node completion for real-time UX
+
+**Together**: LangChain handles the LLM calls. LangGraph orchestrates *when*, *in what order*, and *with what logic* those calls happen — with pause points for human input.
 
 ---
 
