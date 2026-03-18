@@ -58,35 +58,71 @@ Practice answering interview questions interactively. The agent acts as an inter
 - Node.js 20+
 - OpenAI API key
 
-### Backend
+### Quick Start (from scratch)
 
+**1. Clone and enter the repo:**
+```bash
+git clone https://github.com/Adam-Makaoui/interview-prep-ai.git
+cd interview-prep-ai
+```
+
+**2. Backend (Terminal 1):**
 ```bash
 cd backend
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env  # Add your OPENAI_API_KEY
+cp .env.example .env
+```
+Edit `backend/.env` and set your OpenAI API key:
+```
+OPENAI_API_KEY=sk-your-key-here
+OPENAI_MODEL=gpt-4o-mini
+```
+Then start the server:
+```bash
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-### Frontend
-
+**3. Frontend (Terminal 2):**
 ```bash
 cd frontend
-npm install
+npm install --legacy-peer-deps
 npm run dev
 ```
 
-Open http://localhost:5173
+**4. Open http://localhost:5173**
+
+### Restarting (already set up)
+
+If you've already done the setup above and just need to restart:
+
+```bash
+# Terminal 1 — Backend
+cd backend && source .venv/bin/activate && python -m uvicorn app.main:app --reload --port 8000
+
+# Terminal 2 — Frontend
+cd frontend && npm run dev
+```
 
 ## API Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/health` | Health check |
-| POST | `/api/sessions` | Create a new prep session |
+| POST | `/api/sessions/stream` | Create session with SSE progress (primary) |
+| POST | `/api/sessions` | Create session (blocking, fallback) |
+| GET | `/api/sessions` | List all sessions |
 | GET | `/api/sessions/{id}` | Get session state |
 | POST | `/api/sessions/{id}/answer` | Submit role-play answer |
+| POST | `/api/sessions/{id}/continue` | Advance past feedback pause |
+| POST | `/api/sessions/{id}/finish` | End roleplay early, jump to summary |
+| POST | `/api/sessions/{id}/start-roleplay` | Switch prep session to role-play |
+| POST | `/api/extract-fields` | Auto-fill form from JD text or URL |
+| POST | `/api/lookup-interviewer` | Web search for interviewer title |
+| POST | `/api/parse-resume` | Extract text from PDF/DOCX/TXT upload |
+| GET | `/api/profile/resume` | Get saved resume |
+| PUT | `/api/profile/resume` | Save/update resume |
 
 ## Roadmap (Post-MVP)
 
