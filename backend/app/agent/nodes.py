@@ -281,7 +281,12 @@ def generate_questions(state: AgentState) -> dict:
             f"- Role Focus: {analysis.get('role_focus', '')}\n\n"
             "Generate 8-10 likely interview questions. Return a JSON object with:\n"
             '"questions": [\n'
-            '  {"question": "...", "category": "technical|behavioral|situational|general", '
+            '  {"question": "...", '
+            '"category": "technical|behavioral|situational|general", '
+            '"theme": "descriptive theme label, e.g. Technical Depth, Soft Skills & Communication, '
+            "Leadership & Management, Problem Solving, Culture Fit & Motivation, "
+            "Stakeholder Management, Strategic Thinking, Partnership & Collaboration, "
+            'Domain Knowledge, Self-Awareness & Growth", '
             '"why_asked": "brief reason why they\'d ask this"}\n'
             "]\n\nReturn ONLY valid JSON."
         ),

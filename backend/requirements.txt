@@ -9,3 +9,4 @@ python-dotenv
 python-multipart
 httpx
 beautifulsoup4
+duckduckgo-search

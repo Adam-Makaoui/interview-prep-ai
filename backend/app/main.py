@@ -1,11 +1,15 @@
 import uuid
 import json
 import logging
+import threading
+import queue as queue_mod
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from pydantic import BaseModel
 
@@ -65,11 +69,18 @@ def _format_session(session_id: str, state: dict) -> dict:
 
     is_complete = state.get("session_complete", False)
     has_analysis = bool(state.get("analysis"))
+    feedback_list = state.get("feedback", [])
 
     if is_complete:
         status = "complete"
     elif mode == "roleplay" and has_analysis and questions:
-        status = "awaiting_answer"
+        # Detect "reviewing_feedback" state: evaluate just ran (feedback exists
+        # for the current question) but the next question hasn't been asked yet.
+        # This happens because interrupt_after=["evaluate"] pauses the graph.
+        if feedback_list and len(feedback_list) == idx:
+            status = "reviewing_feedback"
+        else:
+            status = "awaiting_answer"
     elif has_analysis:
         status = "processing"
     else:
@@ -113,9 +124,54 @@ class ExtractRequest(BaseModel):
     job_url: str = ""
 
 
+class LookupRequest(BaseModel):
+    name: str
+    company: str = ""
+
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.post("/api/lookup-interviewer")
+async def lookup_interviewer(body: LookupRequest):
+    """Search the web for an interviewer's title given their name and company.
+
+    Uses DuckDuckGo search to find LinkedIn profiles or public bios,
+    then uses the LLM to extract their job title from the search snippets.
+    """
+    from duckduckgo_search import DDGS
+
+    query = f"{body.name} {body.company} LinkedIn".strip()
+    logger.info(f"Looking up interviewer: {query}")
+
+    try:
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, max_results=5))
+    except Exception as e:
+        logger.warning(f"DuckDuckGo search failed: {e}")
+        raise HTTPException(status_code=502, detail="Search service unavailable")
+
+    if not results:
+        return {"title": "", "source": ""}
+
+    snippets = "\n".join(
+        f"- {r.get('title', '')}: {r.get('body', '')}" for r in results[:5]
+    )
+
+    result = _llm_json(
+        system=(
+            "Extract a person's current job title from search results. "
+            "Return JSON with:\n"
+            '- "title": their current job title (e.g. "VP of Engineering")\n'
+            '- "source": which search result you got it from (brief)\n'
+            "If you can't determine the title, return empty strings.\n"
+            "Return ONLY valid JSON."
+        ),
+        user=f"Person: {body.name}\nCompany: {body.company}\n\nSearch results:\n{snippets}",
+    )
+    return result
 
 
 @app.post("/api/extract-fields")
@@ -150,6 +206,86 @@ async def extract_fields(body: ExtractRequest):
         user=jd,
     )
     return result
+
+
+@app.post("/api/sessions/stream")
+async def create_session_stream(body: SessionCreate):
+    """Create a session with SSE progress events as each node completes.
+
+    Uses agent.stream(stream_mode="updates") in a background thread,
+    feeding node-completion events through a queue to the SSE response.
+    """
+    session_id = str(uuid.uuid4())[:8]
+    config = {"configurable": {"thread_id": session_id}}
+
+    resume = body.resume
+    if not resume:
+        resume = _load_saved_resume()
+
+    initial_state = {
+        "company": body.company,
+        "role": body.role,
+        "job_description": body.job_description,
+        "job_url": body.job_url,
+        "stage": body.stage,
+        "stage_context": "",
+        "resume": resume,
+        "mode": body.mode,
+        "interviewers": [i.model_dump() for i in body.interviewers],
+        "analysis": {},
+        "questions": [],
+        "answers": [],
+        "chat_history": [],
+        "current_q_index": 0,
+        "feedback": [],
+        "summary": {},
+        "session_complete": False,
+    }
+
+    now = datetime.now(timezone.utc).isoformat()
+    _session_index[session_id] = {
+        "company": body.company,
+        "role": body.role,
+        "stage": body.stage,
+        "mode": body.mode,
+        "created_at": now,
+    }
+
+    q: queue_mod.Queue = queue_mod.Queue()
+
+    def _run():
+        try:
+            for chunk in agent.stream(initial_state, config, stream_mode="updates"):
+                node = list(chunk.keys())[0]
+                q.put({"node": node, "status": "complete"})
+            state = _get_state(session_id)
+            if state:
+                if state.get("company"):
+                    _session_index[session_id]["company"] = state["company"]
+                if state.get("role"):
+                    _session_index[session_id]["role"] = state["role"]
+                q.put({"done": True, "session": _format_session(session_id, state)})
+            else:
+                q.put({"done": True, "error": "Failed to create session"})
+        except Exception as e:
+            logger.error(f"Stream error: {e}")
+            q.put({"done": True, "error": str(e)})
+
+    threading.Thread(target=_run, daemon=True).start()
+
+    async def event_generator():
+        while True:
+            try:
+                item = await asyncio.get_event_loop().run_in_executor(
+                    None, lambda: q.get(timeout=120)
+                )
+                yield f"data: {json.dumps(item)}\n\n"
+                if item.get("done"):
+                    break
+            except queue_mod.Empty:
+                break
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @app.get("/api/sessions")
@@ -275,6 +411,43 @@ async def start_roleplay(session_id: str):
     if session_id in _session_index:
         _session_index[session_id]["mode"] = "roleplay"
 
+    return _format_session(session_id, result)
+
+
+@app.post("/api/sessions/{session_id}/continue")
+async def continue_session(session_id: str):
+    """Advance past the interrupt_after pause into the next roleplay_ask.
+
+    Called after the user has reviewed their feedback and is ready for
+    the next question.
+    """
+    state = _get_state(session_id)
+    if not state:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    config = {"configurable": {"thread_id": session_id}}
+    logger.info(f"Session {session_id}: continuing to next question")
+    result = agent.invoke(None, config)
+    return _format_session(session_id, result)
+
+
+@app.post("/api/sessions/{session_id}/finish")
+async def finish_session(session_id: str):
+    """End the roleplay early and jump to the summary node.
+
+    Used at the 5-question checkpoint when the user chooses "Finish & See Summary".
+    """
+    state = _get_state(session_id)
+    if not state:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    config = {"configurable": {"thread_id": session_id}}
+    agent.update_state(
+        config,
+        {"session_complete": True},
+        as_node="evaluate",
+    )
+    result = agent.invoke(None, config)
     return _format_session(session_id, result)
 
 

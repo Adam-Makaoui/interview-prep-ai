@@ -77,11 +77,12 @@ def build_graph() -> StateGraph:
 
 checkpointer = MemorySaver()
 
-# interrupt_before=["evaluate"] is the key to human-in-the-loop:
-# after roleplay_ask presents a question, the graph PAUSES before
-# evaluate runs. The user submits their answer via the API, which
-# resumes the graph with the updated chat_history.
+# Two interrupt points create the roleplay feedback loop:
+# 1. interrupt_before=["evaluate"] -- pauses so the user can type their answer
+# 2. interrupt_after=["evaluate"]  -- pauses so the user can READ their feedback
+#    before the next question loads. A separate /continue call advances.
 agent = build_graph().compile(
     checkpointer=checkpointer,
     interrupt_before=["evaluate"],
+    interrupt_after=["evaluate"],
 )

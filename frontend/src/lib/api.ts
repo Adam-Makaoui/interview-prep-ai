@@ -20,6 +20,7 @@ export interface Session {
 export interface Question {
   question: string;
   category: string;
+  theme: string;
   why_asked: string;
 }
 
@@ -73,6 +74,19 @@ export async function extractFields(data: {
   return res.json();
 }
 
+export async function lookupInterviewer(
+  name: string,
+  company: string
+): Promise<{ title: string; source: string }> {
+  const res = await fetch(`${BASE}/lookup-interviewer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, company }),
+  });
+  if (!res.ok) throw new Error(`Failed: ${res.status}`);
+  return res.json();
+}
+
 export async function listSessions(): Promise<Session[]> {
   const res = await fetch(`${BASE}/sessions`);
   if (!res.ok) throw new Error(`Failed: ${res.status}`);
@@ -98,6 +112,61 @@ export async function createSession(data: {
   return res.json();
 }
 
+export async function createSessionStream(
+  data: {
+    company: string;
+    role: string;
+    job_description: string;
+    job_url?: string;
+    stage: string;
+    resume: string;
+    mode: string;
+    interviewers?: InterviewerInfo[];
+  },
+  onProgress: (node: string) => void
+): Promise<Session> {
+  const res = await fetch(`${BASE}/sessions/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) throw new Error(`Failed: ${res.status}`);
+
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let session: Session | null = null;
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      try {
+        const payload = JSON.parse(line.slice(6));
+        if (payload.done) {
+          if (payload.error) throw new Error(payload.error);
+          session = payload.session;
+        } else {
+          onProgress(payload.node);
+        }
+      } catch (e) {
+        if (e instanceof SyntaxError) continue;
+        throw e;
+      }
+    }
+  }
+
+  if (!session) throw new Error("Session creation failed");
+  return session;
+}
+
 export async function getSession(id: string): Promise<Session> {
   const res = await fetch(`${BASE}/sessions/${id}`);
   if (!res.ok) throw new Error(`Failed: ${res.status}`);
@@ -112,6 +181,22 @@ export async function submitAnswer(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ answer }),
+  });
+  if (!res.ok) throw new Error(`Failed: ${res.status}`);
+  return res.json();
+}
+
+export async function continueSession(id: string): Promise<Session> {
+  const res = await fetch(`${BASE}/sessions/${id}/continue`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed: ${res.status}`);
+  return res.json();
+}
+
+export async function finishSession(id: string): Promise<Session> {
+  const res = await fetch(`${BASE}/sessions/${id}/finish`, {
+    method: "POST",
   });
   if (!res.ok) throw new Error(`Failed: ${res.status}`);
   return res.json();
