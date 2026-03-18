@@ -7,9 +7,12 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from pydantic import BaseModel
+
 from app.config import settings
 from app.models import SessionCreate, AnswerSubmit, ResumeProfile, SessionOut
 from app.agent.graph import agent, checkpointer
+from app.agent.nodes import _llm_json, _fetch_url
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -105,9 +108,48 @@ def _load_saved_resume() -> str:
 # ── Routes ────────────────────────────────────────────────────────────
 
 
+class ExtractRequest(BaseModel):
+    job_description: str = ""
+    job_url: str = ""
+
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.post("/api/extract-fields")
+async def extract_fields(body: ExtractRequest):
+    """Parse a JD (text or URL) and return extracted company, role, and suggested stage.
+
+    This is a lightweight pre-submission call so the user can review and
+    edit the auto-filled fields before creating a full session.
+    """
+    import re
+    jd = body.job_description
+    if body.job_url and re.match(r"https?://", body.job_url):
+        fetched = _fetch_url(body.job_url)
+        if fetched:
+            jd = fetched
+
+    if not jd:
+        raise HTTPException(status_code=400, detail="No job description or URL provided")
+
+    result = _llm_json(
+        system=(
+            "Extract structured information from this job posting. "
+            "Return a JSON object with:\n"
+            '- "company": company name\n'
+            '- "role": job title\n'
+            '- "stage_suggestion": most likely interview stage from these options: '
+            '"phone_screen", "recruiter_screen", "hiring_manager", "technical", '
+            '"behavioral", "final_panel". Pick the best default.\n'
+            '- "job_description": cleaned full job description text\n'
+            "\nReturn ONLY valid JSON."
+        ),
+        user=jd,
+    )
+    return result
 
 
 @app.get("/api/sessions")
@@ -142,10 +184,10 @@ async def create_session(body: SessionCreate):
         "job_description": body.job_description,
         "job_url": body.job_url,
         "stage": body.stage,
+        "stage_context": "",
         "resume": resume,
         "mode": body.mode,
-        "interviewer_name": body.interviewer_name,
-        "interviewer_title": body.interviewer_title,
+        "interviewers": [i.model_dump() for i in body.interviewers],
         "analysis": {},
         "questions": [],
         "answers": [],

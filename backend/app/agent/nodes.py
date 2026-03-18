@@ -1,3 +1,15 @@
+"""LangGraph agent nodes -- the core AI logic of InterviewPrep AI.
+
+Each function in this module is a node in the LangGraph state machine.
+Nodes receive the full AgentState, perform one focused task (usually an
+LLM call), and return a partial dict of only the state fields they modify.
+LangGraph merges the returned dict into the accumulated state automatically.
+
+Architecture note: every LLM call uses JSON-mode output (response_format)
+rather than function-calling/tool-use, because our nodes are deterministic
+pipeline steps, not autonomous tool-selection decisions. JSON-mode gives
+us structured output with lower latency and simpler error handling.
+"""
 from __future__ import annotations
 
 import json
@@ -14,10 +26,25 @@ from app.agent.state import AgentState
 
 logger = logging.getLogger(__name__)
 
+# ── Stage context mapping ────────────────────────────────────────────
+# Each stage type has a tailored description that gets injected into the
+# question-generation prompt. This is what makes questions feel authentic
+# to each interview round -- a recruiter screen produces different
+# questions than a hiring manager deep-dive.
 STAGE_CONTEXT = {
     "phone_screen": (
         "Initial phone screen. Focus on motivation, general fit, "
         "high-level experience, and 'tell me about yourself' style questions."
+    ),
+    "recruiter_screen": (
+        "Recruiter screening call. Focus on salary expectations, availability, "
+        "visa/relocation needs, basic qualification checks, and 'walk me through "
+        "your resume' questions. Recruiters rarely ask deep technical questions."
+    ),
+    "hiring_manager": (
+        "Hiring manager interview. Focus on team fit, management style alignment, "
+        "how the candidate approaches problems, past project impact, and 'why this "
+        "team/role' questions. Expect a mix of behavioral and light technical."
     ),
     "technical": (
         "Technical interview. Focus on technical skills, system design, "
@@ -35,6 +62,7 @@ STAGE_CONTEXT = {
 
 
 def _llm() -> ChatOpenAI:
+    """Create a configured ChatOpenAI instance using app settings."""
     return ChatOpenAI(
         model=settings.openai_model,
         api_key=settings.openai_api_key,
@@ -43,16 +71,23 @@ def _llm() -> ChatOpenAI:
 
 
 def _llm_json(system: str, user: str) -> dict:
-    """Call LLM and parse JSON response."""
+    """Call the LLM with JSON-mode output and parse the response.
+
+    Uses OpenAI's response_format=json_object to guarantee valid JSON,
+    avoiding brittle regex parsing of markdown code blocks.
+    """
     llm = _llm().bind(response_format={"type": "json_object"})
     resp = llm.invoke([SystemMessage(content=system), HumanMessage(content=user)])
     return json.loads(resp.content)
 
 
-# ── Node 1: Parse Job Posting ────────────────────────────────────────
-
 def _fetch_url(url: str) -> str:
-    """Fetch a URL and extract readable text content."""
+    """Fetch a URL and extract readable text, stripping boilerplate HTML.
+
+    Used by parse_job_posting to support "paste URL" input mode.
+    Strips script/style/nav/footer tags and truncates to 8k chars to
+    stay within LLM context limits.
+    """
     try:
         resp = httpx.get(url, follow_redirects=True, timeout=15, headers={
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
@@ -68,13 +103,69 @@ def _fetch_url(url: str) -> str:
         return ""
 
 
+def _resolve_stage_context(stage: str) -> str:
+    """Return a human-readable description for any interview stage.
+
+    For predefined stages, returns the curated description from STAGE_CONTEXT.
+    For custom stages (e.g. "case study", "system design review"), uses the
+    LLM to generate a brief description so question generation is always
+    stage-aware, even for stages we haven't hardcoded.
+    """
+    if stage in STAGE_CONTEXT:
+        return STAGE_CONTEXT[stage]
+
+    logger.info(f"Generating context for custom stage: {stage}")
+    result = _llm_json(
+        system=(
+            "You are an interview expert. Given an interview stage name, "
+            "write a 2-3 sentence description of what this stage typically "
+            "evaluates and what kinds of questions are asked. "
+            'Return JSON: {"stage_context": "..."}'
+        ),
+        user=f"Interview stage: {stage}",
+    )
+    return result.get("stage_context", f"Interview stage: {stage}")
+
+
+def _format_interviewers(interviewers: list) -> str:
+    """Format a list of interviewer dicts into prompt context.
+
+    Returns empty string if no interviewers are provided, so prompts
+    degrade gracefully without interviewer info.
+    """
+    if not interviewers:
+        return ""
+
+    parts = []
+    for i, person in enumerate(interviewers, 1):
+        name = person.get("name", "")
+        title = person.get("title", "")
+        if name or title:
+            parts.append(f"  {i}. {name}{' - ' + title if title else ''}")
+
+    if not parts:
+        return ""
+
+    return (
+        "\n\nInterviewer Panel:\n"
+        + "\n".join(parts)
+        + "\nFactor in each interviewer's likely perspective and focus areas "
+        "based on their roles when generating tips."
+    )
+
+
+# ── Node 1: Parse Job Posting ────────────────────────────────────────
+
 def parse_job_posting(state: AgentState) -> dict:
     """Extract structured fields from raw job description text or URL.
 
-    Handles three cases:
+    This node handles three input scenarios:
     1. job_url provided -> fetch page, extract text, then LLM parse
-    2. company/role already filled -> pass through
-    3. raw JD text only -> LLM extracts company/role
+    2. company/role already filled -> pass through (user manually entered)
+    3. raw JD text only -> LLM extracts company/role from the text
+
+    The node is idempotent: if company and role are already populated,
+    it skips the LLM call entirely to save latency and cost.
     """
     jd = state.get("job_description", "")
     job_url = state.get("job_url", "")
@@ -85,12 +176,19 @@ def parse_job_posting(state: AgentState) -> dict:
         if fetched:
             jd = fetched
 
+    # Resolve stage context (LLM fallback for custom stages)
+    stage = state.get("stage", "phone_screen")
+    stage_ctx = _resolve_stage_context(stage)
+
     if state.get("company") and state.get("role") and jd:
         logger.info("Fields already provided, skipping LLM parse")
-        return {"job_description": jd} if job_url else {}
+        updates = {"stage_context": stage_ctx}
+        if job_url:
+            updates["job_description"] = jd
+        return updates
 
     if not jd:
-        return {}
+        return {"stage_context": stage_ctx}
 
     result = _llm_json(
         system=(
@@ -108,23 +206,31 @@ def parse_job_posting(state: AgentState) -> dict:
         "company": result.get("company", state.get("company", "")),
         "role": result.get("role", state.get("role", "")),
         "job_description": result.get("job_description", jd),
+        "stage_context": stage_ctx,
     }
 
 
 # ── Node 2: Analyze Role ─────────────────────────────────────────────
 
 def analyze_role(state: AgentState) -> dict:
-    """Analyze the role, company, and JD to extract prep-relevant insights."""
+    """Analyze the role, company, and JD to extract prep-relevant insights.
+
+    This is the "reasoning" step that transforms raw job description text
+    into structured intelligence. The analysis output feeds into both
+    question generation and answer drafting, creating a context chain
+    where each node builds on the previous one's output.
+    """
     logger.info(f"Analyzing role: {state['role']} at {state['company']}")
 
-    interviewer_ctx = ""
-    name = state.get("interviewer_name", "")
-    title = state.get("interviewer_title", "")
-    if name or title:
-        interviewer_ctx = (
-            f"\n\nInterviewer Info: {name}{' - ' + title if title else ''}\n"
-            "Factor in the interviewer's likely perspective and focus areas "
-            "based on their role when generating tips."
+    interviewer_ctx = _format_interviewers(state.get("interviewers", []))
+
+    titles = [p.get("title", "") for p in state.get("interviewers", []) if p.get("title")]
+    interviewer_focus_prompt = ""
+    if titles:
+        titles_str = ", ".join(titles)
+        interviewer_focus_prompt = (
+            f'- "interviewer_focus": list of 2-3 things the interviewers '
+            f'({titles_str}) will likely focus on\n'
         )
 
     result = _llm_json(
@@ -136,7 +242,7 @@ def analyze_role(state: AgentState) -> dict:
             '- "what_they_value": list of 3-5 things the company values\n'
             '- "role_focus": 2-3 sentence summary of what this role is really about\n'
             '- "interview_tips": list of 3-5 specific tips for this role\n'
-            + (f'- "interviewer_focus": 2-3 things the interviewer ({title}) will likely focus on\n' if title else "")
+            + interviewer_focus_prompt
             + "\nReturn ONLY valid JSON."
         ),
         user=(
@@ -153,15 +259,22 @@ def analyze_role(state: AgentState) -> dict:
 # ── Node 3: Generate Questions ────────────────────────────────────────
 
 def generate_questions(state: AgentState) -> dict:
-    """Generate stage-specific interview questions."""
+    """Generate stage-specific interview questions.
+
+    Uses the stage_context (either predefined or LLM-generated) and the
+    analysis from the previous node to produce questions that feel
+    authentic to the specific interview round. This is the key
+    differentiator from generic "top 10 interview questions" lists.
+    """
     stage = state.get("stage", "phone_screen")
+    stage_ctx = state.get("stage_context", STAGE_CONTEXT.get(stage, "General interview"))
     analysis = state.get("analysis", {})
-    logger.info(f"Generating questions for {stage}")
+    logger.info(f"Generating questions for stage: {stage}")
 
     result = _llm_json(
         system=(
             "You are an expert interview coach. Generate realistic interview questions.\n\n"
-            f"Interview Stage: {STAGE_CONTEXT.get(stage, 'General interview')}\n\n"
+            f"Interview Stage: {stage_ctx}\n\n"
             "Role Analysis:\n"
             f"- Key Skills: {json.dumps(analysis.get('key_skills', []))}\n"
             f"- What They Value: {json.dumps(analysis.get('what_they_value', []))}\n"
@@ -182,7 +295,13 @@ def generate_questions(state: AgentState) -> dict:
 # ── Node 4: Draft Answers (prep mode) ────────────────────────────────
 
 def draft_answers(state: AgentState) -> dict:
-    """Draft personalized answer frameworks for all questions."""
+    """Draft personalized answer frameworks for all questions.
+
+    Only runs in prep mode. Uses the candidate's resume (if provided)
+    to tailor examples and talking points. Each answer follows the
+    STAR method where applicable, giving the user a structured
+    framework rather than a scripted response.
+    """
     questions = state.get("questions", [])
     analysis = state.get("analysis", {})
     resume = state.get("resume", "")
@@ -231,7 +350,12 @@ def draft_answers(state: AgentState) -> dict:
 # ── Node 5: Role-Play Ask ────────────────────────────────────────────
 
 def roleplay_ask(state: AgentState) -> dict:
-    """Pick the next question and present it as an interviewer would."""
+    """Present the next interview question as a realistic interviewer.
+
+    The LLM adopts the interviewer persona -- professional, conversational,
+    and stage-appropriate. It doesn't reveal that it's AI or that this is
+    practice. This creates an immersive mock interview experience.
+    """
     questions = state.get("questions", [])
     idx = state.get("current_q_index", 0)
 
@@ -264,7 +388,15 @@ def roleplay_ask(state: AgentState) -> dict:
 # ── Node 6: Evaluate Answer ──────────────────────────────────────────
 
 def evaluate_answer(state: AgentState) -> dict:
-    """Evaluate the user's answer and provide feedback."""
+    """Score the user's answer and provide actionable coaching feedback.
+
+    This is the human-in-the-loop node: LangGraph pauses BEFORE this node
+    (via interrupt_before=["evaluate"]) to wait for user input. When the
+    user submits their answer, the graph resumes and this node runs.
+
+    The evaluation considers the role context, key skills, and what the
+    company values -- not just whether the answer is "good" in isolation.
+    """
     history = state.get("chat_history", [])
     questions = state.get("questions", [])
     idx = state.get("current_q_index", 0)
@@ -338,7 +470,13 @@ def evaluate_answer(state: AgentState) -> dict:
 # ── Node 7: Session Summary ──────────────────────────────────────────
 
 def session_summary(state: AgentState) -> dict:
-    """Generate an overall session summary and readiness scorecard."""
+    """Synthesize all per-question feedback into a readiness scorecard.
+
+    This final node aggregates individual scores, strengths, and
+    improvement areas into a holistic assessment. The readiness_level
+    ("ready", "almost there", "needs work", "not ready") gives the
+    user a clear signal of their preparation status.
+    """
     feedback = state.get("feedback", [])
 
     if not feedback:
@@ -382,10 +520,12 @@ def session_summary(state: AgentState) -> dict:
 # ── Routing Functions ─────────────────────────────────────────────────
 
 def route_by_mode(state: AgentState) -> str:
+    """Conditional edge: route to prep (draft answers) or roleplay (interactive)."""
     return "roleplay" if state.get("mode") == "roleplay" else "prep"
 
 
 def check_continue(state: AgentState) -> str:
+    """Conditional edge: continue to the next question or finish the session."""
     questions = state.get("questions", [])
     idx = state.get("current_q_index", 0)
     if idx >= len(questions) or state.get("session_complete"):

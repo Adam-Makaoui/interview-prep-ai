@@ -1,3 +1,20 @@
+"""LangGraph state machine definition for the interview prep agent.
+
+The graph has 7 nodes connected by explicit edges and two conditional
+routing points. This is fundamentally different from a simple ReAct agent
+loop (think -> act -> observe) because:
+
+1. The flow is a DAG with branches, not a flat loop
+2. Human-in-the-loop is built in via interrupt_before
+3. Each node has a single responsibility and deterministic output
+4. State is checkpointed after every node, enabling session resumability
+
+The two conditional edges are:
+- route_by_mode: after question generation, routes to either "draft answers"
+  (prep mode) or "roleplay_ask" (interactive practice)
+- check_continue: after evaluating a role-play answer, either loops back
+  for the next question or exits to the summary node
+"""
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -16,6 +33,17 @@ from app.agent.nodes import (
 
 
 def build_graph() -> StateGraph:
+    """Construct the 7-node interview prep state machine.
+
+    Graph topology:
+        START -> parse -> analyze -> generate --(mode?)--> draft -> summary -> END
+                                                    |                          ^
+                                                    +--> roleplay_ask          |
+                                                           |                   |
+                                                         evaluate --(done?)----+
+                                                           |
+                                                           +-- (continue) --> roleplay_ask
+    """
     graph = StateGraph(AgentState)
 
     graph.add_node("parse", parse_job_posting)
@@ -37,7 +65,6 @@ def build_graph() -> StateGraph:
     graph.add_edge("draft", "summary")
     graph.add_edge("summary", END)
 
-    # Role-play loop: ask -> (interrupt for user) -> evaluate -> ask again or finish
     graph.add_edge("roleplay_ask", "evaluate")
     graph.add_conditional_edges(
         "evaluate",
@@ -49,6 +76,11 @@ def build_graph() -> StateGraph:
 
 
 checkpointer = MemorySaver()
+
+# interrupt_before=["evaluate"] is the key to human-in-the-loop:
+# after roleplay_ask presents a question, the graph PAUSES before
+# evaluate runs. The user submits their answer via the API, which
+# resumes the graph with the updated chat_history.
 agent = build_graph().compile(
     checkpointer=checkpointer,
     interrupt_before=["evaluate"],

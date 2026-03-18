@@ -48,6 +48,31 @@ export interface Feedback {
   tip: string;
 }
 
+export interface InterviewerInfo {
+  name: string;
+  title: string;
+}
+
+export interface ExtractedFields {
+  company: string;
+  role: string;
+  stage_suggestion: string;
+  job_description: string;
+}
+
+export async function extractFields(data: {
+  job_description?: string;
+  job_url?: string;
+}): Promise<ExtractedFields> {
+  const res = await fetch(`${BASE}/extract-fields`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed: ${res.status}`);
+  return res.json();
+}
+
 export async function listSessions(): Promise<Session[]> {
   const res = await fetch(`${BASE}/sessions`);
   if (!res.ok) throw new Error(`Failed: ${res.status}`);
@@ -62,8 +87,7 @@ export async function createSession(data: {
   stage: string;
   resume: string;
   mode: string;
-  interviewer_name?: string;
-  interviewer_title?: string;
+  interviewers?: InterviewerInfo[];
 }): Promise<Session> {
   const res = await fetch(`${BASE}/sessions`, {
     method: "POST",

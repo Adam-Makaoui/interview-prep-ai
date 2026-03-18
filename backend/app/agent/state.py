@@ -1,26 +1,38 @@
+"""LangGraph agent state definition.
+
+AgentState is a TypedDict that flows through every node in the graph.
+LangGraph persists this state via its checkpointer between invocations,
+enabling session resumability and human-in-the-loop patterns.
+
+Design decision: we use a flat TypedDict rather than nested Pydantic models
+because LangGraph's state merging works best with simple dict-like structures.
+Each node returns a partial dict of only the fields it modifies.
+"""
 from __future__ import annotations
 
 from typing import TypedDict
-from langgraph.graph import add_messages
 
 
 class AgentState(TypedDict):
+    # -- Input fields (provided by user at session creation) --
     company: str
     role: str
     job_description: str
     job_url: str
-    stage: str
+    stage: str                # e.g. "phone_screen", "technical", or custom
+    stage_context: str        # human-readable description of what this stage evaluates
     resume: str
-    interviewer_name: str
-    interviewer_title: str
+    interviewers: list        # list of {"name": str, "title": str} dicts
 
-    analysis: dict
-    questions: list
-    answers: list
+    # -- Computed fields (populated by agent nodes) --
+    analysis: dict            # output of analyze_role node
+    questions: list           # output of generate_questions node
+    answers: list             # output of draft_answers node (prep mode only)
 
-    mode: str
-    chat_history: list
-    current_q_index: int
-    feedback: list
-    summary: dict
+    # -- Role-play state --
+    mode: str                 # "prep" or "roleplay"
+    chat_history: list        # conversation messages in role-play
+    current_q_index: int      # tracks which question we're on
+    feedback: list            # per-question evaluation results
+    summary: dict             # final session scorecard
     session_complete: bool

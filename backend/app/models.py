@@ -1,4 +1,15 @@
+"""Pydantic models for API request/response validation.
+
+These models define the contract between the React frontend and the FastAPI
+backend. SessionCreate is intentionally permissive (most fields optional)
+so the LLM-powered parse node can fill in gaps from the job description.
+"""
 from pydantic import BaseModel, Field
+
+
+class InterviewerInfo(BaseModel):
+    name: str = ""
+    title: str = ""
 
 
 class SessionCreate(BaseModel):
@@ -6,14 +17,10 @@ class SessionCreate(BaseModel):
     role: str = ""
     job_description: str = ""
     job_url: str = ""
-    stage: str = Field(
-        default="phone_screen",
-        pattern="^(phone_screen|technical|behavioral|final_panel)$",
-    )
+    stage: str = "phone_screen"
     resume: str = ""
     mode: str = Field(default="prep", pattern="^(prep|roleplay)$")
-    interviewer_name: str = ""
-    interviewer_title: str = ""
+    interviewers: list[InterviewerInfo] = []
 
 
 class AnswerSubmit(BaseModel):

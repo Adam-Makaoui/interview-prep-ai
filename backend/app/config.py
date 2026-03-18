@@ -1,3 +1,9 @@
+"""Application settings loaded from environment variables.
+
+Uses pydantic-settings to validate and type-check env vars at startup.
+If OPENAI_API_KEY is missing, the app fails fast with a clear error
+rather than silently breaking on the first LLM call.
+"""
 from pydantic_settings import BaseSettings
 
 
