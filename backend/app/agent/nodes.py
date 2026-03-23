@@ -275,11 +275,11 @@ def generate_questions(state: AgentState) -> dict:
     interviewer_ctx = _format_interviewers(interviewers) if interviewers else ""
 
     asked_by_field = ""
-    if interviewers and any(p.get("name") for p in interviewers):
-        names = [p.get("name", "") for p in interviewers if p.get("name")]
+    named = [p.get("name", "") for p in interviewers if p.get("name")]
+    if len(named) >= 2:
         asked_by_field = (
             '"likely_asked_by": "name of the interviewer most likely to ask this '
-            f'(choose from: {", ".join(names)})", '
+            f'(choose from: {", ".join(named)})", '
         )
 
     result = _llm_json(
@@ -290,7 +290,13 @@ def generate_questions(state: AgentState) -> dict:
             f"- Key Skills: {json.dumps(analysis.get('key_skills', []))}\n"
             f"- What They Value: {json.dumps(analysis.get('what_they_value', []))}\n"
             f"- Role Focus: {analysis.get('role_focus', '')}\n\n"
-            + (f"Interviewer Panel Context:{interviewer_ctx}\n\n" if interviewer_ctx else "")
+            + (f"Interviewer Panel Context:{interviewer_ctx}\n"
+               "IMPORTANT: Adjust question depth and technical specificity based on each "
+               "interviewer's seniority and domain. A VP of Engineering or CTO conducting "
+               "even an early-stage round will ask higher-level strategic and technical "
+               "questions than a recruiter would. The interview stage sets the baseline "
+               "topic areas; the interviewer's background shifts the depth and distribution.\n\n"
+               if interviewer_ctx else "")
             + "Generate 8-10 likely interview questions. Return a JSON object with:\n"
             '"questions": [\n'
             '  {"question": "...", '
@@ -380,12 +386,30 @@ def roleplay_ask(state: AgentState) -> dict:
         return {"session_complete": True}
 
     q = questions[idx]
+
+    interviewers = state.get("interviewers", [])
+    persona = "a professional interviewer"
+    asker = q.get("likely_asked_by", "")
+    if asker:
+        match = next((p for p in interviewers if p.get("name") == asker), None)
+        if match and match.get("title"):
+            persona = f"{asker}, {match['title']},"
+        else:
+            persona = f"{asker},"
+    elif len(interviewers) == 1:
+        p = interviewers[0]
+        name = p.get("name", "")
+        title = p.get("title", "")
+        if name:
+            persona = f"{name}, {title}," if title else f"{name},"
+
     llm = _llm()
     resp = llm.invoke([
         SystemMessage(content=(
-            "You are a professional interviewer conducting a real interview. "
+            f"You are {persona} conducting a real interview at {state['company']}. "
             "Present the following question naturally, as if you were sitting across "
             "from the candidate. Be conversational but professional. "
+            "Adapt your tone and depth to your role — a VP asks differently than a recruiter. "
             "If this is the first question, start with a brief warm greeting. "
             "Do NOT reveal that you are an AI or that this is practice."
         )),
