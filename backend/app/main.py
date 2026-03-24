@@ -1,6 +1,7 @@
 import uuid
 import json
 import logging
+import re
 import threading
 import queue as queue_mod
 import asyncio
@@ -16,7 +17,7 @@ from pydantic import BaseModel
 from app.config import settings
 from app.models import SessionCreate, AnswerSubmit, ResumeProfile, SessionOut
 from app.agent.graph import agent, checkpointer
-from app.agent.nodes import _llm_json, _fetch_url
+from app.agent.nodes import _llm_json, _llm_json_extract, _fetch_url
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -48,6 +49,16 @@ def _get_state(session_id: str) -> dict | None:
     except Exception:
         return None
     return None
+
+
+def _skill_averages_from_running(running: dict | None) -> dict[str, float]:
+    if not running:
+        return {}
+    out: dict[str, float] = {}
+    for k, v in running.items():
+        if isinstance(v, dict) and v.get("count"):
+            out[str(k)] = round(float(v["sum"]) / int(v["count"]), 1)
+    return out
 
 
 def _format_session(session_id: str, state: dict) -> dict:
@@ -87,6 +98,7 @@ def _format_session(session_id: str, state: dict) -> dict:
         status = "analyzing"
 
     meta = _session_index.get(session_id, {})
+    running = state.get("running_competency_scores") or {}
 
     return {
         "session_id": session_id,
@@ -103,7 +115,19 @@ def _format_session(session_id: str, state: dict) -> dict:
         "summary": state.get("summary"),
         "chat_history": state.get("chat_history") or None,
         "created_at": meta.get("created_at", ""),
+        "pipeline_group": meta.get("pipeline_group", ""),
+        "running_competency_scores": running,
+        "skill_averages": _skill_averages_from_running(running),
     }
+
+
+def _pipeline_group_value(company: str, explicit: str) -> str:
+    """Group sessions for dashboard (e.g. all rounds with same company)."""
+    if explicit and explicit.strip():
+        return explicit.strip()
+    base = (company or "").strip().lower()
+    base = re.sub(r"\s+", " ", base)
+    return base or "general"
 
 
 def _load_saved_resume() -> str:
@@ -228,7 +252,10 @@ async def extract_fields(body: ExtractRequest):
     if not jd:
         raise HTTPException(status_code=400, detail="No job description or URL provided")
 
-    result = _llm_json(
+    extract_cap = 8000
+    jd_for_llm = jd[:extract_cap] if len(jd) > extract_cap else jd
+
+    result = _llm_json_extract(
         system=(
             "Extract structured information from this job posting. "
             "Return a JSON object with:\n"
@@ -237,11 +264,14 @@ async def extract_fields(body: ExtractRequest):
             '- "stage_suggestion": most likely interview stage from these options: '
             '"phone_screen", "recruiter_screen", "hiring_manager", "technical", '
             '"behavioral", "final_panel". Pick the best default.\n'
-            '- "job_description": cleaned full job description text\n'
+            '- "job_description": cleaned job description text (can be truncated; '
+            "prefer first ~6000 chars of substance)\n"
             "\nReturn ONLY valid JSON."
         ),
-        user=jd,
+        user=jd_for_llm,
     )
+    if isinstance(result.get("job_description"), str) and len(jd) > len(result["job_description"]):
+        result["job_description"] = jd
     return result
 
 
@@ -275,6 +305,7 @@ async def create_session_stream(body: SessionCreate):
         "chat_history": [],
         "current_q_index": 0,
         "feedback": [],
+        "running_competency_scores": {},
         "summary": {},
         "session_complete": False,
     }
@@ -286,6 +317,7 @@ async def create_session_stream(body: SessionCreate):
         "stage": body.stage,
         "mode": body.mode,
         "created_at": now,
+        "pipeline_group": _pipeline_group_value(body.company, body.pipeline_group),
     }
 
     q: queue_mod.Queue = queue_mod.Queue()
@@ -338,7 +370,14 @@ async def list_sessions():
         if state:
             sessions.append(_format_session(sid, state))
         else:
-            sessions.append({**meta, "session_id": sid, "status": "unknown"})
+            sessions.append({
+                **meta,
+                "session_id": sid,
+                "status": "unknown",
+                "pipeline_group": meta.get("pipeline_group", ""),
+                "running_competency_scores": {},
+                "skill_averages": {},
+            })
     return sessions
 
 
@@ -367,6 +406,7 @@ async def create_session(body: SessionCreate):
         "chat_history": [],
         "current_q_index": 0,
         "feedback": [],
+        "running_competency_scores": {},
         "summary": {},
         "session_complete": False,
     }
@@ -378,6 +418,7 @@ async def create_session(body: SessionCreate):
         "stage": body.stage,
         "mode": body.mode,
         "created_at": now,
+        "pipeline_group": _pipeline_group_value(body.company, body.pipeline_group),
     }
 
     logger.info(f"Creating session {session_id}: {body.role} at {body.company} ({body.mode})")
@@ -410,7 +451,9 @@ async def submit_answer(session_id: str, body: AnswerSubmit):
     history.append({"role": "user", "content": body.answer})
 
     logger.info(f"Session {session_id}: answer submitted for Q{state.get('current_q_index', 0) + 1}")
-    result = agent.invoke({"chat_history": history}, config)
+
+    agent.update_state(config, {"chat_history": history}, as_node="roleplay_ask")
+    result = agent.invoke(None, config)
     return _format_session(session_id, result)
 
 
@@ -437,6 +480,7 @@ async def start_roleplay(session_id: str):
             "chat_history": [],
             "current_q_index": 0,
             "feedback": [],
+            "running_competency_scores": {},
             "summary": {},
             "session_complete": False,
         },

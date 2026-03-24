@@ -34,5 +34,6 @@ class AgentState(TypedDict):
     chat_history: list        # conversation messages in role-play
     current_q_index: int      # tracks which question we're on
     feedback: list            # per-question evaluation results
+    running_competency_scores: dict  # per-dimension {key: {"sum": float, "count": int}}
     summary: dict             # final session scorecard
     session_complete: bool

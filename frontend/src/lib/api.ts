@@ -33,6 +33,12 @@ export interface Session {
   chat_history: { role: string; content: string; question_index?: number }[] | null;
   /** ISO 8601 timestamp when session was created */
   created_at: string;
+  /** Dashboard grouping key (defaults to normalized company) */
+  pipeline_group?: string;
+  /** Raw sum/count per competency key during role-play */
+  running_competency_scores?: Record<string, { sum: number; count: number }>;
+  /** Running average 1–10 per competency key (this session) */
+  skill_averages?: Record<string, number>;
 }
 
 /**
@@ -105,6 +111,8 @@ export interface Feedback {
   improved_answer: string;
   /** Coaching tip for future answers */
   tip: string;
+  /** Per scorecard-dimension scores for this answer (keys match analysis.scorecard_dimensions) */
+  competency_scores?: Record<string, number>;
 }
 
 /**
@@ -222,6 +230,7 @@ export async function createSession(data: {
   resume: string;
   mode: string;
   interviewers?: InterviewerInfo[];
+  pipeline_group?: string;
 }): Promise<Session> {
   const res = await fetch(`${BASE}/sessions`, {
     method: "POST",
@@ -250,6 +259,7 @@ export async function createSessionStream(
     resume: string;
     mode: string;
     interviewers?: InterviewerInfo[];
+    pipeline_group?: string;
   },
   onProgress: (node: string, sessionId: string) => void
 ): Promise<Session | null> {

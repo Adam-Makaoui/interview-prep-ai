@@ -78,6 +78,8 @@ Edit `backend/.env` and set your OpenAI API key:
 ```
 OPENAI_API_KEY=sk-your-key-here
 OPENAI_MODEL=gpt-4o-mini
+# Optional: faster/cheaper model for JD auto-fill only (defaults to OPENAI_MODEL)
+# OPENAI_EXTRACT_MODEL=gpt-4o-mini
 ```
 Then start the server:
 ```bash
@@ -130,7 +132,7 @@ cd frontend && npm run dev
 1. **Persistent storage**: Swap `MemorySaver` to `SQLiteSaver`/PostgreSQL for session persistence across server restarts
 2. **Candidate profile / "Mastermind" avatar**: Persistent profile that tracks strengths, weaknesses, and patterns across all interview sessions. Learns what question types the user struggles with, which examples they overuse, and generates increasingly targeted practice
 3. **Cross-session analytics**: Dashboard showing improvement trends, recurring weak areas, and readiness scores per interview type
-4. **Interview outcome tracking**: Record pass/fail outcomes per round to correlate prep quality with real results and refine coaching over time
+4. **Interview outcome tracking**: See **Interview outcome entity (draft)** below — record pass/fail and free-text debrief per real round to drive future prep (e.g. “failed technical demo on AI vertical”)
 5. **Auto-enrichment**: Web search for company culture, Glassdoor reviews, and recent news to enrich prep context
 
 ### Phase 3 -- Monetization & Distribution
@@ -139,7 +141,21 @@ cd frontend && npm run dev
 8. **Production deploy**: Vercel (frontend) + Railway (backend)
 9. **Multi-modal input**: Screenshot (GPT-4o vision) for quick JD capture from any source
 
-## DataRobot Presentation Notes
+### Interview outcome entity (draft — Phase 3)
+
+Planned persistence (not implemented in the demo MVP) to close the loop after real interviews:
+
+| Field | Purpose |
+|-------|---------|
+| `session_id` / `pipeline_group` | Link to prep context |
+| `company`, `round_stage` | Which interview this was |
+| `result` | pass / fail / withdrew / unknown |
+| `debrief_notes` | What went wrong/right (e.g. weak on industry vertical) |
+| `tags` | e.g. `["vertical:AI", "format:live-coding"]` |
+
+Future: feed `debrief_notes` + tags into the next session’s `analyze_role` / question generation for targeted remediation.
+
+## Presentation Talking Points
 
 ### The Problem
 Interview preparation is fragmented and generic. Candidates waste hours googling "common interview questions" instead of practicing with tailored, stage-specific questions based on the actual job description.

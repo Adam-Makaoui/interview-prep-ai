@@ -1,6 +1,6 @@
-# InterviewPrep AI — Demo & Architecture Guide
+# InterviewPrep AI — Pitch & Architecture Guide
 
-> **Purpose**: This document prepares you for a 15-minute presentation of InterviewPrep AI. It covers the problem, architecture, what makes this agentic, technical choices, a live demo script, and how this pattern applies to DataRobot customer problems.
+> **Purpose**: This document prepares you for a 15-minute presentation of InterviewPrep AI. It covers the problem, architecture, what makes this agentic, technical choices, a live demo script, and how this pattern applies to enterprise customer problems.
 
 ---
 
@@ -125,7 +125,7 @@ When interviewers are provided, the analysis node generates `interviewer_focus` 
 
 2. **Click "+ New Session"** — Show the form
 
-3. **Paste a Job Description** — Use a real JD (DataRobot SE role works well)
+3. **Paste a Job Description** — Use a real JD (any SE / Solutions Engineer role works well)
    - Toggle between "Paste Text" and "Paste URL" modes
    - Click **"Auto-Fill Company, Role & Stage"** — watch it extract fields
    - Point out that the user can **edit** the auto-filled values
@@ -188,9 +188,9 @@ When interviewers are provided, the analysis node generates `interviewer_focus` 
 
 ---
 
-## 7. Vision: DataRobot Customer Application
+## 7. Vision: Enterprise Customer Applications
 
-The core pattern here — **a LangGraph state machine with domain-specific nodes, conditional routing, and human-in-the-loop** — applies directly to DataRobot customer problems:
+The core pattern here — **a LangGraph state machine with domain-specific nodes, conditional routing, and human-in-the-loop** — applies to a broad range of enterprise problems:
 
 ### Pattern: Domain-Specific Agentic Workflow
 
@@ -202,15 +202,15 @@ The core pattern here — **a LangGraph state machine with domain-specific nodes
 | **Sales Discovery Agent** | Parse prospect info → analyze company/industry → generate discovery questions → roleplay practice for AEs → feedback loop |
 | **ML Model Monitoring** | Parse drift alert → analyze feature importance changes → generate remediation options (conditional: retrain vs. adjust threshold) → human decision → execute |
 
-### Key Insight for DataRobot
+### Key Insight
 
-The differentiator isn't the LLM — it's the **state machine around the LLM**. Any customer can call GPT-4. What they can't easily build is:
+The differentiator isn't the LLM — it's the **state machine around the LLM**. Anyone can call GPT-4. What they can't easily build is:
 - Conditional routing that changes behavior based on accumulated context
 - Human-in-the-loop gates at the right points in the workflow
 - Session persistence that survives across interactions
 - Multi-node context chains where each step enriches the next
 
-This is exactly what DataRobot's solutions engineering team would help customers build — and LangGraph makes it possible with production-ready primitives (checkpointers, interrupt points, conditional edges).
+LangGraph makes this possible with production-ready primitives (checkpointers, interrupt points, conditional edges).
 
 ---
 

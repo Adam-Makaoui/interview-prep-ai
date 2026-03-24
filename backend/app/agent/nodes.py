@@ -81,6 +81,40 @@ def _llm_json(system: str, user: str) -> dict:
     return json.loads(resp.content)
 
 
+def _llm_json_extract(system: str, user: str) -> dict:
+    """Fast extraction path: dedicated model + temperature 0 for field parsing."""
+    llm = ChatOpenAI(
+        model=settings.extract_model,
+        api_key=settings.openai_api_key,
+        temperature=0,
+    ).bind(response_format={"type": "json_object"})
+    resp = llm.invoke([SystemMessage(content=system), HumanMessage(content=user)])
+    return json.loads(resp.content)
+
+
+def _company_intel_snippets(company: str) -> str:
+    """Short web snippets to ground company_intel (best-effort, may be empty)."""
+    if not company or len(company.strip()) < 2:
+        return ""
+    try:
+        from duckduckgo_search import DDGS
+        parts: list[str] = []
+        queries = [
+            f"{company} company employees size",
+            f"{company} competitors",
+        ]
+        with DDGS() as ddgs:
+            for q in queries:
+                for r in ddgs.text(q, max_results=3):
+                    body = (r.get("body") or "")[:400]
+                    if body:
+                        parts.append(body)
+        return "\n".join(parts)[:2500]
+    except Exception as e:
+        logger.debug("company intel search skipped: %s", e)
+        return ""
+
+
 def _fetch_url(url: str) -> str:
     """Fetch a URL and extract readable text, stripping boilerplate HTML.
 
@@ -233,6 +267,20 @@ def analyze_role(state: AgentState) -> dict:
             f'({titles_str}) will likely focus on\n'
         )
 
+    web_ctx = _company_intel_snippets(state.get("company", ""))
+    web_section = (
+        f"\n\nWeb search snippets (may be incomplete; verify important facts):\n{web_ctx}"
+        if web_ctx
+        else ""
+    )
+
+    resume = (state.get("resume") or "").strip()
+    resume_section = (
+        f"\n\nCandidate resume (for jd_fit only):\n{resume[:6000]}"
+        if resume
+        else "\n\n(No resume provided -- jd_fit should note limited signal.)"
+    )
+
     result = _llm_json(
         system=(
             "You are an expert career analyst and interview coach. "
@@ -242,14 +290,32 @@ def analyze_role(state: AgentState) -> dict:
             '- "what_they_value": list of 3-5 things the company values\n'
             '- "role_focus": 2-3 sentence summary of what this role is really about\n'
             '- "interview_tips": list of 3-5 specific tips for this role\n'
+            '- "scorecard_dimensions": array of 4-7 objects for THIS role, each with:\n'
+            '    "key": stable snake_case id (e.g. technical_depth, discovery, storytelling),\n'
+            '    "label": short display name,\n'
+            '    "why_it_matters": one sentence why this competency matters for this role\n'
+            "  Tailor dimensions to the role (e.g. SE: technical, discovery, storytelling, "
+            "partnership, business_acumen; IC engineer: system design, coding, collaboration).\n"
+            '- "company_intel": object with:\n'
+            '    "employee_size_band": string e.g. "200-500" or "10k+" or "unknown",\n'
+            '    "market_position": one sentence (how they position in market),\n'
+            '    "competitors": array of { "name": string, "one_liner": string } (3-5 items),\n'
+            '    "data_quality_note": short disclaimer if web/snippets missing\n'
+            '- "jd_fit": object with:\n'
+            '    "aligned_strengths": bullets where resume matches JD,\n'
+            '    "gaps_vs_jd": bullets where resume is weak vs JD requirements,\n'
+            '    "risk_areas": bullets that could hurt in interview,\n'
+            '    "missing_keywords": skills/terms in JD not evident on resume\n'
             + interviewer_focus_prompt
             + "\nReturn ONLY valid JSON."
         ),
         user=(
             f"Company: {state['company']}\n"
             f"Role: {state['role']}\n\n"
-            f"Job Description:\n{state['job_description']}"
+            f"Job Description:\n{state['job_description'][:12000]}"
             f"{interviewer_ctx}"
+            f"{web_section}"
+            f"{resume_section}"
         ),
     )
     logger.info(f"Analysis complete: {list(result.keys())}")
@@ -428,6 +494,30 @@ def roleplay_ask(state: AgentState) -> dict:
 
 # ── Node 6: Evaluate Answer ──────────────────────────────────────────
 
+def _merge_competency_running(
+    prev: dict | None,
+    competency_scores: dict,
+    dimension_keys: list[str],
+) -> dict:
+    """Accumulate running sum/count per competency key for session averages."""
+    out = dict(prev) if prev else {}
+    for k in dimension_keys:
+        if k not in competency_scores:
+            continue
+        raw = competency_scores[k]
+        try:
+            sc = int(float(raw))
+        except (TypeError, ValueError):
+            continue
+        sc = max(1, min(10, sc))
+        cur = out.get(k) or {"sum": 0.0, "count": 0}
+        out[k] = {
+            "sum": float(cur["sum"]) + sc,
+            "count": int(cur["count"]) + 1,
+        }
+    return out
+
+
 def evaluate_answer(state: AgentState) -> dict:
     """Score the user's answer and provide actionable coaching feedback.
 
@@ -457,25 +547,49 @@ def evaluate_answer(state: AgentState) -> dict:
 
     q = questions[idx] if idx < len(questions) else {}
 
+    dims = analysis.get("scorecard_dimensions") or []
+    dim_keys = [d.get("key") for d in dims if isinstance(d, dict) and d.get("key")]
+    dim_summary = json.dumps(
+        [{"key": d.get("key"), "label": d.get("label", d.get("key"))} for d in dims if d.get("key")]
+    )
+
+    competency_block = ""
+    if dim_keys:
+        competency_block = (
+            f"\nScorecard dimensions for this role: {dim_summary}\n"
+            'Also return "competency_scores": JSON object mapping EACH listed "key" '
+            "to an integer 1-10 scoring ONLY this answer on that dimension.\n"
+        )
+
     result = _llm_json(
         system=(
             "You are an expert interview coach evaluating a candidate's answer.\n\n"
             f"Role: {state['role']} at {state['company']}\n"
             f"Key Skills: {json.dumps(analysis.get('key_skills', []))}\n"
-            f"What They Value: {json.dumps(analysis.get('what_they_value', []))}\n\n"
-            "Evaluate the answer and return a JSON object with:\n"
-            '- "score": integer 1-10\n'
+            f"What They Value: {json.dumps(analysis.get('what_they_value', []))}\n"
+            f"Question theme/category: {q.get('theme', '')} / {q.get('category', '')}\n"
+            + competency_block
+            + "\nEvaluate the answer and return a JSON object with:\n"
+            '- "score": integer 1-10 overall\n'
             '- "strengths": list of 2-3 things done well\n'
             '- "improvements": list of 2-3 specific improvements\n'
             '- "improved_answer": a stronger version of their answer (3-5 sentences)\n'
             '- "tip": one actionable tip for next time\n'
-            "\nReturn ONLY valid JSON."
+            + ('- "competency_scores": object as described above\n' if dim_keys else "")
+            + "\nReturn ONLY valid JSON."
         ),
         user=(
             f"Question: {q.get('question', '')}\n"
             f"Why this is asked: {q.get('why_asked', '')}\n\n"
             f"Candidate's answer: {last_user_msg['content']}"
         ),
+    )
+
+    comp_raw = result.get("competency_scores") if isinstance(result.get("competency_scores"), dict) else {}
+    running = _merge_competency_running(
+        state.get("running_competency_scores"),
+        comp_raw,
+        dim_keys,
     )
 
     feedback_entry = {
@@ -487,6 +601,8 @@ def evaluate_answer(state: AgentState) -> dict:
         "improved_answer": result.get("improved_answer", ""),
         "tip": result.get("tip", ""),
     }
+    if comp_raw:
+        feedback_entry["competency_scores"] = comp_raw
 
     history.append({
         "role": "coach",
@@ -505,6 +621,7 @@ def evaluate_answer(state: AgentState) -> dict:
         "chat_history": history,
         "feedback": all_feedback,
         "current_q_index": idx + 1,
+        "running_competency_scores": running,
     }
 
 
@@ -532,6 +649,21 @@ def session_summary(state: AgentState) -> dict:
         all_strengths.extend(f.get("strengths", []))
         all_improvements.extend(f.get("improvements", []))
 
+    analysis = state.get("analysis", {})
+    key_skills = analysis.get("key_skills", [])
+    dims = analysis.get("scorecard_dimensions") or []
+    dim_labels = [
+        f"{d.get('key')}: {d.get('label', d.get('key'))}"
+        for d in dims
+        if isinstance(d, dict) and d.get("key")
+    ]
+
+    running = state.get("running_competency_scores") or {}
+    running_avgs: dict[str, float] = {}
+    for k, v in running.items():
+        if isinstance(v, dict) and v.get("count"):
+            running_avgs[k] = round(float(v["sum"]) / int(v["count"]), 1)
+
     result = _llm_json(
         system=(
             "You are an interview coach wrapping up a practice session. "
@@ -542,11 +674,20 @@ def session_summary(state: AgentState) -> dict:
             '- "top_strengths": list of 3 standout strengths across all answers\n'
             '- "priority_improvements": list of 3 most important things to work on\n'
             '- "final_advice": 2-3 sentence personalized advice for the actual interview\n'
+            '- "skills_breakdown": array of objects, each with:\n'
+            '    "skill": use the human-readable label matching scorecard dimensions when provided,\n'
+            '    "score": integer 1-10,\n'
+            '    "note": one sentence explaining this rating\n'
+            "  Cover each scorecard dimension when dimension list is provided; otherwise 5-7 role-relevant skills. "
+            "Honor running session averages when provided unless narrative strongly conflicts.\n"
             "\nReturn ONLY valid JSON."
         ),
         user=(
             f"Role: {state['role']} at {state['company']}\n"
             f"Stage: {state['stage']}\n"
+            f"Key skills for this role: {json.dumps(key_skills)}\n"
+            f"Scorecard dimensions: {json.dumps(dim_labels)}\n"
+            f"Running competency averages (this session): {json.dumps(running_avgs)}\n"
             f"Questions practiced: {len(feedback)}\n"
             f"Average score: {avg:.1f}/10\n"
             f"Individual scores: {scores}\n"

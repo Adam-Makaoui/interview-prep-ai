@@ -13,15 +13,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-gray-950">
-        <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+        <header className="border-b border-gray-800/60 px-6 py-4 backdrop-blur-sm">
           <Link to="/" className="text-xl font-bold text-white tracking-tight">
             InterviewPrep<span className="text-indigo-400">AI</span>
-          </Link>
-          <Link
-            to="/new"
-            className="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
-          >
-            + New Session
           </Link>
         </header>
         <Routes>
