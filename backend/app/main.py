@@ -80,15 +80,17 @@ def _format_session(session_id: str, state: dict) -> dict:
 
     is_complete = state.get("session_complete", False)
     has_analysis = bool(state.get("analysis"))
-    feedback_list = state.get("feedback", [])
 
     if is_complete:
         status = "complete"
     elif mode == "roleplay" and has_analysis and questions:
-        # Detect "reviewing_feedback" state: evaluate just ran (feedback exists
-        # for the current question) but the next question hasn't been asked yet.
-        # This happens because interrupt_after=["evaluate"] pauses the graph.
-        if feedback_list and len(feedback_list) == idx:
+        # Pause after evaluate: last message is coach feedback. After /continue,
+        # roleplay_ask appends interviewer — last message is interviewer again.
+        # Do NOT use len(feedback)==current_q_index alone: after Q1 both are 1 while
+        # Q2 is already asked, which wrongly kept status on reviewing_feedback.
+        chat_tail = state.get("chat_history") or []
+        last_role = chat_tail[-1].get("role") if chat_tail else None
+        if last_role == "coach":
             status = "reviewing_feedback"
         else:
             status = "awaiting_answer"
