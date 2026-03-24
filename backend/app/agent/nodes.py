@@ -58,6 +58,10 @@ STAGE_CONTEXT = {
         "Final panel interview. Focus on strategic thinking, leadership, "
         "culture fit, 'why us/why you', and long-term vision questions."
     ),
+    "vp_round": (
+        "VP round interview. Focus on strategic thinking, leadership, "
+        "culture fit, 'why us/why you', and long-term vision questions."
+    )
 }
 
 
