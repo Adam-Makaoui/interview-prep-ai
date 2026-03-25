@@ -7,8 +7,9 @@ import queue as queue_mod
 import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -24,20 +25,209 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Interview Prep Agent")
 
+_allowed_origins = [settings.frontend_url, "http://localhost:5173"]
+if settings.frontend_url != "http://localhost:5173":
+    _allowed_origins.append("http://localhost:5173")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url, "http://localhost:5173"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── In-memory session index ──────────────────────────────────────────
-# Maps session_id -> lightweight metadata so we can list all sessions
-# without walking the checkpointer.
-_session_index: dict[str, dict] = {}
 
+# ── DB helpers (Supabase Postgres) or in-memory fallback ─────────────
+
+_pg_conn = None
+
+def _db():
+    """Lazy Postgres connection for session/profile metadata."""
+    global _pg_conn
+    if _pg_conn is not None:
+        return _pg_conn
+    if settings.use_postgres:
+        import psycopg
+        _pg_conn = psycopg.connect(settings.database_url)
+        _pg_conn.autocommit = True
+        logger.info("Session metadata DB connected (Postgres)")
+        return _pg_conn
+    return None
+
+
+_mem_session_index: dict[str, dict] = {}
 RESUME_PATH = Path(__file__).parent.parent / "resume_profile.json"
+
+
+def _save_session_meta(sid: str, meta: dict, user_id: str | None = None):
+    conn = _db()
+    if conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO sessions (session_id, user_id, company, role, stage, mode, pipeline_group, created_at)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                   ON CONFLICT (session_id) DO UPDATE SET
+                     company = EXCLUDED.company, role = EXCLUDED.role,
+                     mode = EXCLUDED.mode, pipeline_group = EXCLUDED.pipeline_group""",
+                (
+                    sid,
+                    user_id,
+                    meta.get("company", ""),
+                    meta.get("role", ""),
+                    meta.get("stage", ""),
+                    meta.get("mode", "prep"),
+                    meta.get("pipeline_group", "general"),
+                    meta.get("created_at", datetime.now(timezone.utc).isoformat()),
+                ),
+            )
+    else:
+        _mem_session_index[sid] = meta
+
+
+def _list_session_metas(user_id: str | None = None) -> list[dict]:
+    conn = _db()
+    if conn:
+        with conn.cursor() as cur:
+            if user_id:
+                cur.execute(
+                    "SELECT session_id, company, role, stage, mode, pipeline_group, created_at "
+                    "FROM sessions WHERE user_id = %s ORDER BY created_at DESC",
+                    (user_id,),
+                )
+            else:
+                cur.execute(
+                    "SELECT session_id, company, role, stage, mode, pipeline_group, created_at "
+                    "FROM sessions ORDER BY created_at DESC"
+                )
+            rows = cur.fetchall()
+        return [
+            {
+                "session_id": r[0], "company": r[1], "role": r[2],
+                "stage": r[3], "mode": r[4], "pipeline_group": r[5],
+                "created_at": r[6].isoformat() if hasattr(r[6], "isoformat") else str(r[6]),
+            }
+            for r in rows
+        ]
+    return sorted(
+        [{"session_id": sid, **meta} for sid, meta in _mem_session_index.items()],
+        key=lambda x: x.get("created_at", ""),
+        reverse=True,
+    )
+
+
+def _get_session_meta(sid: str) -> dict:
+    conn = _db()
+    if conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT company, role, stage, mode, pipeline_group, created_at "
+                "FROM sessions WHERE session_id = %s",
+                (sid,),
+            )
+            row = cur.fetchone()
+        if row:
+            return {
+                "company": row[0], "role": row[1], "stage": row[2],
+                "mode": row[3], "pipeline_group": row[4],
+                "created_at": row[5].isoformat() if hasattr(row[5], "isoformat") else str(row[5]),
+            }
+        return {}
+    return _mem_session_index.get(sid, {})
+
+
+def _update_session_meta(sid: str, **fields):
+    conn = _db()
+    if conn and fields:
+        sets = ", ".join(f"{k} = %s" for k in fields)
+        vals = list(fields.values()) + [sid]
+        with conn.cursor() as cur:
+            cur.execute(f"UPDATE sessions SET {sets} WHERE session_id = %s", vals)
+    elif sid in _mem_session_index:
+        _mem_session_index[sid].update(fields)
+
+
+def _load_saved_resume(user_id: str | None = None) -> str:
+    conn = _db()
+    if conn and user_id:
+        with conn.cursor() as cur:
+            cur.execute("SELECT resume FROM profiles WHERE id = %s", (user_id,))
+            row = cur.fetchone()
+        return row[0] if row else ""
+    if RESUME_PATH.exists():
+        try:
+            data = json.loads(RESUME_PATH.read_text())
+            return data.get("resume", "")
+        except Exception:
+            return ""
+    return ""
+
+
+def _save_resume(text: str, user_id: str | None = None):
+    conn = _db()
+    if conn and user_id:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE profiles SET resume = %s, updated_at = now() WHERE id = %s",
+                (text, user_id),
+            )
+        return
+    RESUME_PATH.write_text(json.dumps({"resume": text}))
+
+
+def _increment_session_count(user_id: str | None):
+    conn = _db()
+    if conn and user_id:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE profiles SET session_count = session_count + 1 WHERE id = %s",
+                (user_id,),
+            )
+
+
+def _get_profile(user_id: str) -> dict | None:
+    conn = _db()
+    if not conn or not user_id:
+        return None
+    with conn.cursor() as cur:
+        cur.execute("SELECT plan, session_count FROM profiles WHERE id = %s", (user_id,))
+        row = cur.fetchone()
+    if row:
+        return {"plan": row[0], "session_count": row[1]}
+    return None
+
+
+# ── Auth helpers ─────────────────────────────────────────────────────
+
+def _get_current_user(request: Request) -> Optional[str]:
+    """Extract user_id from Supabase JWT. Returns None if no auth configured or no token."""
+    if not settings.supabase_jwt_secret:
+        return None
+    auth = request.headers.get("authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+    token = auth[7:]
+    try:
+        import jwt
+        payload = jwt.decode(
+            token,
+            settings.supabase_jwt_secret,
+            algorithms=["HS256"],
+            audience="authenticated",
+        )
+        return payload.get("sub")
+    except Exception:
+        return None
+
+
+def _require_user(request: Request) -> str:
+    """Dependency: require a valid Supabase JWT. Raises 401 if missing/invalid."""
+    uid = _get_current_user(request)
+    if not uid:
+        if not settings.supabase_jwt_secret:
+            return "anonymous"
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return uid
 
 
 def _get_state(session_id: str) -> dict | None:
@@ -84,10 +274,6 @@ def _format_session(session_id: str, state: dict) -> dict:
     if is_complete:
         status = "complete"
     elif mode == "roleplay" and has_analysis and questions:
-        # Pause after evaluate: last message is coach feedback. After /continue,
-        # roleplay_ask appends interviewer — last message is interviewer again.
-        # Do NOT use len(feedback)==current_q_index alone: after Q1 both are 1 while
-        # Q2 is already asked, which wrongly kept status on reviewing_feedback.
         chat_tail = state.get("chat_history") or []
         last_role = chat_tail[-1].get("role") if chat_tail else None
         if last_role == "coach":
@@ -99,7 +285,7 @@ def _format_session(session_id: str, state: dict) -> dict:
     else:
         status = "analyzing"
 
-    meta = _session_index.get(session_id, {})
+    meta = _get_session_meta(session_id)
     running = state.get("running_competency_scores") or {}
 
     return {
@@ -124,22 +310,11 @@ def _format_session(session_id: str, state: dict) -> dict:
 
 
 def _pipeline_group_value(company: str, explicit: str) -> str:
-    """Group sessions for dashboard (e.g. all rounds with same company)."""
     if explicit and explicit.strip():
         return explicit.strip()
     base = (company or "").strip().lower()
     base = re.sub(r"\s+", " ", base)
     return base or "general"
-
-
-def _load_saved_resume() -> str:
-    if RESUME_PATH.exists():
-        try:
-            data = json.loads(RESUME_PATH.read_text())
-            return data.get("resume", "")
-        except Exception:
-            return ""
-    return ""
 
 
 # ── Routes ────────────────────────────────────────────────────────────
@@ -277,19 +452,32 @@ async def extract_fields(body: ExtractRequest):
     return result
 
 
-@app.post("/api/sessions/stream")
-async def create_session_stream(body: SessionCreate):
-    """Create a session with SSE progress events as each node completes.
+FREE_SESSION_LIMIT = 1
 
-    Uses agent.stream(stream_mode="updates") in a background thread,
-    feeding node-completion events through a queue to the SSE response.
-    """
+
+def _check_free_limit(user_id: str | None):
+    """Raise 402 if the user has exceeded the free tier."""
+    if not user_id or user_id == "anonymous":
+        return
+    profile = _get_profile(user_id)
+    if profile and profile["plan"] == "free" and profile["session_count"] >= FREE_SESSION_LIMIT:
+        raise HTTPException(
+            status_code=402,
+            detail="Free tier limit reached. Upgrade to Pro for unlimited sessions.",
+        )
+
+
+@app.post("/api/sessions/stream")
+async def create_session_stream(request: Request, body: SessionCreate):
+    user_id = _get_current_user(request)
+    _check_free_limit(user_id)
+
     session_id = str(uuid.uuid4())[:8]
     config = {"configurable": {"thread_id": session_id}}
 
     resume = body.resume
     if not resume:
-        resume = _load_saved_resume()
+        resume = _load_saved_resume(user_id)
 
     initial_state = {
         "company": body.company,
@@ -313,7 +501,7 @@ async def create_session_stream(body: SessionCreate):
     }
 
     now = datetime.now(timezone.utc).isoformat()
-    _session_index[session_id] = {
+    meta = {
         "company": body.company,
         "role": body.role,
         "stage": body.stage,
@@ -321,6 +509,8 @@ async def create_session_stream(body: SessionCreate):
         "created_at": now,
         "pipeline_group": _pipeline_group_value(body.company, body.pipeline_group),
     }
+    _save_session_meta(session_id, meta, user_id)
+    _increment_session_count(user_id)
 
     q: queue_mod.Queue = queue_mod.Queue()
 
@@ -332,9 +522,9 @@ async def create_session_stream(body: SessionCreate):
             state = _get_state(session_id)
             if state:
                 if state.get("company"):
-                    _session_index[session_id]["company"] = state["company"]
+                    _update_session_meta(session_id, company=state["company"])
                 if state.get("role"):
-                    _session_index[session_id]["role"] = state["role"]
+                    _update_session_meta(session_id, role=state["role"])
                 q.put({"done": True, "session": _format_session(session_id, state)})
             else:
                 q.put({"done": True, "error": "Failed to create session"})
@@ -360,23 +550,19 @@ async def create_session_stream(body: SessionCreate):
 
 
 @app.get("/api/sessions")
-async def list_sessions():
-    """List all sessions with lightweight metadata."""
+async def list_sessions(request: Request):
+    user_id = _get_current_user(request)
+    metas = _list_session_metas(user_id)
     sessions = []
-    for sid, meta in sorted(
-        _session_index.items(),
-        key=lambda x: x[1].get("created_at", ""),
-        reverse=True,
-    ):
+    for meta in metas:
+        sid = meta["session_id"]
         state = _get_state(sid)
         if state:
             sessions.append(_format_session(sid, state))
         else:
             sessions.append({
                 **meta,
-                "session_id": sid,
                 "status": "unknown",
-                "pipeline_group": meta.get("pipeline_group", ""),
                 "running_competency_scores": {},
                 "skill_averages": {},
             })
@@ -384,13 +570,16 @@ async def list_sessions():
 
 
 @app.post("/api/sessions")
-async def create_session(body: SessionCreate):
+async def create_session(request: Request, body: SessionCreate):
+    user_id = _get_current_user(request)
+    _check_free_limit(user_id)
+
     session_id = str(uuid.uuid4())[:8]
     config = {"configurable": {"thread_id": session_id}}
 
     resume = body.resume
     if not resume:
-        resume = _load_saved_resume()
+        resume = _load_saved_resume(user_id)
 
     initial_state = {
         "company": body.company,
@@ -414,7 +603,7 @@ async def create_session(body: SessionCreate):
     }
 
     now = datetime.now(timezone.utc).isoformat()
-    _session_index[session_id] = {
+    meta = {
         "company": body.company,
         "role": body.role,
         "stage": body.stage,
@@ -422,14 +611,16 @@ async def create_session(body: SessionCreate):
         "created_at": now,
         "pipeline_group": _pipeline_group_value(body.company, body.pipeline_group),
     }
+    _save_session_meta(session_id, meta, user_id)
+    _increment_session_count(user_id)
 
     logger.info(f"Creating session {session_id}: {body.role} at {body.company} ({body.mode})")
     result = agent.invoke(initial_state, config)
 
     if result.get("company"):
-        _session_index[session_id]["company"] = result["company"]
+        _update_session_meta(session_id, company=result["company"])
     if result.get("role"):
-        _session_index[session_id]["role"] = result["role"]
+        _update_session_meta(session_id, role=result["role"])
 
     return _format_session(session_id, result)
 
@@ -491,8 +682,7 @@ async def start_roleplay(session_id: str):
 
     result = agent.invoke(None, config)
 
-    if session_id in _session_index:
-        _session_index[session_id]["mode"] = "roleplay"
+    _update_session_meta(session_id, mode="roleplay")
 
     return _format_session(session_id, result)
 
@@ -538,15 +728,28 @@ async def finish_session(session_id: str):
 
 
 @app.get("/api/profile/resume")
-async def get_resume():
-    return {"resume": _load_saved_resume()}
+async def get_resume(request: Request):
+    user_id = _get_current_user(request)
+    return {"resume": _load_saved_resume(user_id)}
 
 
 @app.put("/api/profile/resume")
-async def save_resume(body: ResumeProfile):
-    RESUME_PATH.write_text(json.dumps({"resume": body.resume}))
+async def save_resume_endpoint(request: Request, body: ResumeProfile):
+    user_id = _get_current_user(request)
+    _save_resume(body.resume, user_id)
     logger.info("Resume profile saved")
     return {"status": "saved"}
+
+
+@app.get("/api/profile/me")
+async def get_me(request: Request):
+    """Return current user profile (plan, session_count). Unauthenticated = free defaults."""
+    user_id = _get_current_user(request)
+    if user_id and user_id != "anonymous":
+        profile = _get_profile(user_id)
+        if profile:
+            return {"user_id": user_id, **profile, "authenticated": True}
+    return {"user_id": None, "plan": "free", "session_count": 0, "authenticated": False}
 
 
 if __name__ == "__main__":

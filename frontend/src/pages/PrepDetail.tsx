@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getSession, submitAnswer, type Session } from "../lib/api";
 import ChatWindow from "../components/ChatWindow";
@@ -8,7 +8,7 @@ import SkillsScorecard from "../components/SkillsScorecard";
 const TABS = ["Analysis", "Q&A", "Role-Play", "Scorecard"] as const;
 type Tab = (typeof TABS)[number];
 
-const TAB_ICONS: Record<Tab, JSX.Element> = {
+const TAB_ICONS: Record<Tab, ReactNode> = {
   Analysis: (
     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -128,7 +128,7 @@ export default function PrepDetail() {
     <main className="mx-auto max-w-4xl px-6 py-8">
       {/* Breadcrumb */}
       <Link
-        to="/"
+        to="/app"
         className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-400 transition-colors mb-6 group"
       >
         <svg className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -183,7 +183,7 @@ export default function PrepDetail() {
       {/* Analysis Tab */}
       {tab === "Analysis" && analysis && (
         <div className="space-y-6">
-          {analysis.role_focus && (
+          {analysis.role_focus ? (
             <section className="rounded-xl bg-gray-900/60 border border-gray-800/60 p-5">
               <h2 className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-3">
                 Role Focus
@@ -192,9 +192,9 @@ export default function PrepDetail() {
                 {String(analysis.role_focus)}
               </p>
             </section>
-          )}
+          ) : null}
 
-          {analysis.company_intel && typeof analysis.company_intel === "object" && (
+          {analysis.company_intel && typeof analysis.company_intel === "object" ? (
             <section className="rounded-xl bg-gray-900/60 border border-gray-800/60 p-5 space-y-4">
               <h2 className="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-1">
                 Company snapshot
@@ -206,24 +206,24 @@ export default function PrepDetail() {
                 const ci = analysis.company_intel as Record<string, unknown>;
                 return (
                   <>
-                    {(ci.employee_size_band || ci.market_position) && (
+                    {(ci.employee_size_band || ci.market_position) ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                        {ci.employee_size_band && (
+                        {ci.employee_size_band ? (
                           <div className="rounded-lg bg-gray-800/40 border border-gray-700/40 p-3">
                             <span className="text-gray-500 text-xs uppercase">Size band</span>
                             <p className="text-gray-200 mt-1">{String(ci.employee_size_band)}</p>
                           </div>
-                        )}
-                        {ci.market_position && (
+                        ) : null}
+                        {ci.market_position ? (
                           <div className="rounded-lg bg-gray-800/40 border border-gray-700/40 p-3 sm:col-span-2">
                             <span className="text-gray-500 text-xs uppercase">Market position</span>
                             <p className="text-gray-300 mt-1 text-sm leading-relaxed">
                               {String(ci.market_position)}
                             </p>
                           </div>
-                        )}
+                        ) : null}
                       </div>
-                    )}
+                    ) : null}
                     {Array.isArray(ci.competitors) && (ci.competitors as { name?: string; one_liner?: string }[]).length > 0 && (
                       <div>
                         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
@@ -251,9 +251,9 @@ export default function PrepDetail() {
                 );
               })()}
             </section>
-          )}
+          ) : null}
 
-          {analysis.jd_fit && typeof analysis.jd_fit === "object" && (
+          {analysis.jd_fit && typeof analysis.jd_fit === "object" ? (
             <section className="rounded-xl border border-gray-800/60 overflow-hidden">
               <div className="px-5 py-3 bg-gray-900/80 border-b border-gray-800/60">
                 <h2 className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
@@ -314,7 +314,7 @@ export default function PrepDetail() {
                 })()}
               </div>
             </section>
-          )}
+          ) : null}
 
           {Array.isArray(analysis.key_skills) && (
             <section>

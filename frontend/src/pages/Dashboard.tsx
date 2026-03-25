@@ -49,7 +49,7 @@ function HeroIllustration() {
 function SessionCard({ s }: { s: Session }) {
   return (
     <Link
-      to={`/prep/${s.session_id}`}
+      to={`/app/prep/${s.session_id}`}
       className="block rounded-xl border border-gray-800/50 bg-gray-950/40 p-4 hover:border-indigo-500/30 hover:bg-gray-900/60 transition-all duration-200 group"
     >
       <div className="flex items-start justify-between gap-4">
@@ -150,7 +150,7 @@ export default function Dashboard() {
             </p>
           </div>
           <Link
-            to="/new"
+            to="/app/new"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-sm shadow-indigo-500/20 shrink-0"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -173,7 +173,7 @@ export default function Dashboard() {
             <code className="text-gray-500">public/hero-preview.webp</code>.)
           </p>
           <Link
-            to="/new"
+            to="/app/new"
             className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-sm shadow-indigo-500/20 mt-4"
           >
             Create your first session

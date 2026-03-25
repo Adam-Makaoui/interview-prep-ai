@@ -1,20 +1,11 @@
 """LangGraph state machine definition for the interview prep agent.
 
-The graph has 7 nodes connected by explicit edges and two conditional
-routing points. This is fundamentally different from a simple ReAct agent
-loop (think -> act -> observe) because:
-
-1. The flow is a DAG with branches, not a flat loop
-2. Human-in-the-loop is built in via interrupt_before
-3. Each node has a single responsibility and deterministic output
-4. State is checkpointed after every node, enabling session resumability
-
-The two conditional edges are:
-- route_by_mode: after question generation, routes to either "draft answers"
-  (prep mode) or "roleplay_ask" (interactive practice)
-- check_continue: after evaluating a role-play answer, either loops back
-  for the next question or exits to the summary node
+Checkpointer selection:
+- If DATABASE_URL is set, uses PostgresSaver (sessions survive restarts).
+- Otherwise, falls back to MemorySaver (local dev, ephemeral).
 """
+import logging
+
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -30,20 +21,12 @@ from app.agent.nodes import (
     route_by_mode,
     check_continue,
 )
+from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def build_graph() -> StateGraph:
-    """Construct the 7-node interview prep state machine.
-
-    Graph topology:
-        START -> parse -> analyze -> generate --(mode?)--> draft -> summary -> END
-                                                    |                          ^
-                                                    +--> roleplay_ask          |
-                                                           |                   |
-                                                         evaluate --(done?)----+
-                                                           |
-                                                           +-- (continue) --> roleplay_ask
-    """
     graph = StateGraph(AgentState)
 
     graph.add_node("parse", parse_job_posting)
@@ -75,12 +58,23 @@ def build_graph() -> StateGraph:
     return graph
 
 
-checkpointer = MemorySaver()
+def _make_checkpointer():
+    if settings.use_postgres:
+        from langgraph.checkpoint.postgres import PostgresSaver
+        import psycopg
 
-# Two interrupt points create the roleplay feedback loop:
-# 1. interrupt_before=["evaluate"] -- pauses so the user can type their answer
-# 2. interrupt_after=["evaluate"]  -- pauses so the user can READ their feedback
-#    before the next question loads. A separate /continue call advances.
+        conn = psycopg.connect(settings.database_url)
+        cp = PostgresSaver(conn)
+        cp.setup()
+        logger.info("Using PostgresSaver (Supabase)")
+        return cp
+
+    logger.info("Using MemorySaver (ephemeral)")
+    return MemorySaver()
+
+
+checkpointer = _make_checkpointer()
+
 agent = build_graph().compile(
     checkpointer=checkpointer,
     interrupt_before=["evaluate"],

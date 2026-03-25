@@ -1,4 +1,22 @@
+import { supabase } from "./supabase";
+
 const BASE = "/api";
+
+async function authHeaders(): Promise<Record<string, string>> {
+  if (!supabase) return {};
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function apiFetch(
+  input: string,
+  init?: RequestInit,
+): Promise<Response> {
+  const ah = await authHeaders();
+  const headers = { ...ah, ...(init?.headers || {}) };
+  return fetch(input, { ...init, headers });
+}
 
 /**
  * Main data model returned by all session endpoints.
@@ -149,7 +167,7 @@ export interface ExtractedFields {
 export async function parseResumeFile(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch(`${BASE}/parse-resume`, {
+  const res = await apiFetch(`${BASE}/parse-resume`, {
     method: "POST",
     body: formData,
   });
@@ -172,7 +190,7 @@ export async function extractFields(data: {
   job_description?: string;
   job_url?: string;
 }): Promise<ExtractedFields> {
-  const res = await fetch(`${BASE}/extract-fields`, {
+  const res = await apiFetch(`${BASE}/extract-fields`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -193,7 +211,7 @@ export async function lookupInterviewer(
   name: string,
   company: string
 ): Promise<{ title: string; source: string }> {
-  const res = await fetch(`${BASE}/lookup-interviewer`, {
+  const res = await apiFetch(`${BASE}/lookup-interviewer`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, company }),
@@ -209,7 +227,7 @@ export async function lookupInterviewer(
  * @throws Error when the request fails
  */
 export async function listSessions(): Promise<Session[]> {
-  const res = await fetch(`${BASE}/sessions`);
+  const res = await apiFetch(`${BASE}/sessions`);
   if (!res.ok) throw new Error(`Failed: ${res.status}`);
   return res.json();
 }
@@ -232,7 +250,7 @@ export async function createSession(data: {
   interviewers?: InterviewerInfo[];
   pipeline_group?: string;
 }): Promise<Session> {
-  const res = await fetch(`${BASE}/sessions`, {
+  const res = await apiFetch(`${BASE}/sessions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -263,7 +281,7 @@ export async function createSessionStream(
   },
   onProgress: (node: string, sessionId: string) => void
 ): Promise<Session | null> {
-  const res = await fetch(`${BASE}/sessions/stream`, {
+  const res = await apiFetch(`${BASE}/sessions/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -312,7 +330,7 @@ export async function createSessionStream(
  * @throws Error when the request fails
  */
 export async function getSession(id: string): Promise<Session> {
-  const res = await fetch(`${BASE}/sessions/${id}`);
+  const res = await apiFetch(`${BASE}/sessions/${id}`);
   if (!res.ok) throw new Error(`Failed: ${res.status}`);
   return res.json();
 }
@@ -329,7 +347,7 @@ export async function submitAnswer(
   id: string,
   answer: string
 ): Promise<Session> {
-  const res = await fetch(`${BASE}/sessions/${id}/answer`, {
+  const res = await apiFetch(`${BASE}/sessions/${id}/answer`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ answer }),
@@ -346,7 +364,7 @@ export async function submitAnswer(
  * @throws Error when the request fails
  */
 export async function continueSession(id: string): Promise<Session> {
-  const res = await fetch(`${BASE}/sessions/${id}/continue`, {
+  const res = await apiFetch(`${BASE}/sessions/${id}/continue`, {
     method: "POST",
   });
   if (!res.ok) throw new Error(`Failed: ${res.status}`);
@@ -361,7 +379,7 @@ export async function continueSession(id: string): Promise<Session> {
  * @throws Error when the request fails
  */
 export async function finishSession(id: string): Promise<Session> {
-  const res = await fetch(`${BASE}/sessions/${id}/finish`, {
+  const res = await apiFetch(`${BASE}/sessions/${id}/finish`, {
     method: "POST",
   });
   if (!res.ok) throw new Error(`Failed: ${res.status}`);
@@ -376,7 +394,7 @@ export async function finishSession(id: string): Promise<Session> {
  * @throws Error when the request fails
  */
 export async function startRoleplay(id: string): Promise<Session> {
-  const res = await fetch(`${BASE}/sessions/${id}/start-roleplay`, {
+  const res = await apiFetch(`${BASE}/sessions/${id}/start-roleplay`, {
     method: "POST",
   });
   if (!res.ok) throw new Error(`Failed: ${res.status}`);
@@ -389,7 +407,7 @@ export async function startRoleplay(id: string): Promise<Session> {
  * @returns Resume text, or empty string if none saved or request fails
  */
 export async function getResume(): Promise<string> {
-  const res = await fetch(`${BASE}/profile/resume`);
+  const res = await apiFetch(`${BASE}/profile/resume`);
   if (!res.ok) return "";
   const data = await res.json();
   return data.resume || "";
@@ -401,9 +419,22 @@ export async function getResume(): Promise<string> {
  * @param resume - Resume text to save
  */
 export async function saveResume(resume: string): Promise<void> {
-  await fetch(`${BASE}/profile/resume`, {
+  await apiFetch(`${BASE}/profile/resume`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ resume }),
   });
+}
+
+export interface UserProfile {
+  user_id: string | null;
+  plan: string;
+  session_count: number;
+  authenticated: boolean;
+}
+
+export async function getProfile(): Promise<UserProfile> {
+  const res = await apiFetch(`${BASE}/profile/me`);
+  if (!res.ok) return { user_id: null, plan: "free", session_count: 0, authenticated: false };
+  return res.json();
 }

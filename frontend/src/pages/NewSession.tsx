@@ -10,6 +10,7 @@ import {
   parseResumeFile,
   type InterviewerInfo,
 } from "../lib/api";
+import UpgradeModal from "../components/UpgradeModal";
 
 /** Interview stage options for the form. */
 const STAGES = [
@@ -139,7 +140,8 @@ export default function NewSession() {
     }
   };
 
-  /** Creates session via SSE stream; navigates to prep detail when generate node completes. */
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -177,13 +179,18 @@ export default function NewSession() {
           setProgress((prev) => [...prev, node]);
           if (node === "generate" && !navigated) {
             navigated = true;
-            navigate(`/prep/${sessionId}`);
+            navigate(`/app/prep/${sessionId}`);
           }
         }
       );
     } catch (err) {
       if (!navigated) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
+        const msg = err instanceof Error ? err.message : "Something went wrong";
+        if (msg.includes("402") || msg.toLowerCase().includes("free tier")) {
+          setShowUpgrade(true);
+        } else {
+          setError(msg);
+        }
       }
     } finally {
       if (!navigated) setLoading(false);
@@ -234,7 +241,7 @@ export default function NewSession() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <Link
-        to="/"
+        to="/app"
         className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-400 transition-colors mb-4"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -638,6 +645,7 @@ export default function NewSession() {
           </button>
         </form>
       )}
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </main>
   );
 }
