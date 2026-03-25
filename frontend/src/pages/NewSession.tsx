@@ -61,6 +61,8 @@ export default function NewSession() {
     stage: "phone_screen",
     resume: "",
     mode: "prep",
+    /** Dashboard grouping; empty = use normalized company name */
+    pipeline_group: "",
   });
 
   const [interviewers, setInterviewers] = useState<InterviewerInfo[]>([]);
@@ -169,6 +171,7 @@ export default function NewSession() {
           job_description: jdMode === "text" ? form.job_description : "",
           job_url: jdMode === "url" ? form.job_url : "",
           interviewers: interviewers.filter((i) => i.name || i.title),
+          pipeline_group: form.pipeline_group.trim(),
         },
         (node, sessionId) => {
           setProgress((prev) => [...prev, node]);
@@ -380,7 +383,7 @@ export default function NewSession() {
               <input
                 value={form.company}
                 onChange={set("company")}
-                placeholder="e.g. DataRobot"
+                placeholder="e.g. Google"
                 className={inputClass}
               />
             </div>
@@ -395,6 +398,22 @@ export default function NewSession() {
                 className={inputClass}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Hiring pipeline group{" "}
+              <span className="text-gray-600 font-normal">(optional)</span>
+            </label>
+            <input
+              value={form.pipeline_group}
+              onChange={set("pipeline_group")}
+              placeholder="Defaults to company — use same label for all rounds with one employer"
+              className={inputClass}
+            />
+            <p className="text-xs text-gray-600 mt-1">
+              Sessions with the same group appear together on the dashboard (e.g. every round at Acme).
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

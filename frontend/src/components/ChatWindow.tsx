@@ -9,26 +9,23 @@ interface Props {
   submitting: boolean;
 }
 
+/** Progress nudge every N questions; live competency scores update every answer (Scorecard tab). */
 const CHECKPOINT_INTERVAL = 5;
 
-/** Score display (1–10) with color by range: green ≥8, amber ≥5, red below 5. */
 function ScoreBadge({ score }: { score: number }) {
   const color =
     score >= 8
-      ? "bg-green-900/60 text-green-300 border-green-700"
+      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
       : score >= 5
-      ? "bg-amber-900/60 text-amber-300 border-amber-700"
-      : "bg-red-900/60 text-red-300 border-red-700";
+      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+      : "bg-red-500/10 text-red-400 border-red-500/20";
   return (
-    <span
-      className={`inline-flex items-center justify-center w-12 h-12 rounded-xl text-xl font-bold border ${color}`}
-    >
+    <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl text-xl font-bold border ${color}`}>
       {score}
     </span>
   );
 }
 
-/** Shows score, strengths, improvements, and tip after each roleplay answer; includes Next/Finish actions. */
 function FeedbackCard({
   feedback,
   onNext,
@@ -48,53 +45,45 @@ function FeedbackCard({
 
   return (
     <div className="space-y-4">
-      <div className="bg-gray-900 rounded-xl border border-gray-700 p-5 space-y-4">
+      <div className="rounded-xl bg-gray-900/80 border border-gray-700/60 p-5 space-y-4">
         <div className="flex items-start gap-4">
           <ScoreBadge score={feedback.score} />
           <div className="flex-1 min-w-0">
-            <h3 className="text-white font-semibold text-sm mb-1">
-              Your Score
-            </h3>
-            <p className="text-gray-400 text-xs">{feedback.question}</p>
+            <h3 className="text-white font-semibold text-sm mb-1">Your Score</h3>
+            <p className="text-gray-500 text-xs truncate">{feedback.question}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h4 className="text-xs font-semibold text-green-300 uppercase tracking-wide mb-2">
+          <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/15 p-3">
+            <h4 className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider mb-2">
               Strengths
             </h4>
-            <ul className="space-y-1">
+            <ul className="space-y-1.5">
               {feedback.strengths.map((s, i) => (
-                <li
-                  key={i}
-                  className="text-gray-300 text-sm flex items-start gap-1.5"
-                >
-                  <span className="text-green-400 shrink-0">+</span> {s}
+                <li key={i} className="text-gray-300 text-sm flex items-start gap-1.5">
+                  <span className="text-emerald-400 shrink-0 text-xs mt-0.5">&#10003;</span>{s}
                 </li>
               ))}
             </ul>
           </div>
-          <div>
-            <h4 className="text-xs font-semibold text-amber-300 uppercase tracking-wide mb-2">
+          <div className="rounded-lg bg-amber-500/5 border border-amber-500/15 p-3">
+            <h4 className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider mb-2">
               To Improve
             </h4>
-            <ul className="space-y-1">
+            <ul className="space-y-1.5">
               {feedback.improvements.map((s, i) => (
-                <li
-                  key={i}
-                  className="text-gray-300 text-sm flex items-start gap-1.5"
-                >
-                  <span className="text-amber-400 shrink-0">!</span> {s}
+                <li key={i} className="text-gray-300 text-sm flex items-start gap-1.5">
+                  <span className="text-amber-400 shrink-0 text-xs mt-0.5">!</span>{s}
                 </li>
               ))}
             </ul>
           </div>
         </div>
 
-        <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-          <p className="text-indigo-300 text-sm font-medium">
-            Tip: {feedback.tip}
+        <div className="rounded-lg bg-indigo-500/5 border border-indigo-500/15 p-3">
+          <p className="text-indigo-300 text-sm">
+            <span className="font-medium">Tip:</span> {feedback.tip}
           </p>
         </div>
 
@@ -102,14 +91,12 @@ function FeedbackCard({
           <div>
             <button
               onClick={() => setShowImproved(!showImproved)}
-              className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+              className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
             >
-              {showImproved
-                ? "Hide improved answer"
-                : "Show a stronger answer"}
+              {showImproved ? "Hide improved answer" : "Show a stronger answer"}
             </button>
             {showImproved && (
-              <p className="text-gray-400 text-sm mt-2 bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+              <p className="text-gray-400 text-sm mt-2 rounded-lg bg-gray-800/50 p-3 border border-gray-700/50 leading-relaxed">
                 {feedback.improved_answer}
               </p>
             )}
@@ -117,22 +104,20 @@ function FeedbackCard({
         )}
       </div>
 
-      {showCheckpoint && (
-        <CheckpointCard feedback={allFeedback} />
-      )}
+      {showCheckpoint && <CheckpointCard feedback={allFeedback} />}
 
       <div className="flex gap-3">
         <button
           onClick={onNext}
           disabled={advancing}
-          className="flex-1 rounded-lg bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+          className="flex-1 rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white text-sm hover:bg-indigo-500 disabled:opacity-50 transition-colors shadow-sm shadow-indigo-500/20"
         >
           {advancing ? (
             <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
+              <div className="relative w-4 h-4">
+                <div className="absolute inset-0 rounded-full border-2 border-indigo-400/30" />
+                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-white animate-spin" />
+              </div>
               Loading...
             </span>
           ) : (
@@ -143,9 +128,9 @@ function FeedbackCard({
           <button
             onClick={onFinish}
             disabled={advancing}
-            className="rounded-lg bg-gray-800 border border-gray-700 px-5 py-3 font-medium text-gray-300 hover:bg-gray-700 disabled:opacity-50 transition-colors"
+            className="rounded-xl bg-gray-800 border border-gray-700/60 px-5 py-3 font-medium text-sm text-gray-300 hover:bg-gray-700 disabled:opacity-50 transition-colors"
           >
-            Finish & See Summary
+            Finish & See Scorecard
           </button>
         )}
       </div>
@@ -153,7 +138,6 @@ function FeedbackCard({
   );
 }
 
-/** Progress check every 5 questions: avg score, trend (improving/declining/steady). */
 function CheckpointCard({ feedback }: { feedback: Feedback[] }) {
   const scores = feedback.map((f) => f.score);
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
@@ -167,42 +151,36 @@ function CheckpointCard({ feedback }: { feedback: Feedback[] }) {
   const trend = secondAvg > firstAvg ? "improving" : secondAvg < firstAvg ? "declining" : "steady";
 
   return (
-    <div className="bg-indigo-950/40 rounded-xl border border-indigo-800/50 p-5 space-y-3">
+    <div className="rounded-xl bg-indigo-500/5 border border-indigo-500/20 p-5 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-indigo-300 font-semibold text-sm">
           Progress Check — {feedback.length} Questions
         </h3>
         <span
-          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+          className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
             trend === "improving"
-              ? "bg-green-900/50 text-green-300"
+              ? "bg-emerald-500/10 text-emerald-400"
               : trend === "declining"
-              ? "bg-red-900/50 text-red-300"
-              : "bg-gray-800 text-gray-400"
+              ? "bg-red-500/10 text-red-400"
+              : "bg-gray-800/60 text-gray-500"
           }`}
         >
-          {trend === "improving"
-            ? "Improving"
-            : trend === "declining"
-            ? "Needs Focus"
-            : "Steady"}
+          {trend === "improving" ? "Improving" : trend === "declining" ? "Needs Focus" : "Steady"}
         </span>
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="text-2xl font-bold text-white">
-          {avg.toFixed(1)}/10
-        </span>
+        <span className="text-2xl font-bold text-white">{avg.toFixed(1)}/10</span>
         <div className="flex gap-1">
           {scores.map((s, i) => (
             <div
               key={i}
-              className={`w-6 h-6 rounded text-[10px] font-bold flex items-center justify-center ${
+              className={`w-6 h-6 rounded-md text-[10px] font-bold flex items-center justify-center ${
                 s >= 8
-                  ? "bg-green-900/60 text-green-300"
+                  ? "bg-emerald-500/15 text-emerald-400"
                   : s >= 5
-                  ? "bg-amber-900/60 text-amber-300"
-                  : "bg-red-900/60 text-red-300"
+                  ? "bg-amber-500/15 text-amber-400"
+                  : "bg-red-500/15 text-red-400"
               }`}
             >
               {s}
@@ -211,7 +189,7 @@ function CheckpointCard({ feedback }: { feedback: Feedback[] }) {
         </div>
       </div>
 
-      <p className="text-gray-400 text-xs">
+      <p className="text-gray-500 text-xs">
         {trend === "improving"
           ? "Great progress! Your answers are getting stronger."
           : trend === "declining"
@@ -222,15 +200,6 @@ function CheckpointCard({ feedback }: { feedback: Feedback[] }) {
   );
 }
 
-/**
- * Interactive roleplay chat interface. Four rendering states:
- * 1. not-in-roleplay — CTA to start practice
- * 2. session-complete-summary — overall score, strengths, improvements, question breakdown
- * 3. reviewing-feedback — FeedbackCard with latest feedback, Next/Finish
- * 4. active-roleplay-chat — chat messages + answer input
- *
- * Key handlers: handleStartRoleplay, handleContinue (next question), handleFinish.
- */
 export default function ChatWindow({
   session,
   onSubmitAnswer,
@@ -257,22 +226,18 @@ export default function ChatWindow({
     await onSubmitAnswer(answer);
   };
 
-  /** Switches session to roleplay mode via startRoleplay API. */
   const handleStartRoleplay = async () => {
     setSwitching(true);
     try {
       const updated = await startRoleplay(session.session_id);
       onSessionUpdate(updated);
     } catch {
-      alert(
-        "Failed to start role-play. Questions may not have been generated yet."
-      );
+      alert("Failed to start role-play. Questions may not have been generated yet.");
     } finally {
       setSwitching(false);
     }
   };
 
-  /** Loads next question via continueSession API. */
   const handleContinue = async () => {
     setAdvancing(true);
     try {
@@ -285,7 +250,6 @@ export default function ChatWindow({
     }
   };
 
-  /** Finishes session and generates summary via finishSession API. */
   const handleFinish = async () => {
     setAdvancing(true);
     try {
@@ -301,50 +265,39 @@ export default function ChatWindow({
   // --- Not in roleplay mode yet ---
   if (session.mode !== "roleplay") {
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-16">
         <div className="mb-6">
-          <div className="w-16 h-16 rounded-full bg-indigo-900/40 border border-indigo-800 flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-8 h-8 text-indigo-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
-              />
+          <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.3} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
             </svg>
           </div>
-          <p className="text-gray-300 mb-2 font-medium">
-            Ready to practice? Start a mock interview based on these questions.
+          <p className="text-gray-300 mb-1.5 font-medium">
+            Ready to practice?
           </p>
-          <p className="text-gray-500 text-sm mb-6">
-            An AI interviewer will ask you each question and a coach will give
-            you real-time feedback.
+          <p className="text-gray-600 text-sm max-w-sm mx-auto mb-6">
+            An AI interviewer will ask you each question and a coach will give you real-time feedback and scoring.
           </p>
         </div>
         <button
           onClick={handleStartRoleplay}
           disabled={switching || !session.questions?.length}
-          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-sm text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shadow-indigo-500/20"
         >
           {switching ? (
             <>
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Starting Practice...
+              <div className="relative w-4 h-4">
+                <div className="absolute inset-0 rounded-full border-2 border-indigo-400/30" />
+                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-white animate-spin" />
+              </div>
+              Starting...
             </>
           ) : (
             "Start Practice Interview"
           )}
         </button>
         {!session.questions?.length && (
-          <p className="text-xs text-gray-600 mt-2">
+          <p className="text-xs text-gray-600 mt-3">
             Questions must be generated first.
           </p>
         )}
@@ -352,113 +305,24 @@ export default function ChatWindow({
     );
   }
 
-  // --- Session complete: show summary ---
+  // --- Session complete: redirect to scorecard ---
   if (session.summary && session.status === "complete") {
-    const summary = session.summary as Record<
-      string,
-      string | number | string[]
-    >;
     return (
-      <div className="space-y-6">
-        <div className="text-center py-6">
-          <div className="text-5xl font-bold text-indigo-400 mb-2">
-            {String(summary.overall_score)}/10
-          </div>
-          <div
-            className={`text-lg font-semibold ${
-              summary.readiness_level === "ready"
-                ? "text-green-400"
-                : summary.readiness_level === "almost there"
-                ? "text-amber-400"
-                : "text-red-400"
-            }`}
-          >
-            {String(summary.readiness_level).toUpperCase()}
-          </div>
+      <div className="text-center py-16">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.3} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
         </div>
-
-        {Array.isArray(summary.top_strengths) && (
-          <section>
-            <h3 className="text-sm font-semibold text-green-300 uppercase tracking-wide mb-2">
-              Top Strengths
-            </h3>
-            <ul className="space-y-1">
-              {(summary.top_strengths as string[]).map((s, i) => (
-                <li key={i} className="text-gray-300 text-sm flex gap-2">
-                  <span className="text-green-400">+</span> {s}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {Array.isArray(summary.priority_improvements) && (
-          <section>
-            <h3 className="text-sm font-semibold text-amber-300 uppercase tracking-wide mb-2">
-              Priority Improvements
-            </h3>
-            <ul className="space-y-1">
-              {(summary.priority_improvements as string[]).map((s, i) => (
-                <li key={i} className="text-gray-300 text-sm flex gap-2">
-                  <span className="text-amber-400">!</span> {s}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {summary.final_advice && (
-          <section>
-            <h3 className="text-sm font-semibold text-indigo-300 uppercase tracking-wide mb-2">
-              Final Advice
-            </h3>
-            <p className="text-gray-300 bg-gray-900 rounded-lg p-4 border border-gray-800">
-              {String(summary.final_advice)}
-            </p>
-          </section>
-        )}
-
-        {session.feedback?.length ? (
-          <section>
-            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">
-              Question Breakdown
-            </h3>
-            <div className="space-y-3">
-              {session.feedback.map((f, i) => (
-                <div
-                  key={i}
-                  className="bg-gray-900 rounded-lg p-4 border border-gray-800"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <p className="text-white font-medium text-sm">
-                      {f.question}
-                    </p>
-                    <span
-                      className={`text-sm font-bold shrink-0 ml-3 ${
-                        f.score >= 8
-                          ? "text-green-400"
-                          : f.score >= 5
-                          ? "text-amber-400"
-                          : "text-red-400"
-                      }`}
-                    >
-                      {f.score}/10
-                    </span>
-                  </div>
-                  <p className="text-gray-500 text-xs mb-1">
-                    Your answer: {f.user_answer}
-                  </p>
-                  <p className="text-gray-400 text-xs">Tip: {f.tip}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
+        <p className="text-gray-300 font-medium mb-1.5">Session Complete</p>
+        <p className="text-gray-600 text-sm">
+          Switch to the <span className="text-indigo-400 font-medium">Scorecard</span> tab to see your full results and skills breakdown.
+        </p>
       </div>
     );
   }
 
-  // --- Reviewing feedback state: show the latest feedback card ---
+  // --- Reviewing feedback state ---
   if (session.status === "reviewing_feedback" && feedbackList.length > 0) {
     const latestFeedback = feedbackList[feedbackList.length - 1];
     const isCheckpoint =
@@ -467,21 +331,19 @@ export default function ChatWindow({
 
     return (
       <div className="flex flex-col">
-        <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
+        <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
           {chat
             .filter((msg) => msg.role !== "coach")
             .map((msg: ChatMsg, i: number) => (
               <div
                 key={i}
-                className={`flex ${
-                  msg.role === "user" ? "justify-end" : "justify-start"
-                }`}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                     msg.role === "user"
                       ? "bg-indigo-600 text-white rounded-br-md"
-                      : "bg-gray-800 text-gray-200 rounded-bl-md"
+                      : "bg-gray-800/80 text-gray-200 rounded-bl-md border border-gray-700/40"
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -503,24 +365,22 @@ export default function ChatWindow({
     );
   }
 
-  // --- Active roleplay: show chat + answer input ---
+  // --- Active roleplay chat ---
   return (
     <div className="flex flex-col h-[500px]">
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
+      <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
         {chat
           .filter((msg) => msg.role !== "coach")
           .map((msg: ChatMsg, i: number) => (
             <div
               key={i}
-              className={`flex ${
-                msg.role === "user" ? "justify-end" : "justify-start"
-              }`}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                   msg.role === "user"
                     ? "bg-indigo-600 text-white rounded-br-md"
-                    : "bg-gray-800 text-gray-200 rounded-bl-md"
+                    : "bg-gray-800/80 text-gray-200 rounded-bl-md border border-gray-700/40"
                 }`}
               >
                 <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -536,25 +396,25 @@ export default function ChatWindow({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) =>
-              e.key === "Enter" && !e.shiftKey && handleSend()
-            }
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
             placeholder="Type your answer..."
             disabled={submitting}
-            className="flex-1 rounded-lg bg-gray-900 border border-gray-700 px-4 py-3 text-white placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50"
+            className="flex-1 rounded-xl bg-gray-900/80 border border-gray-700/50 px-4 py-3 text-white text-sm placeholder-gray-600 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 outline-none disabled:opacity-50 transition-colors"
           />
           <button
             onClick={handleSend}
             disabled={submitting || !input.trim()}
-            className="rounded-lg bg-indigo-600 px-5 py-3 font-medium text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-xl bg-indigo-600 px-5 py-3 font-medium text-sm text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shadow-indigo-500/20"
           >
             {submitting ? (
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
+              <div className="relative w-5 h-5">
+                <div className="absolute inset-0 rounded-full border-2 border-indigo-400/30" />
+                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-white animate-spin" />
+              </div>
             ) : (
-              "Send"
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+              </svg>
             )}
           </button>
         </div>

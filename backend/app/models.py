@@ -21,6 +21,10 @@ class SessionCreate(BaseModel):
     resume: str = ""
     mode: str = Field(default="prep", pattern="^(prep|roleplay)$")
     interviewers: list[InterviewerInfo] = []
+    pipeline_group: str = Field(
+        default="",
+        description="Optional dashboard group label; defaults to normalized company name.",
+    )
 
 
 class AnswerSubmit(BaseModel):
@@ -46,3 +50,6 @@ class SessionOut(BaseModel):
     summary: dict | None = None
     chat_history: list | None = None
     created_at: str = ""
+    pipeline_group: str = ""
+    running_competency_scores: dict | None = None
+    skill_averages: dict | None = None
