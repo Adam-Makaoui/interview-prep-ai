@@ -19,7 +19,7 @@ An AI-powered interview preparation agent that analyzes job postings, generates 
 │                  │       │  │                ↓               │ │    │
 │                  │       │  │             summary ←──────────┘ │    │
 │                  │       │  │                                 │    │
-│                  │       │  │  [MemorySaver Checkpointer]     │    │
+│                  │       │  │  [PostgresSaver / MemorySaver]   │    │
 │                  │       │  └─────────────────────────────────┘    │
 └──────────────────┘       └─────────────────────────────────────────┘
 ```
@@ -30,7 +30,7 @@ An AI-powered interview preparation agent that analyzes job postings, generates 
 - **LLM**: OpenAI GPT-4o-mini
 - **Backend**: FastAPI (Python)
 - **Frontend**: React + Vite + TypeScript + Tailwind CSS
-- **State**: LangGraph MemorySaver (in-memory, swappable to SQLite)
+- **State**: LangGraph PostgresSaver (Supabase) with MemorySaver fallback for local dev
 - **Data Models**: Pydantic v2
 
 ### Why LangGraph?
@@ -81,6 +81,7 @@ OPENAI_MODEL=gpt-4o-mini
 # Optional: faster/cheaper model for JD auto-fill only (defaults to OPENAI_MODEL)
 # OPENAI_EXTRACT_MODEL=gpt-4o-mini
 ```
+For full local + production env mapping (Railway/Vercel) and a **step-by-step go-live checklist**, see [`ENVIRONMENT_MAP.md`](ENVIRONMENT_MAP.md). On Vercel, set **`VITE_API_ORIGIN`** to your Railway public URL so the browser calls the API with CORS + JWT.
 Then start the server:
 ```bash
 python -m uvicorn app.main:app --reload --port 8000

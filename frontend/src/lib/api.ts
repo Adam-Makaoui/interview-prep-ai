@@ -1,6 +1,15 @@
 import { supabase } from "./supabase";
 
-const BASE = "/api";
+/** Production: set VITE_API_ORIGIN to Railway public URL (no trailing slash), e.g. https://xxx.up.railway.app */
+function apiBase(): string {
+  const origin = (import.meta.env.VITE_API_ORIGIN as string | undefined)?.trim();
+  if (origin) {
+    return `${origin.replace(/\/$/, "")}/api`;
+  }
+  return "/api";
+}
+
+const BASE = apiBase();
 
 async function authHeaders(): Promise<Record<string, string>> {
   if (!supabase) return {};
