@@ -20,6 +20,7 @@ const STAGES = [
   { value: "technical", label: "Technical" },
   { value: "behavioral", label: "Behavioral" },
   { value: "final_panel", label: "Final Panel" },
+  { value: "vp_round", label: "VP Round" },
   { value: "other", label: "Other (custom)" },
 ];
 

@@ -4,9 +4,12 @@ import { listSessions, type Session } from "../lib/api";
 
 const STAGE_LABELS: Record<string, string> = {
   phone_screen: "Phone Screen",
+  recruiter_screen: "Recruiter Screen",
+  hiring_manager: "Hiring Manager",
   technical: "Technical",
   behavioral: "Behavioral",
   final_panel: "Final Panel",
+  vp_round: "VP Round",
 };
 
 const STATUS_DOT: Record<string, string> = {

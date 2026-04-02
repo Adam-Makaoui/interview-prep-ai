@@ -19,7 +19,9 @@ export default function Login() {
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) {
-      setError("Auth not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+      setError(
+        "Auth not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY).",
+      );
       return;
     }
     setLoading(true);

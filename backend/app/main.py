@@ -440,7 +440,7 @@ async def extract_fields(body: ExtractRequest):
             '- "role": job title\n'
             '- "stage_suggestion": most likely interview stage from these options: '
             '"phone_screen", "recruiter_screen", "hiring_manager", "technical", '
-            '"behavioral", "final_panel". Pick the best default.\n'
+            '"behavioral", "final_panel", "vp_round". Pick the best default.\n'
             '- "job_description": cleaned job description text (can be truncated; '
             "prefer first ~6000 chars of substance)\n"
             "\nReturn ONLY valid JSON."

@@ -78,10 +78,8 @@ Edit `backend/.env` and set your OpenAI API key:
 ```
 OPENAI_API_KEY=sk-your-key-here
 OPENAI_MODEL=gpt-4o-mini
-# Optional: faster/cheaper model for JD auto-fill only (defaults to OPENAI_MODEL)
-# OPENAI_EXTRACT_MODEL=gpt-4o-mini
 ```
-For full local + production env mapping (Railway/Vercel) and a **step-by-step go-live checklist**, see [`ENVIRONMENT_MAP.md`](ENVIRONMENT_MAP.md). On Vercel, set **`VITE_API_ORIGIN`** to your Railway public URL so the browser calls the API with CORS + JWT.
+For the full technical architecture, env var reference, deploy guide, and go-live checklist, see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 Then start the server:
 ```bash
 python -m uvicorn app.main:app --reload --port 8000
@@ -127,51 +125,12 @@ cd frontend && npm run dev
 | GET | `/api/profile/resume` | Get saved resume |
 | PUT | `/api/profile/resume` | Save/update resume |
 
-## Roadmap (Post-MVP)
+## Roadmap
 
-### Phase 2 -- Production & Intelligence
-1. **Persistent storage**: Swap `MemorySaver` to `SQLiteSaver`/PostgreSQL for session persistence across server restarts
-2. **Candidate profile / "Mastermind" avatar**: Persistent profile that tracks strengths, weaknesses, and patterns across all interview sessions. Learns what question types the user struggles with, which examples they overuse, and generates increasingly targeted practice
-3. **Cross-session analytics**: Dashboard showing improvement trends, recurring weak areas, and readiness scores per interview type
-4. **Interview outcome tracking**: See **Interview outcome entity (draft)** below — record pass/fail and free-text debrief per real round to drive future prep (e.g. “failed technical demo on AI vertical”)
-5. **Auto-enrichment**: Web search for company culture, Glassdoor reviews, and recent news to enrich prep context
+Full roadmap lives in Notion. High-level priorities:
 
-### Phase 3 -- Monetization & Distribution
-6. **Auth + subscriptions**: Clerk + Stripe for multi-user support and tiered pricing (Free: 3 sessions, Pro: unlimited + role-play + history)
-7. **Chrome extension**: Side panel that detects job postings and triggers prep directly from LinkedIn, Greenhouse, etc.
-8. **Production deploy**: Vercel (frontend) + Railway (backend)
-9. **Multi-modal input**: Screenshot (GPT-4o vision) for quick JD capture from any source
-
-### Interview outcome entity (draft — Phase 3)
-
-Planned persistence (not implemented in the demo MVP) to close the loop after real interviews:
-
-| Field | Purpose |
-|-------|---------|
-| `session_id` / `pipeline_group` | Link to prep context |
-| `company`, `round_stage` | Which interview this was |
-| `result` | pass / fail / withdrew / unknown |
-| `debrief_notes` | What went wrong/right (e.g. weak on industry vertical) |
-| `tags` | e.g. `["vertical:AI", "format:live-coding"]` |
-
-Future: feed `debrief_notes` + tags into the next session’s `analyze_role` / question generation for targeted remediation.
-
-## Presentation Talking Points
-
-### The Problem
-Interview preparation is fragmented and generic. Candidates waste hours googling "common interview questions" instead of practicing with tailored, stage-specific questions based on the actual job description.
-
-### The Agent Architecture
-LangGraph state machine with 7 nodes, conditional branching, and human-in-the-loop. Each node uses LangChain's ChatOpenAI with structured JSON output. State is checkpointed for session resumability.
-
-### Why Agentic?
-This is not a simple prompt → response. The agent:
-- **Reasons about context**: Uses role analysis to inform question generation
-- **Makes decisions**: Routes between prep and role-play modes
-- **Interacts iteratively**: Pauses for user input during role-play
-- **Synthesizes across steps**: Aggregates feedback into a readiness scorecard
-
-### Scaling & Productization
-- API-first design: Chrome extension, mobile app, or Slack bot can share the same backend
-- Checkpointed state: Swap MemorySaver → PostgreSQL for production persistence
-- Subscription tiers: Free (3 sessions) → Pro (unlimited + role-play + history)
+- **Cross-session analytics** — improvement trends, recurring weak areas, readiness scores
+- **Interview outcome tracking** — record pass/fail + debrief per real round to drive future prep
+- **Stripe billing** — tiered pricing (Free: 1 session, Pro: unlimited + roleplay + history)
+- **Chrome extension** — side panel that detects JDs on LinkedIn/Greenhouse and triggers prep
+- **Auto-enrichment** — web search for company culture, Glassdoor reviews, recent news

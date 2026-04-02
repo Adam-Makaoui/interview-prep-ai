@@ -5,6 +5,7 @@ Checkpointer selection:
 - Otherwise, falls back to MemorySaver (local dev, ephemeral).
 """
 import logging
+import os
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
@@ -60,14 +61,34 @@ def build_graph() -> StateGraph:
 
 def _make_checkpointer():
     if settings.use_postgres:
-        from langgraph.checkpoint.postgres import PostgresSaver
-        import psycopg
+        try:
+            from langgraph.checkpoint.postgres import PostgresSaver
+            import psycopg
 
-        conn = psycopg.connect(settings.database_url)
-        cp = PostgresSaver(conn)
-        cp.setup()
-        logger.info("Using PostgresSaver (Supabase)")
-        return cp
+            conn = psycopg.connect(settings.database_url)
+            cp = PostgresSaver(conn)
+            cp.setup()
+            logger.info("Using PostgresSaver (Supabase)")
+            return cp
+        except Exception as e:
+            raw = (
+                settings.langgraph_memory_fallback
+                or os.environ.get("LANGGRAPH_MEMORY_FALLBACK", "")
+            )
+            allow = raw.strip().lower() in ("1", "true", "yes")
+            if allow:
+                logger.warning(
+                    "Postgres checkpointer unavailable (%s); LANGGRAPH_MEMORY_FALLBACK is set — "
+                    "using MemorySaver (ephemeral; not for production).",
+                    e,
+                )
+                return MemorySaver()
+            logger.exception(
+                "DATABASE_URL is set but Postgres checkpointer failed; refusing to fall back "
+                "to MemorySaver in production. Fix the connection string or unset DATABASE_URL "
+                "for local-only in-memory mode. Optional dev override: LANGGRAPH_MEMORY_FALLBACK=1"
+            )
+            raise
 
     logger.info("Using MemorySaver (ephemeral)")
     return MemorySaver()
