@@ -1,4 +1,7 @@
 providers = ["python"]
 
+[phases.setup]
+nixPkgs = ["...", "python312Packages.pip"]
+
 [variables]
 NIXPACKS_PYTHON_VERSION = "3.12"
