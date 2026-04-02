@@ -17,7 +17,7 @@ The stack: React + FastAPI + LangGraph + Supabase + GPT-4o-mini. The whole thing
 
 It's live now. First session is free.
 
-[Link to app]
+[https://interviewprep-ai-psi.vercel.app](https://interviewprep-ai-psi.vercel.app)
 
 I'm building this in public and I'd love your feedback -- especially if you're in sales engineering, solutions architecture, or any role with multi-round technical interviews. What would make this actually useful for your next interview?
 
@@ -27,7 +27,7 @@ I'm building this in public and I'd love your feedback -- especially if you're i
 
 ## Posting Checklist
 
-- [ ] Update [Link to app] with actual Vercel URL
+- [x] Update [Link to app] with actual Vercel URL
 - [ ] Attach a screenshot of the roleplay feedback card
 - [ ] Consider posting on Tuesday or Wednesday morning (10am PST)
 - [ ] Cross-post to r/interviews and r/cscareerquestions (shorter version)
