@@ -36,6 +36,16 @@ Without Supabase configured (`VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KE
 | `npm run test` | `frontend/` | Playwright E2E tests (requires `npx playwright install` first) |
 | `npm run build` | `frontend/` | Full production build (tsc + vite build) |
 
-### System dependency note
+### Session creation timing
 
-The VM needs `python3.12-venv` (`sudo apt-get install -y python3.12-venv`) to create the backend virtualenv. The update script handles this.
+Creating a session via `POST /api/sessions` is a blocking call that runs the full LangGraph pipeline (parse → analyze → generate → draft). With `gpt-4o-mini`, this takes ~60 seconds. The streaming variant `POST /api/sessions/stream` sends SSE progress updates during processing. For testing, prefer the streaming endpoint or allow a 2-minute timeout.
+
+### Hello world test via API
+
+To verify the full stack is working with a real OpenAI key:
+```bash
+curl -X POST http://localhost:8000/api/sessions \
+  -H "Content-Type: application/json" \
+  -d '{"company":"TestCo","role":"Engineer","job_description":"Build things.","stage":"technical","mode":"prep","interviewers":[]}'
+```
+A successful response returns a JSON object with `"status": "complete"`, populated `analysis`, `questions`, and `answers` fields.
