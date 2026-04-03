@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { listSessions, type Session } from "../lib/api";
+import { listSessions, getProfile, type Session, type UserProfile } from "../lib/api";
 
 const STAGE_LABELS: Record<string, string> = {
   phone_screen: "Phone Screen",
@@ -96,11 +96,13 @@ function SessionCard({ s }: { s: Session }) {
 export default function Dashboard() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     listSessions()
       .then(setSessions)
       .finally(() => setLoading(false));
+    getProfile().then(setProfile);
   }, []);
 
   const grouped = useMemo(() => {
@@ -152,15 +154,25 @@ export default function Dashboard() {
                 : `${sessions.length} session${sessions.length > 1 ? "s" : ""} · grouped by hiring pipeline`}
             </p>
           </div>
-          <Link
-            to="/app/new"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-sm shadow-indigo-500/20 shrink-0"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            New Session
-          </Link>
+          <div className="flex items-center gap-3 shrink-0">
+            {profile && profile.plan === "free" && profile.daily_limit != null && (
+              <span className="text-xs text-gray-500">
+                <span className={profile.daily_sessions_used >= profile.daily_limit ? "text-amber-400" : "text-gray-400"}>
+                  {Math.max(0, profile.daily_limit - profile.daily_sessions_used)}
+                </span>
+                {" "}free session{profile.daily_limit - profile.daily_sessions_used !== 1 ? "s" : ""} left today
+              </span>
+            )}
+            <Link
+              to="/app/new"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-sm shadow-indigo-500/20"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              New Session
+            </Link>
+          </div>
         </div>
       </div>
 

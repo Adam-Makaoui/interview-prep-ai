@@ -23,7 +23,54 @@ from app.agent.nodes import _llm_json, _llm_json_extract, _fetch_url
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Interview Prep Agent")
+from contextlib import asynccontextmanager
+
+
+def _ensure_tables():
+    """Create application tables if they don't exist (idempotent)."""
+    if not settings.use_postgres:
+        return
+    import psycopg
+    conn = psycopg.connect(settings.database_url, autocommit=True)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS sessions (
+                    session_id  TEXT PRIMARY KEY,
+                    user_id     TEXT,
+                    company     TEXT NOT NULL DEFAULT '',
+                    role        TEXT NOT NULL DEFAULT '',
+                    stage       TEXT NOT NULL DEFAULT '',
+                    mode        TEXT NOT NULL DEFAULT 'prep',
+                    pipeline_group TEXT NOT NULL DEFAULT 'general',
+                    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+                )
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS profiles (
+                    id              TEXT PRIMARY KEY,
+                    plan            TEXT NOT NULL DEFAULT 'free',
+                    session_count   INTEGER NOT NULL DEFAULT 0,
+                    resume          TEXT NOT NULL DEFAULT '',
+                    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+                )
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sessions_user_created
+                ON sessions (user_id, created_at)
+            """)
+        logger.info("Application tables ensured (sessions, profiles)")
+    finally:
+        conn.close()
+
+
+@asynccontextmanager
+async def lifespan(app):
+    _ensure_tables()
+    yield
+
+
+app = FastAPI(title="Interview Prep Agent", lifespan=lifespan)
 
 _allowed_origins = [settings.frontend_url, "http://localhost:5173"]
 if settings.frontend_url != "http://localhost:5173":
@@ -38,7 +85,7 @@ app.add_middleware(
 )
 
 
-# ── DB helpers (Supabase Postgres) or in-memory fallback ─────────────
+# ── DB helpers (Postgres) or in-memory fallback ──────────────────────
 
 _pg_conn = None
 
@@ -166,6 +213,7 @@ def _load_saved_resume(user_id: str | None = None) -> str:
 def _save_resume(text: str, user_id: str | None = None):
     conn = _db()
     if conn and user_id:
+        _ensure_profile(user_id)
         with conn.cursor() as cur:
             cur.execute(
                 "UPDATE profiles SET resume = %s, updated_at = now() WHERE id = %s",
@@ -178,6 +226,7 @@ def _save_resume(text: str, user_id: str | None = None):
 def _increment_session_count(user_id: str | None):
     conn = _db()
     if conn and user_id:
+        _ensure_profile(user_id)
         with conn.cursor() as cur:
             cur.execute(
                 "UPDATE profiles SET session_count = session_count + 1 WHERE id = %s",
@@ -185,16 +234,44 @@ def _increment_session_count(user_id: str | None):
             )
 
 
+def _ensure_profile(user_id: str):
+    """Create a profile row for this user if one doesn't exist yet."""
+    conn = _db()
+    if not conn or not user_id:
+        return
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO profiles (id) VALUES (%s) ON CONFLICT (id) DO NOTHING",
+            (user_id,),
+        )
+
+
 def _get_profile(user_id: str) -> dict | None:
     conn = _db()
     if not conn or not user_id:
         return None
+    _ensure_profile(user_id)
     with conn.cursor() as cur:
         cur.execute("SELECT plan, session_count FROM profiles WHERE id = %s", (user_id,))
         row = cur.fetchone()
     if row:
         return {"plan": row[0], "session_count": row[1]}
     return None
+
+
+def _count_sessions_today(user_id: str) -> int:
+    """Count how many sessions this user created since midnight UTC."""
+    conn = _db()
+    if not conn or not user_id:
+        return 0
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT COUNT(*) FROM sessions "
+            "WHERE user_id = %s AND created_at >= (CURRENT_DATE AT TIME ZONE 'UTC')",
+            (user_id,),
+        )
+        row = cur.fetchone()
+    return row[0] if row else 0
 
 
 # ── Auth helpers ─────────────────────────────────────────────────────
@@ -452,18 +529,21 @@ async def extract_fields(body: ExtractRequest):
     return result
 
 
-FREE_SESSION_LIMIT = 1
+FREE_DAILY_LIMIT = 2
 
 
 def _check_free_limit(user_id: str | None):
-    """Raise 402 if the user has exceeded the free tier."""
+    """Raise 402 if the free-tier user has hit today's daily session cap."""
     if not user_id or user_id == "anonymous":
         return
     profile = _get_profile(user_id)
-    if profile and profile["plan"] == "free" and profile["session_count"] >= FREE_SESSION_LIMIT:
+    if not profile or profile["plan"] != "free":
+        return
+    used_today = _count_sessions_today(user_id)
+    if used_today >= FREE_DAILY_LIMIT:
         raise HTTPException(
             status_code=402,
-            detail="Free tier limit reached. Upgrade to Pro for unlimited sessions.",
+            detail=f"Daily limit reached ({FREE_DAILY_LIMIT} free sessions/day). Upgrade to Pro for unlimited.",
         )
 
 
@@ -743,13 +823,27 @@ async def save_resume_endpoint(request: Request, body: ResumeProfile):
 
 @app.get("/api/profile/me")
 async def get_me(request: Request):
-    """Return current user profile (plan, session_count). Unauthenticated = free defaults."""
+    """Return current user profile with daily usage stats."""
     user_id = _get_current_user(request)
     if user_id and user_id != "anonymous":
         profile = _get_profile(user_id)
+        used_today = _count_sessions_today(user_id)
         if profile:
-            return {"user_id": user_id, **profile, "authenticated": True}
-    return {"user_id": None, "plan": "free", "session_count": 0, "authenticated": False}
+            return {
+                "user_id": user_id,
+                **profile,
+                "authenticated": True,
+                "daily_sessions_used": used_today,
+                "daily_limit": FREE_DAILY_LIMIT if profile["plan"] == "free" else None,
+            }
+    return {
+        "user_id": None,
+        "plan": "free",
+        "session_count": 0,
+        "authenticated": False,
+        "daily_sessions_used": 0,
+        "daily_limit": FREE_DAILY_LIMIT,
+    }
 
 
 if __name__ == "__main__":

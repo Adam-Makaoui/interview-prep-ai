@@ -28,7 +28,8 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
 
         <h2 className="text-xl font-bold text-white mb-2">Upgrade to Pro</h2>
         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-          You've used your free session. Unlock unlimited interview prep sessions,
+          You've reached today's free limit (2 sessions/day).
+          Upgrade for unlimited interview prep sessions,
           full scorecard history, and priority access to new features.
         </p>
 
@@ -49,7 +50,7 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
           </a>
         ) : (
           <p className="text-gray-500 text-xs">
-            Payments coming soon. Contact adam@interviewprep.ai for early access.
+            Payments coming soon. Come back tomorrow for 2 more free sessions.
           </p>
         )}
       </div>

@@ -186,8 +186,9 @@ export default function NewSession() {
       );
     } catch (err) {
       if (!navigated) {
+        const status = (err as any)?.status;
         const msg = err instanceof Error ? err.message : "Something went wrong";
-        if (msg.includes("402") || msg.toLowerCase().includes("free tier")) {
+        if (status === 402 || msg.includes("402") || msg.toLowerCase().includes("daily limit")) {
           setShowUpgrade(true);
         } else {
           setError(msg);

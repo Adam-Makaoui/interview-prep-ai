@@ -296,7 +296,13 @@ export async function createSessionStream(
     body: JSON.stringify(data),
   });
 
-  if (!res.ok) throw new Error(`Failed: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const detail = body?.detail || `Failed: ${res.status}`;
+    const err = new Error(detail);
+    (err as any).status = res.status;
+    throw err;
+  }
 
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();
@@ -440,10 +446,20 @@ export interface UserProfile {
   plan: string;
   session_count: number;
   authenticated: boolean;
+  daily_sessions_used: number;
+  daily_limit: number | null;
 }
 
 export async function getProfile(): Promise<UserProfile> {
   const res = await apiFetch(`${BASE}/profile/me`);
-  if (!res.ok) return { user_id: null, plan: "free", session_count: 0, authenticated: false };
+  if (!res.ok)
+    return {
+      user_id: null,
+      plan: "free",
+      session_count: 0,
+      authenticated: false,
+      daily_sessions_used: 0,
+      daily_limit: 2,
+    };
   return res.json();
 }
