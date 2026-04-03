@@ -1,33 +1,12 @@
-import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
+import AppShell from "./components/AppShell";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NewSession from "./pages/NewSession";
 import PrepDetail from "./pages/PrepDetail";
-
-function AppHeader() {
-  const { user, signOut } = useAuth();
-  const location = useLocation();
-
-  if (location.pathname === "/" || location.pathname === "/login") return null;
-
-  return (
-    <header className="border-b border-gray-800/60 px-6 py-4 backdrop-blur-sm flex items-center justify-between">
-      <Link to="/app" className="text-xl font-bold text-white tracking-tight">
-        InterviewPrep<span className="text-indigo-400">AI</span>
-      </Link>
-      {user && (
-        <button
-          onClick={signOut}
-          className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
-        >
-          Sign out
-        </button>
-      )}
-    </header>
-  );
-}
+import Progress from "./pages/Progress";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -44,7 +23,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  return <>{children}</>;
+  return <AppShell>{children}</AppShell>;
 }
 
 export default function App() {
@@ -52,15 +31,15 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <div className="min-h-screen bg-gray-950">
-          <AppHeader />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
 
-            {/* Protected app routes */}
+            {/* Protected app routes -- wrapped with sidebar shell */}
             <Route path="/app" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/app/new" element={<ProtectedRoute><NewSession /></ProtectedRoute>} />
             <Route path="/app/prep/:id" element={<ProtectedRoute><PrepDetail /></ProtectedRoute>} />
+            <Route path="/app/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
 
             {/* Legacy routes redirect to /app/* */}
             <Route path="/new" element={<Navigate to="/app/new" replace />} />

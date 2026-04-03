@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { listSessions, getProfile, type Session, type UserProfile } from "../lib/api";
+import { listSessions, deleteSession, type Session } from "../lib/api";
 
 const STAGE_LABELS: Record<string, string> = {
   phone_screen: "Phone Screen",
@@ -20,7 +20,6 @@ const STATUS_DOT: Record<string, string> = {
   analyzing: "bg-indigo-400",
 };
 
-/** Neutral hero: briefcase + doc — not role-play mic (first impression = whole product). */
 function HeroIllustration() {
   return (
     <div className="relative w-20 h-20 mx-auto mb-5">
@@ -49,61 +48,116 @@ function HeroIllustration() {
   );
 }
 
-function SessionCard({ s }: { s: Session }) {
+function SessionCard({
+  s,
+  onDelete,
+}: {
+  s: Session;
+  onDelete: (id: string) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+
   return (
-    <Link
-      to={`/app/prep/${s.session_id}`}
-      className="block rounded-xl border border-gray-800/50 bg-gray-950/40 p-4 hover:border-indigo-500/30 hover:bg-gray-900/60 transition-all duration-200 group"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h3 className="text-[14px] font-semibold text-white group-hover:text-indigo-300 transition-colors truncate">
-            {s.role || "Untitled Role"}{" "}
-            <span className="text-gray-600 font-normal">·</span>{" "}
-            <span className="text-gray-400 font-normal">{STAGE_LABELS[s.stage] || s.stage}</span>
-          </h3>
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <span
-              className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
-                s.mode === "roleplay"
-                  ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
-                  : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
-              }`}
-            >
-              {s.mode === "roleplay" ? "Role-Play" : "Prep"}
-            </span>
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-gray-800/40 text-gray-500 border border-gray-700/30 flex items-center gap-1.5">
+    <div className="relative rounded-xl border border-gray-800/50 bg-gray-950/40 hover:border-indigo-500/30 hover:bg-gray-900/60 transition-all duration-200 group">
+      <Link
+        to={`/app/prep/${s.session_id}`}
+        className="block p-4"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[14px] font-semibold text-white group-hover:text-indigo-300 transition-colors truncate">
+              {s.role || "Untitled Role"}{" "}
+              <span className="text-gray-600 font-normal">·</span>{" "}
+              <span className="text-gray-400 font-normal">{STAGE_LABELS[s.stage] || s.stage}</span>
+            </h3>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
               <span
-                className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status] || "bg-gray-500"}`}
-              />
-              {s.status.replace(/_/g, " ")}
-            </span>
+                className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
+                  s.mode === "roleplay"
+                    ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                    : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                }`}
+              >
+                {s.mode === "roleplay" ? "Role-Play" : "Prep"}
+              </span>
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-gray-800/40 text-gray-500 border border-gray-700/30 flex items-center gap-1.5">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status] || "bg-gray-500"}`}
+                />
+                {s.status.replace(/_/g, " ")}
+              </span>
+            </div>
           </div>
+          {s.created_at && (
+            <span className="text-xs text-gray-600 shrink-0 pr-7">
+              {new Date(s.created_at).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+          )}
         </div>
-        {s.created_at && (
-          <span className="text-xs text-gray-600 shrink-0">
-            {new Date(s.created_at).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-            })}
-          </span>
-        )}
-      </div>
-    </Link>
+      </Link>
+
+      {/* Delete button */}
+      {!confirming ? (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            setConfirming(true);
+          }}
+          className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-600 opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-500/10 transition-all"
+          title="Delete session"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+          </svg>
+        </button>
+      ) : (
+        <div className="absolute top-2 right-2 flex items-center gap-1.5 bg-gray-900 border border-gray-700/60 rounded-lg px-2 py-1.5 shadow-lg z-10">
+          <span className="text-xs text-gray-400">Delete?</span>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              onDelete(s.session_id);
+            }}
+            className="text-xs font-medium text-red-400 hover:text-red-300 px-1.5 py-0.5 rounded hover:bg-red-500/10 transition-colors"
+          >
+            Yes
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              setConfirming(false);
+            }}
+            className="text-xs font-medium text-gray-500 hover:text-gray-300 px-1.5 py-0.5 rounded hover:bg-gray-800 transition-colors"
+          >
+            No
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
 export default function Dashboard() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     listSessions()
       .then(setSessions)
       .finally(() => setLoading(false));
-    getProfile().then(setProfile);
   }, []);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteSession(id);
+      setSessions((prev) => prev.filter((s) => s.session_id !== id));
+    } catch {
+      // Silently handle -- could add a toast later
+    }
+  };
 
   const grouped = useMemo(() => {
     const m = new Map<string, Session[]>();
@@ -143,37 +197,14 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      <div className="rounded-2xl border border-gray-800/50 bg-gradient-to-b from-gray-900/40 to-transparent px-5 py-4 mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Your prep hub</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              {sessions.length === 0
-                ? "Start a session to get JD analysis, Q&A frameworks, and mock interview scoring."
-                : `${sessions.length} session${sessions.length > 1 ? "s" : ""} · grouped by hiring pipeline`}
-            </p>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {profile && profile.plan === "free" && profile.daily_limit != null && (
-              <span className="text-xs text-gray-500">
-                <span className={profile.daily_sessions_used >= profile.daily_limit ? "text-amber-400" : "text-gray-400"}>
-                  {Math.max(0, profile.daily_limit - profile.daily_sessions_used)}
-                </span>
-                {" "}free session{profile.daily_limit - profile.daily_sessions_used !== 1 ? "s" : ""} left today
-              </span>
-            )}
-            <Link
-              to="/app/new"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-sm shadow-indigo-500/20"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              New Session
-            </Link>
-          </div>
-        </div>
+    <div className="mx-auto max-w-4xl px-6 py-10">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight">Your prep hub</h1>
+        <p className="text-gray-500 text-sm mt-1">
+          {sessions.length === 0
+            ? "Start a session to get JD analysis, Q&A frameworks, and mock interview scoring."
+            : `${sessions.length} session${sessions.length > 1 ? "s" : ""} · grouped by hiring pipeline`}
+        </p>
       </div>
 
       {sessions.length === 0 ? (
@@ -184,8 +215,7 @@ export default function Dashboard() {
           </p>
           <p className="text-gray-600 text-sm mb-2 max-w-md mx-auto">
             Paste a job description, get role-specific questions and answer frameworks, then
-            practice with scored role-play. (Optional: add a product GIF later under{" "}
-            <code className="text-gray-500">public/hero-preview.webp</code>.)
+            practice with scored role-play.
           </p>
           <Link
             to="/app/new"
@@ -210,13 +240,13 @@ export default function Dashboard() {
               </div>
               <div className="grid gap-2 pl-0 sm:pl-2 border-l-2 border-indigo-500/20 ml-1">
                 {items.map((s) => (
-                  <SessionCard key={s.session_id} s={s} />
+                  <SessionCard key={s.session_id} s={s} onDelete={handleDelete} />
                 ))}
               </div>
             </section>
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }

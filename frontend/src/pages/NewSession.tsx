@@ -241,7 +241,7 @@ export default function NewSession() {
     : ["parse", "analyze", "generate", "roleplay_ask"];
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
+    <div className="mx-auto max-w-2xl px-6 py-12">
       <Link
         to="/app"
         className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-400 transition-colors mb-4"
@@ -648,6 +648,6 @@ export default function NewSession() {
         </form>
       )}
       <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
-    </main>
+    </div>
   );
 }

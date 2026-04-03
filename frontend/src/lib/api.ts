@@ -241,6 +241,16 @@ export async function listSessions(): Promise<Session[]> {
   return res.json();
 }
 
+export async function deleteSession(sessionId: string): Promise<void> {
+  const res = await apiFetch(`${BASE}/sessions/${sessionId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.detail || `Failed: ${res.status}`);
+  }
+}
+
 /**
  * Creates a new session (blocking). Waits for full generation before returning.
  *
@@ -439,6 +449,29 @@ export async function saveResume(resume: string): Promise<void> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ resume }),
   });
+}
+
+export interface ProgressData {
+  sessions_completed: number;
+  total_questions: number;
+  competency_averages: Record<string, number>;
+  score_trend: { date: string; score: number }[];
+  strongest: string | null;
+  weakest: string | null;
+}
+
+export async function getProgress(): Promise<ProgressData> {
+  const res = await apiFetch(`${BASE}/profile/progress`);
+  if (!res.ok)
+    return {
+      sessions_completed: 0,
+      total_questions: 0,
+      competency_averages: {},
+      score_trend: [],
+      strongest: null,
+      weakest: null,
+    };
+  return res.json();
 }
 
 export interface UserProfile {

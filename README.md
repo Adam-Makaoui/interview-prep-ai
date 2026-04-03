@@ -115,6 +115,7 @@ cd frontend && npm run dev
 | POST | `/api/sessions` | Create session (blocking, fallback) |
 | GET | `/api/sessions` | List all sessions |
 | GET | `/api/sessions/{id}` | Get session state |
+| DELETE | `/api/sessions/{id}` | Delete session + checkpoints |
 | POST | `/api/sessions/{id}/answer` | Submit role-play answer |
 | POST | `/api/sessions/{id}/continue` | Advance past feedback pause |
 | POST | `/api/sessions/{id}/finish` | End roleplay early, jump to summary |
@@ -124,13 +125,25 @@ cd frontend && npm run dev
 | POST | `/api/parse-resume` | Extract text from PDF/DOCX/TXT upload |
 | GET | `/api/profile/resume` | Get saved resume |
 | PUT | `/api/profile/resume` | Save/update resume |
+| GET | `/api/profile/me` | Current user profile + daily usage |
+| GET | `/api/profile/progress` | Cross-session aggregated scores |
 
 ## Roadmap
 
-Full roadmap lives in Notion. High-level priorities:
+Detailed roadmap lives in Notion. Recently shipped and upcoming priorities:
 
-- **Cross-session analytics** — improvement trends, recurring weak areas, readiness scores
-- **Interview outcome tracking** — record pass/fail + debrief per real round to drive future prep
-- **Stripe billing** — tiered pricing (Free: 1 session, Pro: unlimited + roleplay + history)
+### Shipped
+
+- **App Shell + Sidebar** — persistent navigation with plan usage indicator (Phase 1a)
+- **Session Deletion** — delete sessions from dashboard and detail views (Phase 1b)
+- **Progress Tracking** — final_scores JSONB column, aggregation API, and My Progress page with competency bars and score trend charts (Phase 2)
+- **Daily Free Tier** — 2 free sessions/day with upgrade prompt (monetization foundation)
+
+### Backlog
+
+- **Landing Page Redesign** — hero section, how-it-works steps, sample session preview, pricing section, testimonials
+- **UI Polish** — loading skeletons, error states with retry, transitions, meta/OG tags
+- **Google OAuth** — reduce sign-in friction via Supabase Google provider (~15 lines frontend)
+- **LangSmith Observability** — tracing all LLM calls (free tier: 5k traces/month, zero code changes)
+- **Custom Domain + Stripe** — purchase domain, configure DNS for Vercel/Railway, wire Stripe checkout for Pro plan
 - **Chrome extension** — side panel that detects JDs on LinkedIn/Greenhouse and triggers prep
-- **Auto-enrichment** — web search for company culture, Glassdoor reviews, recent news

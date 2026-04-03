@@ -43,6 +43,7 @@ def _ensure_tables():
                     stage       TEXT NOT NULL DEFAULT '',
                     mode        TEXT NOT NULL DEFAULT 'prep',
                     pipeline_group TEXT NOT NULL DEFAULT 'general',
+                    final_scores JSONB,
                     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
                 )
             """)
@@ -58,6 +59,10 @@ def _ensure_tables():
             cur.execute("""
                 CREATE INDEX IF NOT EXISTS idx_sessions_user_created
                 ON sessions (user_id, created_at)
+            """)
+            # Migrate: add final_scores if missing (safe on new installs too)
+            cur.execute("""
+                ALTER TABLE sessions ADD COLUMN IF NOT EXISTS final_scores JSONB
             """)
         logger.info("Application tables ensured (sessions, profiles)")
     finally:
@@ -181,6 +186,28 @@ def _get_session_meta(sid: str) -> dict:
             }
         return {}
     return _mem_session_index.get(sid, {})
+
+
+def _save_final_scores(sid: str, state: dict):
+    """Persist aggregated scores to the sessions row when a session completes."""
+    conn = _db()
+    if not conn:
+        return
+    summary = state.get("summary") or {}
+    running = state.get("running_competency_scores") or {}
+    skill_avgs = _skill_averages_from_running(running)
+    payload = {
+        "overall_score": summary.get("overall_score"),
+        "readiness_level": summary.get("readiness_level"),
+        "skill_averages": skill_avgs,
+        "total_questions": len(state.get("questions") or []),
+        "total_feedback": len(state.get("feedback") or []),
+    }
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE sessions SET final_scores = %s WHERE session_id = %s",
+            (json.dumps(payload), sid),
+        )
 
 
 def _update_session_meta(sid: str, **fields):
@@ -605,6 +632,8 @@ async def create_session_stream(request: Request, body: SessionCreate):
                     _update_session_meta(session_id, company=state["company"])
                 if state.get("role"):
                     _update_session_meta(session_id, role=state["role"])
+                if state.get("session_complete"):
+                    _save_final_scores(session_id, state)
                 q.put({"done": True, "session": _format_session(session_id, state)})
             else:
                 q.put({"done": True, "error": "Failed to create session"})
@@ -701,6 +730,8 @@ async def create_session(request: Request, body: SessionCreate):
         _update_session_meta(session_id, company=result["company"])
     if result.get("role"):
         _update_session_meta(session_id, role=result["role"])
+    if result.get("session_complete"):
+        _save_final_scores(session_id, result)
 
     return _format_session(session_id, result)
 
@@ -711,6 +742,37 @@ async def get_session(session_id: str):
     if not state:
         raise HTTPException(status_code=404, detail="Session not found")
     return _format_session(session_id, state)
+
+
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str, request: Request):
+    user_id = _require_user(request)
+
+    conn = _db()
+    if conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM sessions WHERE session_id = %s AND user_id = %s RETURNING session_id",
+                (session_id, user_id),
+            )
+            deleted = cur.fetchone()
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Clear LangGraph checkpoint tables for this thread
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM checkpoint_writes WHERE thread_id = %s", (session_id,)
+            )
+            cur.execute(
+                "DELETE FROM checkpoints WHERE thread_id = %s", (session_id,)
+            )
+    elif session_id in _mem_session_index:
+        del _mem_session_index[session_id]
+    else:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    return {"status": "deleted"}
 
 
 @app.post("/api/sessions/{session_id}/answer")
@@ -727,6 +789,8 @@ async def submit_answer(session_id: str, body: AnswerSubmit):
 
     agent.update_state(config, {"chat_history": history}, as_node="roleplay_ask")
     result = agent.invoke(None, config)
+    if result.get("session_complete"):
+        _save_final_scores(session_id, result)
     return _format_session(session_id, result)
 
 
@@ -781,6 +845,8 @@ async def continue_session(session_id: str):
     config = {"configurable": {"thread_id": session_id}}
     logger.info(f"Session {session_id}: continuing to next question")
     result = agent.invoke(None, config)
+    if result.get("session_complete"):
+        _save_final_scores(session_id, result)
     return _format_session(session_id, result)
 
 
@@ -801,7 +867,70 @@ async def finish_session(session_id: str):
         as_node="evaluate",
     )
     result = agent.invoke(None, config)
+    _save_final_scores(session_id, result)
     return _format_session(session_id, result)
+
+
+# ── Progress / Aggregation ────────────────────────────────────────────
+
+
+@app.get("/api/profile/progress")
+async def get_progress(request: Request):
+    """Aggregate cross-session performance data for the My Progress page."""
+    user_id = _require_user(request)
+    conn = _db()
+    if not conn:
+        return {"sessions_completed": 0, "total_questions": 0, "competency_averages": {}, "score_trend": [], "strongest": None, "weakest": None}
+
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT session_id, final_scores, created_at FROM sessions "
+            "WHERE user_id = %s AND final_scores IS NOT NULL "
+            "ORDER BY created_at ASC",
+            (user_id,),
+        )
+        rows = cur.fetchall()
+
+    if not rows:
+        return {"sessions_completed": 0, "total_questions": 0, "competency_averages": {}, "score_trend": [], "strongest": None, "weakest": None}
+
+    total_questions = 0
+    competency_sums: dict[str, float] = {}
+    competency_counts: dict[str, int] = {}
+    score_trend: list[dict] = []
+
+    for _sid, raw_scores, created_at in rows:
+        scores = raw_scores if isinstance(raw_scores, dict) else json.loads(raw_scores) if raw_scores else {}
+        total_questions += scores.get("total_questions", 0)
+        overall = scores.get("overall_score")
+        dt = created_at.isoformat() if hasattr(created_at, "isoformat") else str(created_at)
+        if overall is not None:
+            score_trend.append({"date": dt, "score": overall})
+
+        for comp, val in (scores.get("skill_averages") or {}).items():
+            try:
+                v = float(val)
+            except (TypeError, ValueError):
+                continue
+            competency_sums[comp] = competency_sums.get(comp, 0.0) + v
+            competency_counts[comp] = competency_counts.get(comp, 0) + 1
+
+    competency_averages = {
+        k: round(competency_sums[k] / competency_counts[k], 1)
+        for k in competency_sums
+    }
+
+    strongest = max(competency_averages, key=competency_averages.get, default=None) if competency_averages else None  # type: ignore[arg-type]
+    weakest = min(competency_averages, key=competency_averages.get, default=None) if competency_averages else None  # type: ignore[arg-type]
+
+    return {
+        "sessions_completed": len(rows),
+        "total_questions": total_questions,
+        "competency_averages": competency_averages,
+        "score_trend": score_trend,
+        "strongest": strongest,
+        "weakest": weakest,
+    }
 
 
 # ── Resume Profile ───────────────────────────────────────────────────

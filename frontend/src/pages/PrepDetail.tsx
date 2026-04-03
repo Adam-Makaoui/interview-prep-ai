@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useParams, Link } from "react-router-dom";
-import { getSession, submitAnswer, type Session } from "../lib/api";
+import { useParams, useNavigate } from "react-router-dom";
+import { getSession, submitAnswer, deleteSession, type Session } from "../lib/api";
 import ChatWindow from "../components/ChatWindow";
 import QuestionCard, { QuestionOnlyCard } from "../components/QuestionCard";
 import SkillsScorecard from "../components/SkillsScorecard";
@@ -41,10 +41,12 @@ const STATUS_CONFIG: Record<string, { dot: string; bg: string; text: string; lab
 
 export default function PrepDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [tab, setTab] = useState<Tab>("Analysis");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -125,25 +127,50 @@ export default function PrepDetail() {
   const statusCfg = STATUS_CONFIG[session.status] || STATUS_CONFIG.processing;
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-8">
-      {/* Breadcrumb */}
-      <Link
-        to="/app"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-400 transition-colors mb-6 group"
-      >
-        <svg className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Sessions
-      </Link>
+    <div className="mx-auto max-w-4xl px-6 py-8">
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">
-          {session.role}{" "}
-          <span className="text-gray-500 font-normal">at</span>{" "}
-          <span className="text-indigo-400">{session.company}</span>
-        </h1>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="text-2xl font-bold tracking-tight">
+            {session.role}{" "}
+            <span className="text-gray-500 font-normal">at</span>{" "}
+            <span className="text-indigo-400">{session.company}</span>
+          </h1>
+          <div className="relative shrink-0">
+            {!confirmDelete ? (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="p-2 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                title="Delete session"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-700/60 rounded-lg px-2 py-1.5 shadow-lg">
+                <span className="text-xs text-gray-400">Delete?</span>
+                <button
+                  onClick={async () => {
+                    if (!id) return;
+                    await deleteSession(id);
+                    navigate("/app");
+                  }}
+                  className="text-xs font-medium text-red-400 hover:text-red-300 px-1.5 py-0.5 rounded hover:bg-red-500/10 transition-colors"
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="text-xs font-medium text-gray-500 hover:text-gray-300 px-1.5 py-0.5 rounded hover:bg-gray-800 transition-colors"
+                >
+                  No
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
         <div className="flex items-center gap-3 mt-3">
           <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-gray-800/80 text-gray-300 border border-gray-700/50">
             {session.stage.replace(/_/g, " ")}
@@ -452,6 +479,6 @@ export default function PrepDetail() {
       {tab === "Scorecard" && (
         <SkillsScorecard session={session} />
       )}
-    </main>
+    </div>
   );
 }
