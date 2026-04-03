@@ -65,10 +65,12 @@ def _make_checkpointer():
             from langgraph.checkpoint.postgres import PostgresSaver
             import psycopg
 
+            setup_conn = psycopg.connect(settings.database_url, autocommit=True)
+            PostgresSaver(setup_conn).setup()
+            setup_conn.close()
+
             conn = psycopg.connect(settings.database_url)
             cp = PostgresSaver(conn)
-            with psycopg.connect(settings.database_url, autocommit=True) as setup_conn:
-                cp.setup(setup_conn)
             logger.info("Using PostgresSaver (Postgres)")
             return cp
         except Exception as e:
