@@ -67,8 +67,9 @@ def _make_checkpointer():
 
             conn = psycopg.connect(settings.database_url)
             cp = PostgresSaver(conn)
-            cp.setup()
-            logger.info("Using PostgresSaver (Supabase)")
+            with psycopg.connect(settings.database_url, autocommit=True) as setup_conn:
+                cp.setup(setup_conn)
+            logger.info("Using PostgresSaver (Postgres)")
             return cp
         except Exception as e:
             raw = (
