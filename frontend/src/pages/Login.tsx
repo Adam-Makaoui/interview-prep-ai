@@ -39,7 +39,16 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4 relative">
+      <Link
+        to="/"
+        className="absolute top-5 right-5 p-2 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800/60 transition-colors"
+        aria-label="Close"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </Link>
       <div className="w-full max-w-sm">
         <Link to="/" className="block text-center mb-8">
           <span className="text-2xl font-bold text-white tracking-tight">
