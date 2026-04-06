@@ -37,7 +37,7 @@ const NODE_LABELS: Record<string, string> = {
 type JdMode = "text" | "url";
 
 /**
- * Form for creating prep sessions. Key handlers: handleAutoFill (extracts fields from JD),
+ * Form for creating prep sessions. Key handlers: handleAutoFill (extracts fields from job description),
  * handleLookup (web search for interviewer title), handleResumeFile (PDF/DOCX upload),
  * handleSubmit (creates session via SSE stream, navigates early on generate complete),
  * handleSaveResume (persists resume).
@@ -83,7 +83,7 @@ export default function NewSession() {
       >
     ) => setForm({ ...form, [field]: e.target.value });
 
-  /** Extracts company, role, stage from JD text or URL via extractFields API. */
+  /** Extracts company, role, stage from posting text or URL via extractFields API. */
   const handleAutoFill = async () => {
     setExtracting(true);
     setError("");
@@ -100,7 +100,7 @@ export default function NewSession() {
         job_description: result.job_description || prev.job_description,
       }));
     } catch {
-      setError("Failed to extract fields. Check the JD or URL and try again.");
+      setError("Failed to extract fields. Check the job description or URL and try again.");
     } finally {
       setExtracting(false);
     }
@@ -234,7 +234,7 @@ export default function NewSession() {
     (jdMode === "url" && form.job_url.trim().length > 5);
 
   const inputClass =
-    "w-full rounded-lg bg-gray-900 border border-gray-700 px-4 py-2.5 text-white placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none";
+    "w-full rounded-lg bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none";
 
   const allNodes = form.mode === "prep"
     ? ["parse", "analyze", "generate", "draft"]
@@ -244,22 +244,22 @@ export default function NewSession() {
     <div className="mx-auto max-w-2xl px-6 py-12">
       <Link
         to="/app"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-400 transition-colors mb-4"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors mb-4"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
         Back to Sessions
       </Link>
-      <h1 className="text-3xl font-bold mb-2">Start a Prep Session</h1>
-      <p className="text-gray-400 mb-8">
+      <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Start a Prep Session</h1>
+      <p className="text-gray-600 dark:text-gray-400 mb-8">
         Paste the job description or URL and we'll generate tailored prep
         materials.
       </p>
 
       {loading ? (
         <div className="space-y-3 py-8">
-          <h2 className="text-lg font-semibold text-white mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Building your prep session...
           </h2>
           {allNodes.map((node) => {
@@ -273,7 +273,7 @@ export default function NewSession() {
               <div key={node} className="flex items-center gap-3">
                 {done ? (
                   <svg
-                    className="w-5 h-5 text-green-400 shrink-0"
+                    className="w-5 h-5 text-emerald-600 dark:text-green-400 shrink-0"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -287,22 +287,22 @@ export default function NewSession() {
                   </svg>
                 ) : isActive ? (
                   <svg
-                    className="animate-spin h-5 w-5 text-indigo-400 shrink-0"
+                    className="animate-spin h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0"
                     viewBox="0 0 24 24"
                   >
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                 ) : (
-                  <div className="w-5 h-5 rounded-full border border-gray-700 shrink-0" />
+                  <div className="w-5 h-5 rounded-full border border-gray-300 dark:border-gray-700 shrink-0" />
                 )}
                 <span
                   className={`text-sm ${
                     done
-                      ? "text-green-300"
+                      ? "text-emerald-700 dark:text-green-300"
                       : isActive
-                      ? "text-white font-medium"
-                      : "text-gray-600"
+                      ? "text-gray-900 dark:text-white font-medium"
+                      : "text-gray-500 dark:text-gray-600"
                   }`}
                 >
                   {NODE_LABELS[node] || node}
@@ -313,20 +313,20 @@ export default function NewSession() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* JD input: text or URL */}
+          {/* Job posting: pasted text or URL */}
           <div>
             <div className="flex items-center gap-1 mb-2">
-              <label className="text-sm font-medium text-gray-300">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Job Description
               </label>
-              <div className="ml-auto flex rounded-lg overflow-hidden border border-gray-700">
+              <div className="ml-auto flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setJdMode("text")}
                   className={`px-3 py-1 text-xs font-medium transition-colors ${
                     jdMode === "text"
                       ? "bg-indigo-600 text-white"
-                      : "bg-gray-900 text-gray-400 hover:text-white"
+                      : "bg-gray-100 text-gray-600 hover:text-gray-900 dark:bg-gray-900 dark:text-gray-400 dark:hover:text-white"
                   }`}
                 >
                   Paste Text
@@ -337,7 +337,7 @@ export default function NewSession() {
                   className={`px-3 py-1 text-xs font-medium transition-colors ${
                     jdMode === "url"
                       ? "bg-indigo-600 text-white"
-                      : "bg-gray-900 text-gray-400 hover:text-white"
+                      : "bg-gray-100 text-gray-600 hover:text-gray-900 dark:bg-gray-900 dark:text-gray-400 dark:hover:text-white"
                   }`}
                 >
                   Paste URL
@@ -367,7 +367,7 @@ export default function NewSession() {
                 type="button"
                 onClick={handleAutoFill}
                 disabled={extracting}
-                className="mt-2 inline-flex items-center gap-2 rounded-lg bg-gray-800 border border-gray-700 px-4 py-2 text-sm font-medium text-indigo-300 hover:bg-gray-700 hover:text-indigo-200 disabled:opacity-50 transition-colors"
+                className="mt-2 inline-flex items-center gap-2 rounded-lg bg-gray-100 border border-gray-300 dark:bg-gray-800 dark:border-gray-700 px-4 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-indigo-800 dark:hover:text-indigo-200 disabled:opacity-50 transition-colors"
               >
                 {extracting ? (
                   <>
@@ -386,7 +386,7 @@ export default function NewSession() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Company
               </label>
               <input
@@ -397,7 +397,7 @@ export default function NewSession() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Role
               </label>
               <input
@@ -412,7 +412,7 @@ export default function NewSession() {
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Hiring pipeline group{" "}
-              <span className="text-gray-600 font-normal">(optional)</span>
+              <span className="text-gray-500 dark:text-gray-600 font-normal">(optional)</span>
             </label>
             <input
               value={form.pipeline_group}
@@ -420,14 +420,14 @@ export default function NewSession() {
               placeholder="Defaults to company — use same label for all rounds with one employer"
               className={inputClass}
             />
-            <p className="text-xs text-gray-600 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-600 mt-1">
               Sessions with the same group appear together on the dashboard (e.g. every round at Acme).
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Interview Stage
               </label>
               <select
@@ -451,7 +451,7 @@ export default function NewSession() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Mode
               </label>
               <select
@@ -468,20 +468,20 @@ export default function NewSession() {
           {/* Interviewers */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-300">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Interviewers{" "}
                 <span className="text-gray-500">(optional)</span>
               </label>
               <button
                 type="button"
                 onClick={addInterviewer}
-                className="text-xs font-medium text-indigo-400 hover:text-indigo-300"
+                className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
               >
                 + Add Interviewer
               </button>
             </div>
             {interviewers.length === 0 ? (
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-500 dark:text-gray-600">
                 Add interviewer names and titles for more tailored prep.
               </p>
             ) : (
@@ -511,7 +511,7 @@ export default function NewSession() {
                         type="button"
                         onClick={() => handleLookup(i)}
                         disabled={lookingUp === i || !person.name.trim()}
-                        className="text-xs font-medium text-indigo-400 hover:text-indigo-300 disabled:opacity-30 shrink-0 px-2 py-1"
+                        className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 disabled:opacity-30 shrink-0 px-2 py-1"
                         title="Look up title"
                       >
                         {lookingUp === i ? (
@@ -528,7 +528,7 @@ export default function NewSession() {
                       <button
                         type="button"
                         onClick={() => removeInterviewer(i)}
-                        className="text-gray-500 hover:text-red-400 shrink-0 p-1"
+                        className="text-gray-500 hover:text-red-600 dark:hover:text-red-400 shrink-0 p-1"
                         title="Remove"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -544,7 +544,7 @@ export default function NewSession() {
                           updated[i] = { name: parsed.name, title: parsed.title };
                           setInterviewers(updated);
                         }}
-                        className="ml-1 inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 bg-indigo-900/30 hover:bg-indigo-900/50 border border-indigo-800/40 rounded-full px-3 py-1 transition-colors"
+                        className="ml-1 inline-flex items-center gap-1.5 text-xs text-indigo-700 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800/40 rounded-full px-3 py-1 transition-colors"
                       >
                         Move &ldquo;{parsed.title}&rdquo; to title?
                       </button>
@@ -559,11 +559,11 @@ export default function NewSession() {
           {/* Resume */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-sm font-medium text-gray-300">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Resume / Background{" "}
                 <span className="text-gray-500">(optional)</span>
               </label>
-              <label className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300 cursor-pointer">
+              <label className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 cursor-pointer">
                 {uploadingResume ? (
                   <>
                     <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
@@ -590,9 +590,9 @@ export default function NewSession() {
               </label>
             </div>
             {savedResume && !resumeOverride ? (
-              <div className="rounded-lg bg-gray-900 border border-gray-700 px-4 py-3 flex items-center justify-between">
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
                 <div className="min-w-0">
-                  <span className="text-sm text-green-400 font-medium">
+                  <span className="text-sm text-emerald-700 dark:text-green-400 font-medium">
                     Saved resume loaded
                   </span>
                   <p className="text-xs text-gray-500 truncate mt-0.5">
@@ -605,7 +605,7 @@ export default function NewSession() {
                     setResumeOverride(true);
                     setForm({ ...form, resume: savedResume });
                   }}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 font-medium shrink-0 ml-3"
+                  className="text-xs text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium shrink-0 ml-3"
                 >
                   Edit
                 </button>
@@ -623,7 +623,7 @@ export default function NewSession() {
                   <button
                     type="button"
                     onClick={handleSaveResume}
-                    className="mt-1 text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                    className="mt-1 text-xs text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
                   >
                     Save as default resume
                   </button>
@@ -633,7 +633,7 @@ export default function NewSession() {
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-900/50 border border-red-700 px-4 py-3 text-red-200 text-sm">
+            <div className="rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/50 dark:border-red-700 px-4 py-3 text-red-800 dark:text-red-200 text-sm">
               {error}
             </div>
           )}

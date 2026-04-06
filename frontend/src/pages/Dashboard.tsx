@@ -23,9 +23,9 @@ const STATUS_DOT: Record<string, string> = {
 function HeroIllustration() {
   return (
     <div className="relative w-20 h-20 mx-auto mb-5">
-      <div className="absolute inset-0 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 animate-pulse" />
+      <div className="absolute inset-0 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 dark:border-indigo-500/30 animate-pulse" />
       <svg
-        className="relative w-20 h-20 text-indigo-400/90 p-4"
+        className="relative w-20 h-20 text-indigo-600 dark:text-indigo-400/90 p-4"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -58,29 +58,29 @@ function SessionCard({
   const [confirming, setConfirming] = useState(false);
 
   return (
-    <div className="relative rounded-xl border border-gray-800/50 bg-gray-950/40 hover:border-indigo-500/30 hover:bg-gray-900/60 transition-all duration-200 group">
+    <div className="relative rounded-xl border border-gray-200 bg-white shadow-sm hover:border-indigo-300 hover:bg-gray-50 dark:border-gray-800/50 dark:bg-gray-950/40 dark:shadow-none dark:hover:border-indigo-500/30 dark:hover:bg-gray-900/60 transition-all duration-200 group">
       <Link
         to={`/app/prep/${s.session_id}`}
         className="block p-4"
       >
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <h3 className="text-[14px] font-semibold text-white group-hover:text-indigo-300 transition-colors truncate">
+            <h3 className="text-[14px] font-semibold text-gray-900 group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-300 transition-colors truncate">
               {s.role || "Untitled Role"}{" "}
-              <span className="text-gray-600 font-normal">·</span>{" "}
-              <span className="text-gray-400 font-normal">{STAGE_LABELS[s.stage] || s.stage}</span>
+              <span className="text-gray-400 dark:text-gray-600 font-normal">·</span>{" "}
+              <span className="text-gray-500 dark:text-gray-400 font-normal">{STAGE_LABELS[s.stage] || s.stage}</span>
             </h3>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <span
                 className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
                   s.mode === "roleplay"
-                    ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
-                    : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                    ? "bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20"
+                    : "bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20"
                 }`}
               >
                 {s.mode === "roleplay" ? "Role-Play" : "Prep"}
               </span>
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-gray-800/40 text-gray-500 border border-gray-700/30 flex items-center gap-1.5">
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-800/40 dark:text-gray-500 dark:border-gray-700/30 flex items-center gap-1.5">
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status] || "bg-gray-500"}`}
                 />
@@ -89,7 +89,7 @@ function SessionCard({
             </div>
           </div>
           {s.created_at && (
-            <span className="text-xs text-gray-600 shrink-0 pr-7">
+            <span className="text-xs text-gray-500 dark:text-gray-600 shrink-0 pr-7">
               {new Date(s.created_at).toLocaleDateString(undefined, {
                 month: "short",
                 day: "numeric",
@@ -106,7 +106,7 @@ function SessionCard({
             e.preventDefault();
             setConfirming(true);
           }}
-          className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-600 opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-500/10 transition-all"
+          className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-500 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-red-50 dark:text-gray-600 dark:hover:text-red-400 dark:hover:bg-red-500/10 transition-all"
           title="Delete session"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -114,14 +114,14 @@ function SessionCard({
           </svg>
         </button>
       ) : (
-        <div className="absolute top-2 right-2 flex items-center gap-1.5 bg-gray-900 border border-gray-700/60 rounded-lg px-2 py-1.5 shadow-lg z-10">
-          <span className="text-xs text-gray-400">Delete?</span>
+        <div className="absolute top-2 right-2 flex items-center gap-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700/60 rounded-lg px-2 py-1.5 shadow-lg z-10">
+          <span className="text-xs text-gray-600 dark:text-gray-400">Delete?</span>
           <button
             onClick={(e) => {
               e.preventDefault();
               onDelete(s.session_id);
             }}
-            className="text-xs font-medium text-red-400 hover:text-red-300 px-1.5 py-0.5 rounded hover:bg-red-500/10 transition-colors"
+            className="text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 px-1.5 py-0.5 rounded hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
           >
             Yes
           </button>
@@ -130,7 +130,7 @@ function SessionCard({
               e.preventDefault();
               setConfirming(false);
             }}
-            className="text-xs font-medium text-gray-500 hover:text-gray-300 px-1.5 py-0.5 rounded hover:bg-gray-800 transition-colors"
+            className="text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-500 dark:hover:text-gray-300 px-1.5 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             No
           </button>
@@ -189,7 +189,7 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="relative w-10 h-10">
-          <div className="absolute inset-0 rounded-full border-2 border-gray-800" />
+          <div className="absolute inset-0 rounded-full border-2 border-gray-200 dark:border-gray-800" />
           <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-indigo-500 animate-spin" />
         </div>
       </div>
@@ -199,21 +199,21 @@ export default function Dashboard() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">Your prep hub</h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Your prep hub</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
           {sessions.length === 0
-            ? "Start a session to get JD analysis, Q&A frameworks, and mock interview scoring."
+            ? "Start a session to get job description analysis, Q&A frameworks, and mock interview scoring."
             : `${sessions.length} session${sessions.length > 1 ? "s" : ""} · grouped by hiring pipeline`}
         </p>
       </div>
 
       {sessions.length === 0 ? (
-        <div className="text-center py-20 rounded-2xl border border-dashed border-gray-800/60 bg-gray-900/20">
+        <div className="text-center py-20 rounded-2xl border border-dashed border-gray-300 bg-gray-50 dark:border-gray-800/60 dark:bg-gray-900/20">
           <HeroIllustration />
-          <p className="text-gray-400 text-lg font-medium mb-2">
+          <p className="text-gray-700 dark:text-gray-400 text-lg font-medium mb-2">
             Prep smarter for your next interview
           </p>
-          <p className="text-gray-600 text-sm mb-2 max-w-md mx-auto">
+          <p className="text-gray-600 dark:text-gray-500 text-sm mb-2 max-w-md mx-auto">
             Paste a job description, get role-specific questions and answer frameworks, then
             practice with scored role-play.
           </p>
@@ -229,16 +229,16 @@ export default function Dashboard() {
           {grouped.map(({ pipeline_group, displayName, items }) => (
             <section key={pipeline_group}>
               <div className="flex items-center gap-2 mb-3">
-                <span className="h-px flex-1 bg-gray-800/80 max-w-[40px]" />
-                <h2 className="text-sm font-semibold text-gray-300 tracking-tight">
+                <span className="h-px flex-1 bg-gray-300 dark:bg-gray-800/80 max-w-[40px]" />
+                <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-300 tracking-tight">
                   {displayName}
                 </h2>
-                <span className="text-xs text-gray-600">
+                <span className="text-xs text-gray-500 dark:text-gray-600">
                   {items.length} round{items.length > 1 ? "s" : ""}
                 </span>
-                <span className="h-px flex-1 bg-gray-800/80" />
+                <span className="h-px flex-1 bg-gray-300 dark:bg-gray-800/80" />
               </div>
-              <div className="grid gap-2 pl-0 sm:pl-2 border-l-2 border-indigo-500/20 ml-1">
+              <div className="grid gap-2 pl-0 sm:pl-2 border-l-2 border-indigo-300 dark:border-indigo-500/20 ml-1">
                 {items.map((s) => (
                   <SessionCard key={s.session_id} s={s} onDelete={handleDelete} />
                 ))}

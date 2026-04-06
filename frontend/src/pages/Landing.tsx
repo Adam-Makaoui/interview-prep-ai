@@ -24,29 +24,29 @@ const VIEWPORT = { once: true, amount: 0.25 as const };
 
 function MockJDAnalysis() {
   return (
-    <div className="rounded-xl bg-gray-900/80 border border-gray-800/60 p-5 space-y-3 text-sm shadow-2xl shadow-indigo-500/5">
+    <div className="rounded-xl bg-white border border-gray-200 shadow-xl shadow-gray-200/30 dark:bg-gray-900/80 dark:border-gray-800/60 p-5 space-y-3 text-sm dark:shadow-2xl dark:shadow-indigo-500/5">
       <div className="flex items-center gap-2 mb-1">
-        <div className="w-2 h-2 rounded-full bg-emerald-400" />
-        <span className="text-xs font-medium text-emerald-400 uppercase tracking-wider">Analysis Complete</span>
+        <div className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+        <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Analysis Complete</span>
       </div>
-      <div className="rounded-lg bg-gray-800/50 border border-gray-700/40 p-3">
+      <div className="rounded-lg bg-gray-50 border border-gray-200 dark:bg-gray-800/50 dark:border-gray-700/40 p-3">
         <span className="text-xs text-gray-500 uppercase">Company</span>
-        <p className="text-white font-medium">Stripe</p>
+        <p className="text-gray-900 dark:text-white font-medium">Stripe</p>
       </div>
       <div>
         <span className="text-xs text-gray-500 uppercase">Key Skills</span>
         <div className="flex flex-wrap gap-1.5 mt-1.5">
           {["API Design", "Payments", "System Design", "Cross-functional", "SQL"].map((s) => (
-            <span key={s} className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 text-xs border border-indigo-500/20">{s}</span>
+            <span key={s} className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 text-xs border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20">{s}</span>
           ))}
         </div>
       </div>
-      <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/15 p-3">
-        <span className="text-[11px] font-semibold text-emerald-400 uppercase">JD Match</span>
-        <div className="mt-1.5 h-2 rounded-full bg-gray-700 overflow-hidden">
+      <div className="rounded-lg bg-emerald-50 border border-emerald-200/80 dark:bg-emerald-500/5 dark:border-emerald-500/15 p-3">
+        <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase">Role match</span>
+        <div className="mt-1.5 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
           <div className="h-full w-4/5 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400" />
         </div>
-        <p className="text-xs text-gray-400 mt-1">Strong alignment on 4/5 core requirements</p>
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Strong alignment on 4/5 core requirements</p>
       </div>
     </div>
   );
@@ -54,18 +54,18 @@ function MockJDAnalysis() {
 
 function MockQA() {
   return (
-    <div className="rounded-xl bg-gray-900/80 border border-gray-800/60 p-5 space-y-4 text-sm shadow-2xl shadow-indigo-500/5">
-      <div className="rounded-lg bg-gray-800/50 border border-gray-700/40 p-3">
-        <span className="text-xs text-indigo-400 font-semibold uppercase">Q1 &middot; Hiring Manager</span>
-        <p className="text-white mt-1 leading-relaxed">"Walk me through a time you had to align engineering and sales on a technical decision."</p>
+    <div className="rounded-xl bg-white border border-gray-200 shadow-xl shadow-gray-200/30 dark:bg-gray-900/80 dark:border-gray-800/60 p-5 space-y-4 text-sm dark:shadow-2xl dark:shadow-indigo-500/5">
+      <div className="rounded-lg bg-gray-50 border border-gray-200 dark:bg-gray-800/50 dark:border-gray-700/40 p-3">
+        <span className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold uppercase">Q1 &middot; Hiring Manager</span>
+        <p className="text-gray-900 dark:text-white mt-1 leading-relaxed">&quot;Walk me through a time you had to align engineering and sales on a technical decision.&quot;</p>
       </div>
-      <div className="rounded-lg bg-indigo-500/5 border border-indigo-500/15 p-3 space-y-2">
-        <span className="text-[11px] font-semibold text-indigo-400 uppercase">STAR Framework</span>
-        <div className="space-y-1.5 text-gray-300">
-          <p><span className="text-indigo-400 font-medium">S:</span> API migration project at Series B fintech...</p>
-          <p><span className="text-indigo-400 font-medium">T:</span> Needed buy-in from 3 eng leads + VP Sales...</p>
-          <p><span className="text-indigo-400 font-medium">A:</span> Built a shared decision matrix with...</p>
-          <p><span className="text-indigo-400 font-medium">R:</span> Shipped 2 weeks early, 40% fewer support tickets</p>
+      <div className="rounded-lg bg-indigo-50 border border-indigo-100 dark:bg-indigo-500/5 dark:border-indigo-500/15 p-3 space-y-2">
+        <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase">STAR Framework</span>
+        <div className="space-y-1.5 text-gray-700 dark:text-gray-300">
+          <p><span className="text-indigo-600 dark:text-indigo-400 font-medium">S:</span> API migration project at Series B fintech...</p>
+          <p><span className="text-indigo-600 dark:text-indigo-400 font-medium">T:</span> Needed buy-in from 3 eng leads + VP Sales...</p>
+          <p><span className="text-indigo-600 dark:text-indigo-400 font-medium">A:</span> Built a shared decision matrix with...</p>
+          <p><span className="text-indigo-600 dark:text-indigo-400 font-medium">R:</span> Shipped 2 weeks early, 40% fewer support tickets</p>
         </div>
       </div>
     </div>
@@ -74,31 +74,31 @@ function MockQA() {
 
 function MockRolePlay() {
   return (
-    <div className="rounded-xl bg-gray-900/80 border border-gray-800/60 p-5 space-y-3 text-sm shadow-2xl shadow-indigo-500/5">
+    <div className="rounded-xl bg-white border border-gray-200 shadow-xl shadow-gray-200/30 dark:bg-gray-900/80 dark:border-gray-800/60 p-5 space-y-3 text-sm dark:shadow-2xl dark:shadow-indigo-500/5">
       <div className="flex items-center gap-2 mb-1">
-        <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-        <span className="text-xs font-medium text-purple-400 uppercase tracking-wider">Live Role-Play</span>
+        <div className="w-2 h-2 rounded-full bg-purple-500 dark:bg-purple-400 animate-pulse" />
+        <span className="text-xs font-medium text-purple-700 dark:text-purple-400 uppercase tracking-wider">Live Role-Play</span>
       </div>
       <div className="flex gap-3">
-        <div className="w-7 h-7 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0 text-xs font-bold text-purple-300">I</div>
-        <div className="rounded-lg bg-gray-800/50 border border-gray-700/40 p-3 flex-1">
-          <p className="text-gray-300">"How would you handle a POC that's going off the rails with a strategic account?"</p>
+        <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-500/20 dark:border-purple-500/30 dark:text-purple-300 flex items-center justify-center shrink-0 text-xs font-bold">I</div>
+        <div className="rounded-lg bg-gray-50 border border-gray-200 dark:bg-gray-800/50 dark:border-gray-700/40 p-3 flex-1">
+          <p className="text-gray-700 dark:text-gray-300">&quot;How would you handle a POC that&apos;s going off the rails with a strategic account?&quot;</p>
         </div>
       </div>
       <div className="flex gap-3 justify-end">
-        <div className="rounded-lg bg-indigo-500/10 border border-indigo-500/20 p-3 flex-1 max-w-[85%]">
-          <p className="text-gray-300">"I'd first align with the AE on what success looks like for the customer, then..."</p>
+        <div className="rounded-lg bg-indigo-50 border border-indigo-200 dark:bg-indigo-500/10 dark:border-indigo-500/20 p-3 flex-1 max-w-[85%]">
+          <p className="text-gray-700 dark:text-gray-300">&quot;I&apos;d first align with the AE on what success looks like for the customer, then...&quot;</p>
         </div>
-        <div className="w-7 h-7 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0 text-xs font-bold text-indigo-300">Y</div>
+        <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/20 dark:border-indigo-500/30 dark:text-indigo-300 flex items-center justify-center shrink-0 text-xs font-bold">Y</div>
       </div>
       <div className="flex gap-3">
-        <div className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0 text-xs font-bold text-cyan-300">C</div>
-        <div className="rounded-lg bg-cyan-500/5 border border-cyan-500/15 p-3 flex-1">
+        <div className="w-7 h-7 rounded-full bg-cyan-100 text-cyan-800 border border-cyan-200 dark:bg-cyan-500/20 dark:border-cyan-500/30 dark:text-cyan-300 flex items-center justify-center shrink-0 text-xs font-bold">C</div>
+        <div className="rounded-lg bg-cyan-50 border border-cyan-100 dark:bg-cyan-500/5 dark:border-cyan-500/15 p-3 flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-cyan-400 font-bold text-lg">8.5</span>
-            <span className="text-xs text-cyan-400/70">/10</span>
+            <span className="text-cyan-700 dark:text-cyan-400 font-bold text-lg">8.5</span>
+            <span className="text-xs text-cyan-600 dark:text-cyan-400/70">/10</span>
           </div>
-          <p className="text-gray-400 text-xs">Strong stakeholder awareness. Add a specific metric from a past POC to strengthen credibility.</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs">Strong stakeholder awareness. Add a specific metric from a past POC to strengthen credibility.</p>
         </div>
       </div>
     </div>
@@ -114,19 +114,19 @@ function MockScorecard() {
     { name: "Business Acumen", score: 8.1 },
   ];
   return (
-    <div className="rounded-xl bg-gray-900/80 border border-gray-800/60 p-5 space-y-3 text-sm shadow-2xl shadow-indigo-500/5">
+    <div className="rounded-xl bg-white border border-gray-200 shadow-xl shadow-gray-200/30 dark:bg-gray-900/80 dark:border-gray-800/60 p-5 space-y-3 text-sm dark:shadow-2xl dark:shadow-indigo-500/5">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Skills Scorecard</span>
-        <span className="text-xs text-emerald-400 font-medium px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">Ready</span>
+        <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Skills Scorecard</span>
+        <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">Ready</span>
       </div>
       <div className="space-y-2.5">
         {skills.map((s) => (
           <div key={s.name}>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-gray-300">{s.name}</span>
-              <span className="text-gray-400">{s.score}/10</span>
+              <span className="text-gray-700 dark:text-gray-300">{s.name}</span>
+              <span className="text-gray-500 dark:text-gray-400">{s.score}/10</span>
             </div>
-            <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
+            <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all"
                 style={{ width: `${s.score * 10}%` }}
@@ -135,9 +135,9 @@ function MockScorecard() {
           </div>
         ))}
       </div>
-      <div className="pt-2 border-t border-gray-800/60 flex items-center justify-between">
+      <div className="pt-2 border-t border-gray-200 dark:border-gray-800/60 flex items-center justify-between">
         <span className="text-gray-500 text-xs">Overall</span>
-        <span className="text-white font-bold text-lg">8.1<span className="text-gray-500 text-sm font-normal">/10</span></span>
+        <span className="text-gray-900 dark:text-white font-bold text-lg">8.1<span className="text-gray-500 text-sm font-normal">/10</span></span>
       </div>
     </div>
   );
@@ -148,12 +148,13 @@ function MockScorecard() {
 const FEATURES = [
   {
     label: "Step 1",
-    title: "Instant JD Analysis",
-    description: "Paste a job URL or description and get a full breakdown in 30 seconds. Company intel, key skills, culture signals, and how your resume stacks up against the JD.",
+    title: "Job description intelligence",
+    description:
+      "Paste a posting URL or full job description and get a structured breakdown fast: company context, must-have skills, culture signals, and how your resume lines up with what they actually asked for.",
     bullets: [
-      "Company size, market position & competitors",
-      "Resume-vs-JD match with gap analysis",
-      "Missing keywords flagged before you apply",
+      "Company footprint, market position, and competitor lens",
+      "Resume vs job description fit with explicit gap analysis",
+      "Missing keywords surfaced before you hit submit",
     ],
     mockup: <MockJDAnalysis />,
   },
@@ -199,21 +200,22 @@ const TESTIMONIALS = [
     name: "Sarah K.",
     role: "Senior SE at Salesforce",
     initials: "SK",
-    color: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
-    quote: "I used this for my Stripe final round. The JD analysis caught gaps I would have never addressed. Got the offer.",
+    color: "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30",
+    quote:
+      "I used this for my Stripe final round. The job description analysis caught gaps I would have never addressed. Got the offer.",
   },
   {
     name: "Marcus T.",
     role: "Solutions Architect",
     initials: "MT",
-    color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+    color: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30",
     quote: "The role-play felt surprisingly real. The feedback after each answer was more useful than any mock interview I've done with friends.",
   },
   {
     name: "Priya R.",
     role: "Pre-Sales Engineer at AWS",
     initials: "PR",
-    color: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+    color: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30",
     quote: "Went from generic prep to role-specific, interviewer-aware prep. The STAR frameworks saved me hours of writing.",
   },
 ];
@@ -226,15 +228,15 @@ export default function Landing() {
   const ctaLabel = user ? "Go to Dashboard" : "Start Free Session";
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-white overflow-x-hidden">
       {/* Nav */}
-      <header className="border-b border-gray-800/40 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
+      <header className="border-b border-gray-200 dark:border-gray-800/40 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
         <span className="text-xl font-bold tracking-tight">
-          InterviewPrep<span className="text-indigo-400">AI</span>
+          InterviewPrep<span className="text-indigo-600 dark:text-indigo-400">AI</span>
         </span>
         <Link
           to={ctaHref}
-          className="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+          className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
         >
           {user ? "Dashboard" : "Sign in"}
         </Link>
@@ -244,8 +246,8 @@ export default function Landing() {
       <section className="relative max-w-4xl mx-auto px-6 pt-24 pb-20 text-center">
         {/* Animated gradient glow */}
         <div className="absolute inset-0 -top-20 overflow-hidden pointer-events-none" aria-hidden>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-indigo-600/20 via-purple-600/10 to-transparent blur-3xl animate-[pulse_6s_ease-in-out_infinite]" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-cyan-600/10 via-indigo-600/15 to-transparent blur-3xl animate-[pulse_8s_ease-in-out_infinite_1s]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-indigo-400/20 via-purple-400/15 to-transparent dark:from-indigo-600/20 dark:via-purple-600/10 dark:to-transparent blur-3xl animate-[pulse_6s_ease-in-out_infinite]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-cyan-400/15 via-indigo-400/15 to-transparent dark:from-cyan-600/10 dark:via-indigo-600/15 dark:to-transparent blur-3xl animate-[pulse_8s_ease-in-out_infinite_1s]" />
         </div>
 
         <motion.div
@@ -254,30 +256,30 @@ export default function Landing() {
           variants={stagger}
           className="relative"
         >
-          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 text-xs font-medium text-indigo-400 mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-            AI-powered interview prep for $100K+ roles
+          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 rounded-full bg-indigo-100 border border-indigo-200 dark:bg-indigo-500/10 dark:border-indigo-500/20 px-4 py-1.5 text-xs font-medium text-indigo-700 dark:text-indigo-400 mb-6">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-pulse" />
+            One structured system for serious technical interviews
           </motion.div>
-          <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-5">
-            Your interview coach that{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">knows the JD</span>,{" "}
+          <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-5 text-gray-900 dark:text-white">
+            Your interview prep mastermind that{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400">reads the job description</span>,{" "}
             <br className="hidden sm:block" />
-            your interviewers, and your weak spots
+            models your interviewers, and surfaces your weak spots
           </motion.h1>
-          <motion.p variants={fadeUp} className="text-gray-400 text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
-            Paste a job URL. Get role analysis, tailored questions, and scored mock interviews
-            with real-time feedback -- all in one place.
+          <motion.p variants={fadeUp} className="text-gray-600 dark:text-gray-400 text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
+            Built by people who ship software: analysis, tailored questions, answer frameworks, and scored role-play—so
+            you walk in with a plan instead of a prayer.
           </motion.p>
           <motion.div variants={fadeUp} className="flex items-center justify-center gap-4">
             <Link
               to={ctaHref}
-              className="rounded-xl bg-indigo-600 px-7 py-3.5 font-semibold text-sm hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/25"
+              className="rounded-xl bg-indigo-600 px-7 py-3.5 font-semibold text-sm text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/25"
             >
               {ctaLabel}
             </Link>
             <a
               href="#features"
-              className="rounded-xl border border-gray-700 px-7 py-3.5 text-sm font-medium text-gray-300 hover:border-gray-500 hover:text-white transition-colors"
+              className="rounded-xl border border-gray-300 text-gray-700 hover:border-gray-400 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:border-gray-500 dark:hover:text-white px-7 py-3.5 text-sm font-medium transition-colors"
             >
               See how it works
             </a>
@@ -286,8 +288,9 @@ export default function Landing() {
       </section>
 
       {/* Social proof line */}
-      <div className="text-center text-gray-600 text-sm pb-20">
-        Built for Solutions Engineers, SEs, and anyone prepping for multi-round tech interviews.
+      <div className="text-center text-gray-500 dark:text-gray-600 text-sm pb-20">
+        Built for software engineers, solutions and sales engineers, DevTools-oriented roles, and anyone facing
+        multi-round technical hiring loops.
       </div>
 
       {/* Feature sections */}
@@ -306,19 +309,19 @@ export default function Landing() {
               <div className={`flex flex-col ${reversed ? "lg:flex-row-reverse" : "lg:flex-row"} items-center gap-10 lg:gap-16`}>
                 {/* Text */}
                 <motion.div variants={fadeUp} className="flex-1 max-w-lg">
-                  <span className="inline-block text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-3 px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20">
+                  <span className="inline-block text-xs font-semibold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider mb-3 px-2.5 py-1 rounded-md bg-indigo-100 border border-indigo-200 dark:bg-indigo-500/10 dark:border-indigo-500/20">
                     {f.label}
                   </span>
-                  <h3 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">
+                  <h3 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4 text-gray-900 dark:text-white">
                     {f.title}
                   </h3>
-                  <p className="text-gray-400 leading-relaxed mb-5">
+                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-5">
                     {f.description}
                   </p>
                   <ul className="space-y-2.5">
                     {f.bullets.map((b) => (
-                      <li key={b} className="flex items-start gap-2.5 text-sm text-gray-300">
-                        <svg className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <li key={b} className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                        <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                         {b}
@@ -344,7 +347,7 @@ export default function Landing() {
         variants={stagger}
         className="max-w-5xl mx-auto px-6 pb-24"
       >
-        <motion.h2 variants={fadeUp} className="text-center text-2xl font-bold mb-10">
+        <motion.h2 variants={fadeUp} className="text-center text-2xl font-bold mb-10 text-gray-900 dark:text-white">
           What early users are saying
         </motion.h2>
         <div className="grid sm:grid-cols-3 gap-5">
@@ -352,18 +355,18 @@ export default function Landing() {
             <motion.div
               key={t.name}
               variants={fadeUp}
-              className="rounded-xl bg-gray-900/50 border border-gray-800/50 p-5"
+              className="rounded-xl bg-white border border-gray-200 shadow-sm dark:bg-gray-900/50 dark:border-gray-800/50 dark:shadow-none p-5"
             >
-              <p className="text-gray-300 text-sm leading-relaxed mb-4 italic">
-                "{t.quote}"
+              <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-4 italic">
+                &quot;{t.quote}&quot;
               </p>
               <div className="flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-full ${t.color} border flex items-center justify-center text-xs font-bold`}>
                   {t.initials}
                 </div>
                 <div>
-                  <p className="text-white text-sm font-medium">{t.name}</p>
-                  <p className="text-gray-500 text-xs">{t.role}</p>
+                  <p className="text-gray-900 dark:text-white text-sm font-medium">{t.name}</p>
+                  <p className="text-gray-500 dark:text-gray-500 text-xs">{t.role}</p>
                 </div>
               </div>
             </motion.div>
@@ -379,33 +382,33 @@ export default function Landing() {
         variants={stagger}
         className="max-w-4xl mx-auto px-6 pb-24"
       >
-        <motion.h2 variants={fadeUp} className="text-center text-2xl font-bold mb-10">
+        <motion.h2 variants={fadeUp} className="text-center text-2xl font-bold mb-10 text-gray-900 dark:text-white">
           Simple pricing
         </motion.h2>
         <div className="grid sm:grid-cols-2 gap-5 max-w-2xl mx-auto">
-          <motion.div variants={fadeUp} className="rounded-xl bg-gray-900/50 border border-gray-800/50 p-6">
-            <h3 className="text-white font-semibold text-lg mb-1">Free</h3>
-            <p className="text-3xl font-bold text-white mb-4">$0<span className="text-gray-500 text-sm font-normal">/forever</span></p>
-            <ul className="space-y-2 text-sm text-gray-400 mb-6">
-              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>2 sessions per day</li>
-              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Full JD analysis</li>
-              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Prep + role-play modes</li>
+          <motion.div variants={fadeUp} className="rounded-xl bg-white border border-gray-200 shadow-sm dark:bg-gray-900/50 dark:border-gray-800/50 dark:shadow-none p-6">
+            <h3 className="text-gray-900 dark:text-white font-semibold text-lg mb-1">Free</h3>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">$0<span className="text-gray-500 text-sm font-normal">/forever</span></p>
+            <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
+              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>2 sessions per day</li>
+              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Full job description analysis</li>
+              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Prep + role-play modes</li>
             </ul>
-            <Link to={ctaHref} className="block text-center rounded-xl border border-gray-700 px-4 py-2.5 text-sm font-medium text-gray-300 hover:border-gray-500 hover:text-white transition-colors">
+            <Link to={ctaHref} className="block text-center rounded-xl border border-gray-300 text-gray-700 hover:border-gray-400 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:border-gray-500 dark:hover:text-white px-4 py-2.5 text-sm font-medium transition-colors">
               Get started
             </Link>
           </motion.div>
-          <motion.div variants={fadeUp} className="rounded-xl bg-gradient-to-b from-indigo-500/10 to-gray-900/50 border border-indigo-500/30 p-6 relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-semibold text-indigo-300 bg-indigo-500/20 border border-indigo-500/30 rounded-full px-3 py-0.5">
+          <motion.div variants={fadeUp} className="rounded-xl bg-gradient-to-b from-indigo-100/80 to-white border border-indigo-200 dark:from-indigo-500/10 dark:to-gray-900/50 dark:border-indigo-500/30 p-6 relative shadow-sm dark:shadow-none">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/30 rounded-full px-3 py-0.5">
               Most popular
             </div>
-            <h3 className="text-white font-semibold text-lg mb-1">Pro</h3>
-            <p className="text-3xl font-bold text-white mb-4">$29<span className="text-gray-500 text-sm font-normal">/month</span></p>
-            <ul className="space-y-2 text-sm text-gray-400 mb-6">
-              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Unlimited sessions</li>
-              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Everything in Free</li>
-              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Cross-session progress tracking</li>
-              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Priority support</li>
+            <h3 className="text-gray-900 dark:text-white font-semibold text-lg mb-1">Pro</h3>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">$29<span className="text-gray-500 text-sm font-normal">/month</span></p>
+            <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
+              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Unlimited sessions</li>
+              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Everything in Free</li>
+              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Cross-session progress tracking</li>
+              <li className="flex items-center gap-2"><svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Priority support</li>
             </ul>
             <Link to={ctaHref} className="block text-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20">
               Upgrade to Pro
@@ -416,16 +419,17 @@ export default function Landing() {
 
       {/* Final CTA */}
       <section className="max-w-3xl mx-auto px-6 pb-24 text-center">
-        <div className="rounded-2xl bg-gradient-to-b from-indigo-500/10 to-transparent border border-indigo-500/20 p-10">
-          <h2 className="text-2xl font-bold mb-3">
-            Stop winging your interviews
+        <div className="rounded-2xl bg-gradient-to-b from-indigo-100/60 to-transparent dark:from-indigo-500/10 dark:to-transparent border border-indigo-200 dark:border-indigo-500/20 p-10">
+          <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">
+            Walk in with a prep system, not a guess
           </h2>
-          <p className="text-gray-400 text-sm mb-6 max-w-md mx-auto">
-            Your first two sessions are free. No credit card needed. Start prepping in under a minute.
+          <p className="text-gray-600 dark:text-gray-400 text-sm mb-6 max-w-md mx-auto">
+            Your first two sessions are free each day. No credit card. Point it at a posting and get structured prep in
+            minutes.
           </p>
           <Link
             to={ctaHref}
-            className="inline-flex rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-sm hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
+            className="inline-flex rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-sm text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
           >
             {ctaLabel}
           </Link>
@@ -433,9 +437,9 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-800/40 py-6 text-center text-gray-600 text-xs">
+      <footer className="border-t border-gray-200 dark:border-gray-800/40 py-6 text-center text-gray-500 dark:text-gray-600 text-xs">
         InterviewPrepAI &middot; Built by{" "}
-        <a href="https://linkedin.com/in/adammakaoui" target="_blank" rel="noopener" className="text-gray-400 hover:text-white transition-colors">
+        <a href="https://linkedin.com/in/adammakaoui" target="_blank" rel="noopener" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
           Adam Makaoui
         </a>
       </footer>

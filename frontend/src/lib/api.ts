@@ -34,7 +34,7 @@ async function apiFetch(
 export interface Session {
   /** Unique session identifier */
   session_id: string;
-  /** Company name from JD or user input */
+  /** Company name from job description or user input */
   company: string;
   /** Job role/title */
   role: string;
@@ -44,7 +44,7 @@ export interface Session {
   mode: string;
   /** Current status (e.g., generating, ready, paused, finished) */
   status: string;
-  /** Resume/JD analysis output, or null if not yet generated */
+  /** Resume and job description analysis output, or null if not yet generated */
   analysis: Record<string, unknown> | null;
   /** Generated interview questions, or null if not yet generated */
   questions: Question[] | null;
@@ -160,7 +160,7 @@ export interface ExtractedFields {
   company: string;
   /** Extracted job role/title */
   role: string;
-  /** Suggested interview stage based on JD */
+  /** Suggested interview stage based on job description */
   stage_suggestion: string;
   /** Full or cleaned job description text */
   job_description: string;

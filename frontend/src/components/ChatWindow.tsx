@@ -15,10 +15,10 @@ const CHECKPOINT_INTERVAL = 5;
 function ScoreBadge({ score }: { score: number }) {
   const color =
     score >= 8
-      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+      ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
       : score >= 5
-      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-      : "bg-red-500/10 text-red-400 border-red-500/20";
+      ? "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20"
+      : "bg-red-100 text-red-800 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20";
   return (
     <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl text-xl font-bold border ${color}`}>
       {score}
@@ -45,44 +45,44 @@ function FeedbackCard({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl bg-gray-900/80 border border-gray-700/60 p-5 space-y-4">
+      <div className="rounded-xl bg-white dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700/60 p-5 space-y-4 shadow-sm dark:shadow-none">
         <div className="flex items-start gap-4">
           <ScoreBadge score={feedback.score} />
           <div className="flex-1 min-w-0">
-            <h3 className="text-white font-semibold text-sm mb-1">Your Score</h3>
-            <p className="text-gray-500 text-xs truncate">{feedback.question}</p>
+            <h3 className="text-gray-900 dark:text-white font-semibold text-sm mb-1">Your Score</h3>
+            <p className="text-gray-500 dark:text-gray-500 text-xs truncate">{feedback.question}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/15 p-3">
-            <h4 className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+          <div className="rounded-lg bg-emerald-50 border border-emerald-200/80 dark:bg-emerald-500/5 dark:border-emerald-500/15 p-3">
+            <h4 className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-2">
               Strengths
             </h4>
             <ul className="space-y-1.5">
               {feedback.strengths.map((s, i) => (
-                <li key={i} className="text-gray-300 text-sm flex items-start gap-1.5">
-                  <span className="text-emerald-400 shrink-0 text-xs mt-0.5">&#10003;</span>{s}
+                <li key={i} className="text-gray-700 dark:text-gray-300 text-sm flex items-start gap-1.5">
+                  <span className="text-emerald-600 dark:text-emerald-400 shrink-0 text-xs mt-0.5">&#10003;</span>{s}
                 </li>
               ))}
             </ul>
           </div>
-          <div className="rounded-lg bg-amber-500/5 border border-amber-500/15 p-3">
-            <h4 className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider mb-2">
+          <div className="rounded-lg bg-amber-50 border border-amber-200/80 dark:bg-amber-500/5 dark:border-amber-500/15 p-3">
+            <h4 className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-2">
               To Improve
             </h4>
             <ul className="space-y-1.5">
               {feedback.improvements.map((s, i) => (
-                <li key={i} className="text-gray-300 text-sm flex items-start gap-1.5">
-                  <span className="text-amber-400 shrink-0 text-xs mt-0.5">!</span>{s}
+                <li key={i} className="text-gray-700 dark:text-gray-300 text-sm flex items-start gap-1.5">
+                  <span className="text-amber-600 dark:text-amber-400 shrink-0 text-xs mt-0.5">!</span>{s}
                 </li>
               ))}
             </ul>
           </div>
         </div>
 
-        <div className="rounded-lg bg-indigo-500/5 border border-indigo-500/15 p-3">
-          <p className="text-indigo-300 text-sm">
+        <div className="rounded-lg bg-indigo-50 border border-indigo-200/80 dark:bg-indigo-500/5 dark:border-indigo-500/15 p-3">
+          <p className="text-indigo-800 dark:text-indigo-300 text-sm">
             <span className="font-medium">Tip:</span> {feedback.tip}
           </p>
         </div>
@@ -91,12 +91,12 @@ function FeedbackCard({
           <div>
             <button
               onClick={() => setShowImproved(!showImproved)}
-              className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+              className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium transition-colors"
             >
               {showImproved ? "Hide improved answer" : "Show a stronger answer"}
             </button>
             {showImproved && (
-              <p className="text-gray-400 text-sm mt-2 rounded-lg bg-gray-800/50 p-3 border border-gray-700/50 leading-relaxed">
+              <p className="text-gray-600 dark:text-gray-400 text-sm mt-2 rounded-lg bg-gray-100 dark:bg-gray-800/50 p-3 border border-gray-200 dark:border-gray-700/50 leading-relaxed">
                 {feedback.improved_answer}
               </p>
             )}
@@ -128,7 +128,7 @@ function FeedbackCard({
           <button
             onClick={onFinish}
             disabled={advancing}
-            className="rounded-xl bg-gray-800 border border-gray-700/60 px-5 py-3 font-medium text-sm text-gray-300 hover:bg-gray-700 disabled:opacity-50 transition-colors"
+            className="rounded-xl bg-gray-100 border border-gray-300 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:border-gray-700/60 dark:text-gray-300 dark:hover:bg-gray-700 px-5 py-3 font-medium text-sm disabled:opacity-50 transition-colors"
           >
             Finish & See Scorecard
           </button>
@@ -151,18 +151,18 @@ function CheckpointCard({ feedback }: { feedback: Feedback[] }) {
   const trend = secondAvg > firstAvg ? "improving" : secondAvg < firstAvg ? "declining" : "steady";
 
   return (
-    <div className="rounded-xl bg-indigo-500/5 border border-indigo-500/20 p-5 space-y-3">
+    <div className="rounded-xl bg-indigo-50 border border-indigo-200 dark:bg-indigo-500/5 dark:border-indigo-500/20 p-5 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-indigo-300 font-semibold text-sm">
+        <h3 className="text-indigo-800 dark:text-indigo-300 font-semibold text-sm">
           Progress Check — {feedback.length} Questions
         </h3>
         <span
           className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
             trend === "improving"
-              ? "bg-emerald-500/10 text-emerald-400"
+              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400"
               : trend === "declining"
-              ? "bg-red-500/10 text-red-400"
-              : "bg-gray-800/60 text-gray-500"
+              ? "bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400"
+              : "bg-gray-200 text-gray-600 dark:bg-gray-800/60 dark:text-gray-500"
           }`}
         >
           {trend === "improving" ? "Improving" : trend === "declining" ? "Needs Focus" : "Steady"}
@@ -170,17 +170,17 @@ function CheckpointCard({ feedback }: { feedback: Feedback[] }) {
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="text-2xl font-bold text-white">{avg.toFixed(1)}/10</span>
+        <span className="text-2xl font-bold text-gray-900 dark:text-white">{avg.toFixed(1)}/10</span>
         <div className="flex gap-1">
           {scores.map((s, i) => (
             <div
               key={i}
               className={`w-6 h-6 rounded-md text-[10px] font-bold flex items-center justify-center ${
                 s >= 8
-                  ? "bg-emerald-500/15 text-emerald-400"
+                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-400"
                   : s >= 5
-                  ? "bg-amber-500/15 text-amber-400"
-                  : "bg-red-500/15 text-red-400"
+                  ? "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"
+                  : "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"
               }`}
             >
               {s}
@@ -189,7 +189,7 @@ function CheckpointCard({ feedback }: { feedback: Feedback[] }) {
         </div>
       </div>
 
-      <p className="text-gray-500 text-xs">
+      <p className="text-gray-600 dark:text-gray-500 text-xs">
         {trend === "improving"
           ? "Great progress! Your answers are getting stronger."
           : trend === "declining"
@@ -267,15 +267,15 @@ export default function ChatWindow({
     return (
       <div className="text-center py-16">
         <div className="mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.3} stroke="currentColor">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.3} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
             </svg>
           </div>
-          <p className="text-gray-300 mb-1.5 font-medium">
+          <p className="text-gray-800 dark:text-gray-300 mb-1.5 font-medium">
             Ready to practice?
           </p>
-          <p className="text-gray-600 text-sm max-w-sm mx-auto mb-6">
+          <p className="text-gray-600 dark:text-gray-500 text-sm max-w-sm mx-auto mb-6">
             An AI interviewer will ask you each question and a coach will give you real-time feedback and scoring.
           </p>
         </div>
@@ -297,7 +297,7 @@ export default function ChatWindow({
           )}
         </button>
         {!session.questions?.length && (
-          <p className="text-xs text-gray-600 mt-3">
+          <p className="text-xs text-gray-500 dark:text-gray-600 mt-3">
             Questions must be generated first.
           </p>
         )}
@@ -309,14 +309,14 @@ export default function ChatWindow({
   if (session.summary && session.status === "complete") {
     return (
       <div className="text-center py-16">
-        <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.3} stroke="currentColor">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.3} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <p className="text-gray-300 font-medium mb-1.5">Session Complete</p>
-        <p className="text-gray-600 text-sm">
-          Switch to the <span className="text-indigo-400 font-medium">Scorecard</span> tab to see your full results and skills breakdown.
+        <p className="text-gray-800 dark:text-gray-300 font-medium mb-1.5">Session Complete</p>
+        <p className="text-gray-600 dark:text-gray-500 text-sm">
+          Switch to the <span className="text-indigo-600 dark:text-indigo-400 font-medium">Scorecard</span> tab to see your full results and skills breakdown.
         </p>
       </div>
     );
@@ -343,7 +343,7 @@ export default function ChatWindow({
                   className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                     msg.role === "user"
                       ? "bg-indigo-600 text-white rounded-br-md"
-                      : "bg-gray-800/80 text-gray-200 rounded-bl-md border border-gray-700/40"
+                      : "bg-gray-100 text-gray-800 rounded-bl-md border border-gray-200 dark:bg-gray-800/80 dark:text-gray-200 dark:border-gray-700/40"
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -380,7 +380,7 @@ export default function ChatWindow({
                 className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                   msg.role === "user"
                     ? "bg-indigo-600 text-white rounded-br-md"
-                    : "bg-gray-800/80 text-gray-200 rounded-bl-md border border-gray-700/40"
+                    : "bg-gray-100 text-gray-800 rounded-bl-md border border-gray-200 dark:bg-gray-800/80 dark:text-gray-200 dark:border-gray-700/40"
                 }`}
               >
                 <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -399,7 +399,7 @@ export default function ChatWindow({
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
             placeholder="Type your answer..."
             disabled={submitting}
-            className="flex-1 rounded-xl bg-gray-900/80 border border-gray-700/50 px-4 py-3 text-white text-sm placeholder-gray-600 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 outline-none disabled:opacity-50 transition-colors"
+            className="flex-1 rounded-xl bg-white dark:bg-gray-900/80 border border-gray-300 dark:border-gray-700/50 px-4 py-3 text-gray-900 dark:text-white text-sm placeholder-gray-400 dark:placeholder-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 outline-none disabled:opacity-50 transition-colors"
           />
           <button
             onClick={handleSend}

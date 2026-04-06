@@ -108,7 +108,7 @@ export default function PrepDetail() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="relative w-12 h-12 mx-auto mb-4">
-            <div className="absolute inset-0 rounded-full border-2 border-gray-800" />
+            <div className="absolute inset-0 rounded-full border-2 border-gray-200 dark:border-gray-800" />
             <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-indigo-500 animate-spin" />
           </div>
           <p className="text-gray-500 text-sm">Loading session...</p>
@@ -132,16 +132,16 @@ export default function PrepDetail() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-start justify-between gap-4">
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             {session.role}{" "}
-            <span className="text-gray-500 font-normal">at</span>{" "}
-            <span className="text-indigo-400">{session.company}</span>
+            <span className="text-gray-500 dark:text-gray-500 font-normal">at</span>{" "}
+            <span className="text-indigo-600 dark:text-indigo-400">{session.company}</span>
           </h1>
           <div className="relative shrink-0">
             {!confirmDelete ? (
               <button
                 onClick={() => setConfirmDelete(true)}
-                className="p-2 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-600 dark:hover:text-red-400 dark:hover:bg-red-500/10 transition-all"
                 title="Delete session"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -149,21 +149,21 @@ export default function PrepDetail() {
                 </svg>
               </button>
             ) : (
-              <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-700/60 rounded-lg px-2 py-1.5 shadow-lg">
-                <span className="text-xs text-gray-400">Delete?</span>
+              <div className="flex items-center gap-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700/60 rounded-lg px-2 py-1.5 shadow-lg">
+                <span className="text-xs text-gray-600 dark:text-gray-400">Delete?</span>
                 <button
                   onClick={async () => {
                     if (!id) return;
                     await deleteSession(id);
                     navigate("/app");
                   }}
-                  className="text-xs font-medium text-red-400 hover:text-red-300 px-1.5 py-0.5 rounded hover:bg-red-500/10 transition-colors"
+                  className="text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 px-1.5 py-0.5 rounded hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                 >
                   Yes
                 </button>
                 <button
                   onClick={() => setConfirmDelete(false)}
-                  className="text-xs font-medium text-gray-500 hover:text-gray-300 px-1.5 py-0.5 rounded hover:bg-gray-800 transition-colors"
+                  className="text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-500 dark:hover:text-gray-300 px-1.5 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                   No
                 </button>
@@ -172,13 +172,13 @@ export default function PrepDetail() {
           </div>
         </div>
         <div className="flex items-center gap-3 mt-3">
-          <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-gray-800/80 text-gray-300 border border-gray-700/50">
+          <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200 dark:bg-gray-800/80 dark:text-gray-300 dark:border-gray-700/50">
             {session.stage.replace(/_/g, " ")}
           </span>
           <span className={`text-xs font-medium px-2.5 py-1 rounded-md ${
             session.mode === "roleplay"
-              ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
-              : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+              ? "bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20"
+              : "bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20"
           }`}>
             {session.mode === "roleplay" ? "Role-Play" : "Prep"}
           </span>
@@ -190,15 +190,15 @@ export default function PrepDetail() {
       </div>
 
       {/* Pill Tabs */}
-      <div className="flex gap-1 p-1 bg-gray-900/80 rounded-xl border border-gray-800/60 mb-8 overflow-x-auto">
+      <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-900/80 rounded-xl border border-gray-200 dark:border-gray-800/60 mb-8 overflow-x-auto">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
               tab === t
-                ? "bg-gray-800 text-white shadow-sm"
-                : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/40"
+                ? "bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-200/80 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-800/40"
             }`}
           >
             {TAB_ICONS[t]}
@@ -211,23 +211,23 @@ export default function PrepDetail() {
       {tab === "Analysis" && analysis && (
         <div className="space-y-6">
           {analysis.role_focus ? (
-            <section className="rounded-xl bg-gray-900/60 border border-gray-800/60 p-5">
-              <h2 className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-3">
+            <section className="rounded-xl bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/60 shadow-sm dark:shadow-none p-5">
+              <h2 className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">
                 Role Focus
               </h2>
-              <p className="text-gray-300 leading-relaxed">
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
                 {String(analysis.role_focus)}
               </p>
             </section>
           ) : null}
 
           {analysis.company_intel && typeof analysis.company_intel === "object" ? (
-            <section className="rounded-xl bg-gray-900/60 border border-gray-800/60 p-5 space-y-4">
+            <section className="rounded-xl bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/60 shadow-sm dark:shadow-none p-5 space-y-4">
               <h2 className="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-1">
                 Company snapshot
               </h2>
-              <p className="text-gray-600 text-xs mb-3">
-                Best-effort from JD and web snippets — verify before citing in interview.
+              <p className="text-gray-600 dark:text-gray-400 text-xs mb-3">
+                Best-effort from the job description and web snippets — verify before citing in interview.
               </p>
               {(() => {
                 const ci = analysis.company_intel as Record<string, unknown>;
@@ -236,15 +236,15 @@ export default function PrepDetail() {
                     {(ci.employee_size_band || ci.market_position) ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                         {ci.employee_size_band ? (
-                          <div className="rounded-lg bg-gray-800/40 border border-gray-700/40 p-3">
+                          <div className="rounded-lg bg-gray-50 border border-gray-200 dark:bg-gray-800/40 dark:border-gray-700/40 p-3">
                             <span className="text-gray-500 text-xs uppercase">Size band</span>
-                            <p className="text-gray-200 mt-1">{String(ci.employee_size_band)}</p>
+                            <p className="text-gray-900 dark:text-gray-200 mt-1">{String(ci.employee_size_band)}</p>
                           </div>
                         ) : null}
                         {ci.market_position ? (
-                          <div className="rounded-lg bg-gray-800/40 border border-gray-700/40 p-3 sm:col-span-2">
+                          <div className="rounded-lg bg-gray-50 border border-gray-200 dark:bg-gray-800/40 dark:border-gray-700/40 p-3 sm:col-span-2">
                             <span className="text-gray-500 text-xs uppercase">Market position</span>
-                            <p className="text-gray-300 mt-1 text-sm leading-relaxed">
+                            <p className="text-gray-700 dark:text-gray-300 mt-1 text-sm leading-relaxed">
                               {String(ci.market_position)}
                             </p>
                           </div>
@@ -253,16 +253,16 @@ export default function PrepDetail() {
                     ) : null}
                     {Array.isArray(ci.competitors) && (ci.competitors as { name?: string; one_liner?: string }[]).length > 0 && (
                       <div>
-                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                        <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                           Competitors & alternatives
                         </h3>
                         <ul className="space-y-2">
                           {(ci.competitors as { name?: string; one_liner?: string }[]).map((c, i) => (
                             <li
                               key={i}
-                              className="rounded-lg border border-gray-800/60 bg-gray-950/40 px-3 py-2"
+                              className="rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-800/60 dark:bg-gray-950/40 px-3 py-2"
                             >
-                              <span className="text-white text-sm font-medium">{c.name}</span>
+                              <span className="text-gray-900 dark:text-white text-sm font-medium">{c.name}</span>
                               {c.one_liner && (
                                 <p className="text-gray-500 text-xs mt-0.5">{c.one_liner}</p>
                               )}
@@ -281,13 +281,13 @@ export default function PrepDetail() {
           ) : null}
 
           {analysis.jd_fit && typeof analysis.jd_fit === "object" ? (
-            <section className="rounded-xl border border-gray-800/60 overflow-hidden">
-              <div className="px-5 py-3 bg-gray-900/80 border-b border-gray-800/60">
+            <section className="rounded-xl border border-gray-200 dark:border-gray-800/60 overflow-hidden shadow-sm dark:shadow-none">
+              <div className="px-5 py-3 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-800/60">
                 <h2 className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
                   How you match this job description
                 </h2>
                 <p className="text-gray-600 text-xs mt-1">
-                  Resume vs JD — strengths, gaps, and risks to address in prep.
+                  Resume vs job description — strengths, gaps, and risks to address in prep.
                 </p>
               </div>
               <div className="p-5 space-y-4 grid md:grid-cols-2 gap-4">
@@ -299,7 +299,7 @@ export default function PrepDetail() {
                       {list(j.aligned_strengths).length > 0 && (
                         <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/15 p-4">
                           <h3 className="text-[11px] font-semibold text-emerald-400 uppercase mb-2">Aligned</h3>
-                          <ul className="space-y-1.5 text-sm text-gray-300">
+                          <ul className="space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
                             {list(j.aligned_strengths).map((t, i) => (
                               <li key={i} className="flex gap-2"><span className="text-emerald-500">+</span>{t}</li>
                             ))}
@@ -308,8 +308,8 @@ export default function PrepDetail() {
                       )}
                       {list(j.gaps_vs_jd).length > 0 && (
                         <div className="rounded-lg bg-amber-500/5 border border-amber-500/15 p-4">
-                          <h3 className="text-[11px] font-semibold text-amber-400 uppercase mb-2">Gaps vs JD</h3>
-                          <ul className="space-y-1.5 text-sm text-gray-300">
+                          <h3 className="text-[11px] font-semibold text-amber-400 uppercase mb-2">Gaps vs job description</h3>
+                          <ul className="space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
                             {list(j.gaps_vs_jd).map((t, i) => (
                               <li key={i} className="flex gap-2"><span className="text-amber-500">!</span>{t}</li>
                             ))}
@@ -319,7 +319,7 @@ export default function PrepDetail() {
                       {list(j.risk_areas).length > 0 && (
                         <div className="rounded-lg bg-red-500/5 border border-red-500/20 p-4 md:col-span-2">
                           <h3 className="text-[11px] font-semibold text-red-400 uppercase mb-2">Risk areas</h3>
-                          <ul className="space-y-1.5 text-sm text-gray-300">
+                          <ul className="space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
                             {list(j.risk_areas).map((t, i) => (
                               <li key={i} className="flex gap-2"><span className="text-red-400">−</span>{t}</li>
                             ))}
@@ -328,9 +328,9 @@ export default function PrepDetail() {
                       )}
                       {list(j.missing_keywords).length > 0 && (
                         <div className="md:col-span-2 flex flex-wrap gap-2">
-                          <span className="text-xs text-gray-500 w-full">JD keywords light on resume:</span>
+                          <span className="text-xs text-gray-500 w-full">Job description keywords light on resume:</span>
                           {list(j.missing_keywords).map((kw, i) => (
-                            <span key={i} className="text-xs px-2 py-1 rounded-md bg-gray-800 text-gray-400 border border-gray-700">
+                            <span key={i} className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700">
                               {kw}
                             </span>
                           ))}
@@ -345,14 +345,14 @@ export default function PrepDetail() {
 
           {Array.isArray(analysis.key_skills) && (
             <section>
-              <h2 className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-3">
+              <h2 className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">
                 Key Skills
               </h2>
               <div className="flex flex-wrap gap-2">
                 {(analysis.key_skills as unknown as string[]).map((skill, i) => (
                   <span
                     key={i}
-                    className="px-3 py-1.5 rounded-lg bg-gray-900/60 text-sm text-gray-300 border border-gray-800/60"
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-800 dark:bg-gray-900/60 dark:text-gray-300 border border-gray-200 dark:border-gray-800/60"
                   >
                     {skill}
                   </span>
@@ -362,13 +362,13 @@ export default function PrepDetail() {
           )}
 
           {Array.isArray(analysis.culture_signals) && (
-            <section className="rounded-xl bg-gray-900/60 border border-gray-800/60 p-5">
-              <h2 className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-3">
+            <section className="rounded-xl bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/60 shadow-sm dark:shadow-none p-5">
+              <h2 className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">
                 Culture Signals
               </h2>
               <ul className="space-y-2">
                 {(analysis.culture_signals as unknown as string[]).map((s, i) => (
-                  <li key={i} className="text-gray-300 text-sm flex items-start gap-2.5">
+                  <li key={i} className="text-gray-700 dark:text-gray-300 text-sm flex items-start gap-2.5">
                     <span className="text-indigo-500 mt-0.5 text-xs">&#9679;</span>{s}
                   </li>
                 ))}
@@ -378,14 +378,14 @@ export default function PrepDetail() {
 
           {Array.isArray(analysis.interview_tips) && (
             <section>
-              <h2 className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-3">
+              <h2 className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">
                 Interview Tips
               </h2>
               <div className="grid gap-3">
                 {(analysis.interview_tips as unknown as string[]).map((tip, i) => (
                   <div
                     key={i}
-                    className="rounded-xl bg-gray-900/60 border border-gray-800/60 p-4 text-gray-300 text-sm leading-relaxed"
+                    className="rounded-xl bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/60 shadow-sm dark:shadow-none p-4 text-gray-700 dark:text-gray-300 text-sm leading-relaxed"
                   >
                     {tip}
                   </div>
@@ -396,14 +396,14 @@ export default function PrepDetail() {
 
           {Array.isArray(analysis.interviewer_focus) && (
             <section>
-              <h2 className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3">
+              <h2 className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-3">
                 Interviewer Focus Areas
               </h2>
               <div className="grid gap-3">
                 {(analysis.interviewer_focus as unknown as string[]).map((f, i) => (
                   <div
                     key={i}
-                    className="rounded-xl bg-amber-900/10 border border-amber-800/30 p-4 text-gray-300 text-sm leading-relaxed"
+                    className="rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-900/10 dark:border-amber-800/30 p-4 text-amber-950 dark:text-gray-300 text-sm leading-relaxed"
                   >
                     {f}
                   </div>
@@ -416,8 +416,8 @@ export default function PrepDetail() {
 
       {tab === "Analysis" && !analysis && (
         <div className="text-center py-16">
-          <div className="w-12 h-12 rounded-full bg-gray-800/60 flex items-center justify-center mx-auto mb-3">
-            <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-800/60 flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6 text-gray-500 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
           </div>
@@ -429,12 +429,12 @@ export default function PrepDetail() {
       {tab === "Q&A" && (
         <div className="space-y-3">
           {!session.answers?.length && session.questions?.length && (
-            <div className="flex items-center gap-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20 px-4 py-3 mb-1">
+            <div className="flex items-center gap-3 rounded-xl bg-indigo-50 border border-indigo-200 dark:bg-indigo-500/5 dark:border-indigo-500/20 px-4 py-3 mb-1">
               <div className="relative w-4 h-4 shrink-0">
-                <div className="absolute inset-0 rounded-full border-2 border-indigo-800" />
-                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-indigo-400 animate-spin" />
+                <div className="absolute inset-0 rounded-full border-2 border-indigo-300 dark:border-indigo-800" />
+                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-indigo-600 dark:border-t-indigo-400 animate-spin" />
               </div>
-              <span className="text-sm text-indigo-300/80">
+              <span className="text-sm text-indigo-800 dark:text-indigo-300/80">
                 Drafting answer frameworks... Questions are ready below.
               </span>
             </div>
@@ -454,8 +454,8 @@ export default function PrepDetail() {
             ))
           ) : (
             <div className="text-center py-16">
-              <div className="w-12 h-12 rounded-full bg-gray-800/60 flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-800/60 flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-gray-500 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
               </div>

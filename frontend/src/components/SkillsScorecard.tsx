@@ -23,9 +23,9 @@ const SKILL_COLORS = [
 ];
 
 function scoreColor(score: number) {
-  if (score >= 8) return "text-emerald-400";
-  if (score >= 6) return "text-amber-400";
-  return "text-red-400";
+  if (score >= 8) return "text-emerald-600 dark:text-emerald-400";
+  if (score >= 6) return "text-amber-600 dark:text-amber-400";
+  return "text-red-600 dark:text-red-400";
 }
 
 function readinessGradient(level: string) {
@@ -66,9 +66,9 @@ export default function SkillsScorecard({ session }: Props) {
   if (!dimensions.length) {
     return (
       <div className="text-center py-16">
-        <div className="w-14 h-14 rounded-2xl bg-gray-800/50 flex items-center justify-center mx-auto mb-4 border border-gray-700/40">
+        <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4 border border-gray-200 dark:bg-gray-800/50 dark:border-gray-700/40">
           <svg
-            className="w-7 h-7 text-gray-600"
+            className="w-7 h-7 text-gray-500 dark:text-gray-600"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -81,8 +81,8 @@ export default function SkillsScorecard({ session }: Props) {
             />
           </svg>
         </div>
-        <p className="text-gray-400 font-medium mb-1">Scorecard loads after analysis</p>
-        <p className="text-gray-600 text-sm max-w-xs mx-auto">
+        <p className="text-gray-700 dark:text-gray-400 font-medium mb-1">Scorecard loads after analysis</p>
+        <p className="text-gray-600 dark:text-gray-500 text-sm max-w-xs mx-auto">
           Finish session setup. Role-specific competency rows appear here; they update
           after each role-play answer.
         </p>
@@ -112,11 +112,11 @@ export default function SkillsScorecard({ session }: Props) {
       {/* Live session scores — always show when we have dimensions */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             This session (live)
           </h3>
           {hasLiveScores && session.mode === "roleplay" && (
-            <span className="text-[11px] text-cyan-400/80">
+            <span className="text-[11px] text-cyan-600 dark:text-cyan-400/80">
               Updates after each answer
             </span>
           )}
@@ -129,19 +129,19 @@ export default function SkillsScorecard({ session }: Props) {
             return (
               <div
                 key={d.key}
-                className="rounded-xl bg-gray-900/60 border border-gray-800/50 p-4"
+                className="rounded-xl bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/50 shadow-sm dark:shadow-none p-4"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-white">{d.label}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{d.label}</span>
                   {has ? (
                     <span className={`text-sm font-bold ${scoreColor(avg)}`}>
                       {avg.toFixed(1)}/10
                     </span>
                   ) : (
-                    <span className="text-xs text-gray-600">—</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-600">—</span>
                   )}
                 </div>
-                <div className="w-full h-2 rounded-full bg-gray-800/80 overflow-hidden mb-2">
+                <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-800/80 overflow-hidden mb-2">
                   <div
                     className={`h-full rounded-full ${color.bar} transition-all duration-500`}
                     style={{
@@ -159,11 +159,11 @@ export default function SkillsScorecard({ session }: Props) {
       </section>
 
       {/* All-time placeholder */}
-      <section className="rounded-xl border border-dashed border-gray-700/50 bg-gray-900/30 p-5">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+      <section className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-900/30 p-5">
+        <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider mb-2">
           General / all-time trend
         </h3>
-        <p className="text-gray-600 text-sm">
+        <p className="text-gray-600 dark:text-gray-500 text-sm">
           Cross-session competency trends need a saved profile (Phase 2). For now, use
           &quot;This session&quot; to track how you perform on this role&apos;s dimensions.
         </p>
@@ -172,26 +172,26 @@ export default function SkillsScorecard({ session }: Props) {
       {/* Final summary (after role-play complete) */}
       {isComplete && (
         <>
-          <div className="rounded-2xl bg-gray-900/60 border border-gray-800/60 p-6 text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 mb-4">
+          <div className="rounded-2xl bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/60 shadow-sm dark:shadow-none p-6 text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-gray-100 to-white dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700/50 mb-4">
               <span className={`text-3xl font-bold ${scoreColor(overallScore)}`}>
                 {overallScore}
               </span>
-              <span className="text-gray-600 text-lg font-light">/10</span>
+              <span className="text-gray-500 dark:text-gray-600 text-lg font-light">/10</span>
             </div>
             <div
               className={`inline-block px-3 py-1 rounded-lg text-sm font-semibold bg-gradient-to-r ${readinessGradient(readiness)} text-white`}
             >
               {readiness.toUpperCase()}
             </div>
-            <p className="text-gray-500 text-sm mt-2">
+            <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
               Based on {session.feedback?.length || 0} practice questions
             </p>
           </div>
 
           {finalSkills.length > 0 && (
             <section>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
                 Final skills breakdown
               </h3>
               <div className="space-y-3">
@@ -200,15 +200,15 @@ export default function SkillsScorecard({ session }: Props) {
                   return (
                     <div
                       key={i}
-                      className="rounded-xl bg-gray-900/60 border border-gray-800/50 p-4"
+                      className="rounded-xl bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/50 shadow-sm dark:shadow-none p-4"
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-white">{s.skill}</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{s.skill}</span>
                         <span className={`text-sm font-bold ${scoreColor(s.score)}`}>
                           {s.score}/10
                         </span>
                       </div>
-                      <div className="w-full h-2 rounded-full bg-gray-800/80 overflow-hidden mb-2">
+                      <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-800/80 overflow-hidden mb-2">
                         <div
                           className={`h-full rounded-full ${color.bar}`}
                           style={{ width: `${(s.score / 10) * 100}%` }}
@@ -224,14 +224,14 @@ export default function SkillsScorecard({ session }: Props) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {topStrengths.length > 0 && (
-              <section className="rounded-xl bg-emerald-500/5 border border-emerald-500/15 p-4">
-                <h3 className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-3">
+              <section className="rounded-xl bg-emerald-50 border border-emerald-200/80 dark:bg-emerald-500/5 dark:border-emerald-500/15 p-4">
+                <h3 className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-3">
                   Top Strengths
                 </h3>
                 <ul className="space-y-2">
                   {topStrengths.map((s, i) => (
-                    <li key={i} className="text-gray-300 text-sm flex items-start gap-2">
-                      <span className="text-emerald-400 mt-0.5 text-xs shrink-0">
+                    <li key={i} className="text-gray-700 dark:text-gray-300 text-sm flex items-start gap-2">
+                      <span className="text-emerald-600 dark:text-emerald-400 mt-0.5 text-xs shrink-0">
                         &#10003;
                       </span>
                       {s}
@@ -242,14 +242,14 @@ export default function SkillsScorecard({ session }: Props) {
             )}
 
             {improvements.length > 0 && (
-              <section className="rounded-xl bg-amber-500/5 border border-amber-500/15 p-4">
-                <h3 className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3">
+              <section className="rounded-xl bg-amber-50 border border-amber-200/80 dark:bg-amber-500/5 dark:border-amber-500/15 p-4">
+                <h3 className="text-xs font-semibold text-amber-800 dark:text-amber-400 uppercase tracking-wider mb-3">
                   Priority Improvements
                 </h3>
                 <ul className="space-y-2">
                   {improvements.map((s, i) => (
-                    <li key={i} className="text-gray-300 text-sm flex items-start gap-2">
-                      <span className="text-amber-400 mt-0.5 text-xs shrink-0">!</span>
+                    <li key={i} className="text-gray-700 dark:text-gray-300 text-sm flex items-start gap-2">
+                      <span className="text-amber-600 dark:text-amber-400 mt-0.5 text-xs shrink-0">!</span>
                       {s}
                     </li>
                   ))}
@@ -259,24 +259,24 @@ export default function SkillsScorecard({ session }: Props) {
           </div>
 
           {advice && (
-            <section className="rounded-xl bg-gray-900/60 border border-gray-800/60 p-5">
-              <h3 className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-3">
+            <section className="rounded-xl bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/60 shadow-sm dark:shadow-none p-5">
+              <h3 className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-3">
                 Final Advice
               </h3>
-              <p className="text-gray-300 text-sm leading-relaxed">{advice}</p>
+              <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{advice}</p>
             </section>
           )}
 
           {session.feedback && session.feedback.length > 0 && (
             <section>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
                 Question Breakdown
               </h3>
               <div className="space-y-2">
                 {session.feedback.map((f, i) => (
                   <div
                     key={i}
-                    className="rounded-xl bg-gray-900/50 border border-gray-800/50 p-4 flex items-start gap-3"
+                    className="rounded-xl bg-white dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800/50 shadow-sm dark:shadow-none p-4 flex items-start gap-3"
                   >
                     <span
                       className={`text-sm font-bold shrink-0 mt-0.5 ${scoreColor(f.score)}`}
@@ -284,8 +284,8 @@ export default function SkillsScorecard({ session }: Props) {
                       {f.score}/10
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-white text-sm font-medium truncate">{f.question}</p>
-                      <p className="text-gray-600 text-xs mt-1 line-clamp-1">{f.tip}</p>
+                      <p className="text-gray-900 dark:text-white text-sm font-medium truncate">{f.question}</p>
+                      <p className="text-gray-500 dark:text-gray-600 text-xs mt-1 line-clamp-1">{f.tip}</p>
                     </div>
                   </div>
                 ))}
