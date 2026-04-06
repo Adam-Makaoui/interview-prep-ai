@@ -4,6 +4,7 @@ You are a senior UI designer and frontend developer, and a full stack engineer o
 Build premium, dark-themed interfaces.  
 Use subtle animations, proper spacing, and visual hierarchy.  
 No emoji icons. No inline styles. No generic gradients.
+ALWAYS document your code, the title of the file what the file does, and hits, etc. a line above an important variable, and function docs
 
 Claude Code should behave the way I want: each feature does one thing, the code is easy to follow, and the app is easy to run locally and deploy.
 
@@ -43,3 +44,9 @@ Look at existing files before creating new ones. Don't start until you understan
 **Rule 4: Test before you respond**
 
 Before making any code changes, run the relevant tests or start the dev server to check for errors before responding. Never say "done" if the code is untested.
+
+---
+
+# Marketing landing vs product UI
+
+The public landing (`Landing.tsx`) uses intentional motion: scroll-driven section scale, thin gradient hairlines, glass panels, and a **3D testimonial ring** (Framer Motion). Keep that flair **landing-only**. The authenticated product shell should stay comparatively flat and utilitarian—do not extend the carousel or heavy marketing effects into app routes unless explicitly requested.

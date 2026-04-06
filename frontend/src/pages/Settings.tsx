@@ -4,6 +4,7 @@ import { useAuth } from "../lib/auth";
 import {
   getProfile,
   getSavedResumes,
+  parseResumeFile,
   putSavedResumes,
   putLlmModel,
   type SavedResumesData,
@@ -113,6 +114,9 @@ function ResumeSettingsSection() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [editorSlotId, setEditorSlotId] = useState<string | null>(null);
+  const [editorBuffer, setEditorBuffer] = useState("");
+  const [uploadingSlotId, setUploadingSlotId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -196,6 +200,32 @@ function ResumeSettingsSection() {
   };
 
   const previewText = draft?.items.find((i) => i.id === previewId)?.text ?? "";
+  const editorSlot = draft?.items.find((i) => i.id === editorSlotId);
+
+  const openEditor = (id: string) => {
+    const t = draft?.items.find((i) => i.id === id)?.text ?? "";
+    setEditorBuffer(t);
+    setEditorSlotId(id);
+  };
+
+  const applyEditor = () => {
+    if (editorSlotId) updateText(editorSlotId, editorBuffer);
+    setEditorSlotId(null);
+  };
+
+  const importFileToSlot = async (slotId: string, file: File | null) => {
+    if (!file) return;
+    setUploadingSlotId(slotId);
+    setErr("");
+    try {
+      const text = await parseResumeFile(file);
+      updateText(slotId, text);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not read that file");
+    } finally {
+      setUploadingSlotId(null);
+    }
+  };
 
   return (
     <>
@@ -204,13 +234,13 @@ function ResumeSettingsSection() {
           <div>
             <h2 className="text-base font-semibold text-gray-900 dark:text-white">Saved resumes</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              Up to {MAX_RESUME_SLOTS} labeled profiles. The default is used when you start a session unless you pick
-              another.
+              Add, label, and edit up to {MAX_RESUME_SLOTS} profiles here—this is the home for your resumes. New Session
+              only picks which profile to use for that interview; manage content here or import a PDF/DOCX.
             </p>
           </div>
           <Link
             to="/app/new"
-            className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300"
+            className="shrink-0 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300"
           >
             New session
           </Link>
@@ -245,10 +275,31 @@ function ResumeSettingsSection() {
                         )}
                       </div>
                       <div className="flex flex-wrap gap-2">
+                        <label className="cursor-pointer text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            className="sr-only"
+                            disabled={uploadingSlotId !== null}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              void importFileToSlot(slot.id, f ?? null);
+                              e.target.value = "";
+                            }}
+                          />
+                          {uploadingSlotId === slot.id ? "Importing…" : "Import file"}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => openEditor(slot.id)}
+                          className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                        >
+                          Full editor
+                        </button>
                         <button
                           type="button"
                           onClick={() => setPreviewId(slot.id)}
-                          className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                          className="text-xs font-medium text-gray-600 dark:text-gray-400 hover:underline"
                         >
                           Preview
                         </button>
@@ -274,9 +325,9 @@ function ResumeSettingsSection() {
                     <textarea
                       value={slot.text}
                       onChange={(e) => updateText(slot.id, e.target.value)}
-                      rows={5}
+                      rows={8}
                       placeholder="Paste resume text for this profile…"
-                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-y font-mono"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-y min-h-[180px] font-mono"
                     />
                     <p className="text-xs text-gray-400 dark:text-gray-500">
                       {slot.text.length.toLocaleString()} / {MAX_RESUME_CHARS.toLocaleString()} characters
@@ -306,6 +357,68 @@ function ResumeSettingsSection() {
           )}
         </div>
       </section>
+
+      {editorSlotId && editorSlot && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="resume-editor-title"
+          onClick={() => setEditorSlotId(null)}
+        >
+          <div
+            className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+              <h3 id="resume-editor-title" className="text-sm font-semibold text-gray-900 dark:text-white">
+                Edit &quot;{editorSlot.label}&quot;
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditorSlotId(null)}
+                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                aria-label="Close editor without saving"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 p-4">
+              <textarea
+                value={editorBuffer}
+                onChange={(e) => setEditorBuffer(e.target.value.slice(0, MAX_RESUME_CHARS))}
+                className="h-[min(60vh,520px)] w-full resize-y rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-950 dark:text-white"
+                placeholder="Resume text…"
+                spellCheck={false}
+              />
+              <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                {editorBuffer.length.toLocaleString()} / {MAX_RESUME_CHARS.toLocaleString()} — click Save changes below
+                the list to persist, or apply now and keep editing.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-gray-200 px-4 py-3 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => setEditorSlotId(null)}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  applyEditor();
+                }}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+              >
+                Apply to slot
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {previewId && (
         <div
@@ -358,7 +471,7 @@ export default function Settings() {
   const plan = profile?.plan ?? "free";
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10 space-y-8">
+    <div className="mx-auto max-w-3xl space-y-8 px-4 py-10">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">

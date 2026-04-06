@@ -1,8 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/auth";
-import { getProfile, type UserProfile } from "../lib/api";
-import { useEffect } from "react";
+import { getProfile, getProgress, type UserProfile } from "../lib/api";
+
+/** Display cap for the sidebar “practice” bar (not a limit on tracking). */
+const PRACTICE_BAR_GOAL = 40;
 
 const NAV_ITEMS = [
   {
@@ -55,10 +57,19 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [practiceQuestions, setPracticeQuestions] = useState<number | null>(null);
 
   useEffect(() => {
     getProfile().then(setProfile);
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setPracticeQuestions(null);
+      return;
+    }
+    getProgress().then((p) => setPracticeQuestions(p.total_questions));
+  }, [user, location.pathname]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -117,6 +128,26 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 }}
               />
             </div>
+          </div>
+        )}
+
+        {user && practiceQuestions !== null && (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700/40 dark:bg-gray-800/40">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500 dark:text-gray-400">Answers logged</span>
+              <span className="font-medium text-gray-800 dark:text-gray-200">{practiceQuestions}</span>
+            </div>
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+              <div
+                className="h-full rounded-full bg-cyan-500 transition-all dark:bg-cyan-500"
+                style={{
+                  width: `${Math.min(100, (practiceQuestions / PRACTICE_BAR_GOAL) * 100)}%`,
+                }}
+              />
+            </div>
+            <p className="mt-1 text-[10px] leading-snug text-gray-400 dark:text-gray-500">
+              Totals sync from the database after each role-play score (see My Progress).
+            </p>
           </div>
         )}
 

@@ -583,7 +583,7 @@ export default function NewSession() {
                   to="/app/settings"
                   className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
                 >
-                  Manage saved resumes
+                  Edit resumes in Settings
                 </Link>
                 <label className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 cursor-pointer">
                   {uploadingResume ? (

@@ -1050,6 +1050,7 @@ async def continue_session(session_id: str):
     config = {"configurable": {"thread_id": session_id}}
     logger.info(f"Session {session_id}: continuing to next question")
     result = agent.invoke(None, config)
+    _save_running_scores(session_id, result)
     _update_cached_status(session_id, result)
     if result.get("session_complete"):
         _save_final_scores(session_id, result)
