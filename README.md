@@ -27,7 +27,7 @@ An AI-powered interview preparation agent that analyzes job postings, generates 
 ### Tech Stack
 
 - **Agent Framework**: LangGraph (state machine) + LangChain (tools, LLM interface)
-- **LLM**: OpenAI GPT-4o-mini
+- **LLM**: OpenAI GPT-5.4 nano (default; override via `OPENAI_MODEL`)
 - **Backend**: FastAPI (Python)
 - **Frontend**: React + Vite + TypeScript + Tailwind CSS
 - **State**: LangGraph PostgresSaver (Supabase) with MemorySaver fallback for local dev
@@ -77,7 +77,7 @@ cp .env.example .env
 Edit `backend/.env` and set your OpenAI API key:
 ```
 OPENAI_API_KEY=sk-your-key-here
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-5.4-nano
 ```
 For the full technical architecture, env var reference, deploy guide, and go-live checklist, see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 Then start the server:
@@ -147,9 +147,11 @@ Detailed roadmap lives in Notion. Recently shipped and upcoming priorities:
 - **Settings Page** — subscription management UI, contact support, and appearance placeholder
 - **Live Progress Updates** — running_scores persisted after each Q&A round so My Progress updates mid-session
 - **Session List Optimization** — cached metadata columns (status, question_count) eliminate N checkpoint loads on list endpoint
+- **Settings: AI model** — choose among GPT-5.4 nano, GPT-4o mini (both free), or GPT-5.4 mini (Pro); preference on profile drives LangGraph nodes; extract-fields still uses server `OPENAI_EXTRACT_MODEL` / default
 
 ### Backlog
 
+- **Monetization: model tiers** — enforce Pro-only models server-side (done for mini), bundle stronger defaults + limits with Stripe checkout; reflect in pricing copy
 - **UI Polish** — loading skeletons, error states with retry, transitions, meta/OG tags
 - **Google OAuth** — reduce sign-in friction via Supabase Google provider (~15 lines frontend)
 - **LangSmith Observability** — tracing all LLM calls (free tier: 5k traces/month, zero code changes)

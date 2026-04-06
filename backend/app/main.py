@@ -16,9 +16,30 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.config import settings
-from app.models import SessionCreate, AnswerSubmit, ResumeProfile, SessionOut
+from app.models import (
+    SessionCreate,
+    AnswerSubmit,
+    ResumeProfile,
+    ResumeSlot,
+    SessionOut,
+    PutResumesRequest,
+    SavedResumesResponse,
+    LlmModelUpdate,
+)
+from app.resume_store import (
+    MAX_TEXT_LEN,
+    default_resume_text,
+    document_for_file_json,
+    normalize_document,
+)
 from app.agent.graph import agent, checkpointer
+from app.agent.state import AgentState
 from app.agent.nodes import _llm_json, _llm_json_extract, _fetch_url
+from app.llm_catalog import (
+    is_model_allowed_for_plan,
+    model_choices_for_api,
+    resolve_session_model,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -72,6 +93,12 @@ def _ensure_tables():
             """)
             cur.execute("""
                 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS question_count INTEGER NOT NULL DEFAULT 0
+            """)
+            cur.execute("""
+                ALTER TABLE profiles ADD COLUMN IF NOT EXISTS saved_resumes JSONB
+            """)
+            cur.execute("""
+                ALTER TABLE profiles ADD COLUMN IF NOT EXISTS llm_model TEXT NOT NULL DEFAULT ''
             """)
         logger.info("Application tables ensured (sessions, profiles)")
     finally:
@@ -274,33 +301,91 @@ def _update_session_meta(sid: str, **fields):
         _mem_session_index[sid].update(fields)
 
 
-def _load_saved_resume(user_id: str | None = None) -> str:
-    conn = _db()
-    if conn and user_id:
-        with conn.cursor() as cur:
-            cur.execute("SELECT resume FROM profiles WHERE id = %s", (user_id,))
-            row = cur.fetchone()
-        return row[0] if row else ""
-    if RESUME_PATH.exists():
-        try:
-            data = json.loads(RESUME_PATH.read_text())
-            return data.get("resume", "")
-        except Exception:
-            return ""
-    return ""
+def _read_resume_file_raw() -> dict:
+    if not RESUME_PATH.exists():
+        return {}
+    try:
+        return json.loads(RESUME_PATH.read_text())
+    except Exception:
+        return {}
 
 
-def _save_resume(text: str, user_id: str | None = None):
+def _get_saved_resumes_document(user_id: str | None = None) -> dict:
+    """Load normalized saved-resumes document; initialize DB/file when legacy-only."""
     conn = _db()
     if conn and user_id:
         _ensure_profile(user_id)
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE profiles SET resume = %s, updated_at = now() WHERE id = %s",
-                (text, user_id),
+                "SELECT COALESCE(resume, ''), saved_resumes FROM profiles WHERE id = %s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+        resume_txt = row[0] if row else ""
+        sr_blob = row[1] if row else None
+        if isinstance(sr_blob, str):
+            try:
+                sr_blob = json.loads(sr_blob)
+            except Exception:
+                sr_blob = None
+        doc = normalize_document(sr_blob, resume_txt)
+        if sr_blob is None and row is not None:
+            _persist_saved_resumes_doc(user_id, doc)
+        return doc
+
+    data = _read_resume_file_raw()
+    sr = data.get("saved_resumes")
+    legacy = str(data.get("resume", "") or "")
+    if isinstance(sr, str):
+        try:
+            sr = json.loads(sr)
+        except Exception:
+            sr = None
+    doc = normalize_document(sr, legacy)
+    if not isinstance(data.get("saved_resumes"), dict):
+        RESUME_PATH.write_text(json.dumps(document_for_file_json(data, doc), indent=2))
+    return doc
+
+
+def _persist_saved_resumes_doc(user_id: str | None, doc: dict):
+    doc = normalize_document(doc, "")
+    default_text = default_resume_text(doc)
+    conn = _db()
+    if conn and user_id:
+        _ensure_profile(user_id)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE profiles
+                SET saved_resumes = %s::jsonb, resume = %s, updated_at = now()
+                WHERE id = %s
+                """,
+                (json.dumps(doc), default_text, user_id),
             )
         return
-    RESUME_PATH.write_text(json.dumps({"resume": text}))
+    data = _read_resume_file_raw()
+    RESUME_PATH.write_text(
+        json.dumps(document_for_file_json(data, doc), indent=2),
+    )
+
+
+def _load_saved_resume(user_id: str | None = None) -> str:
+    return default_resume_text(_get_saved_resumes_document(user_id))
+
+
+def _save_resume(text: str, user_id: str | None = None):
+    """Legacy single-string save: updates the default slot text only."""
+    text = (text or "")[:MAX_TEXT_LEN]
+    doc = _get_saved_resumes_document(user_id)
+    did = doc.get("default_id")
+    for it in doc.get("items") or []:
+        if isinstance(it, dict) and it.get("id") == did:
+            it["text"] = text
+            break
+    else:
+        if doc.get("items"):
+            doc["items"][0]["text"] = text
+    _persist_saved_resumes_doc(user_id, doc)
 
 
 def _increment_session_count(user_id: str | None):
@@ -332,11 +417,41 @@ def _get_profile(user_id: str) -> dict | None:
         return None
     _ensure_profile(user_id)
     with conn.cursor() as cur:
-        cur.execute("SELECT plan, session_count FROM profiles WHERE id = %s", (user_id,))
+        cur.execute(
+            "SELECT plan, session_count, COALESCE(llm_model, '') FROM profiles WHERE id = %s",
+            (user_id,),
+        )
         row = cur.fetchone()
     if row:
-        return {"plan": row[0], "session_count": row[1]}
+        return {"plan": row[0], "session_count": row[1], "llm_model": row[2] or ""}
     return None
+
+
+def _agent_state_stub_for_api(user_id: str | None) -> AgentState:
+    """Minimal LangGraph state for API routes that call nodes._llm_json outside the graph."""
+    profile = _get_profile(user_id) if user_id and user_id != "anonymous" else None
+    mid = resolve_session_model(profile) if profile else settings.openai_model
+    return {
+        "company": "",
+        "role": "",
+        "job_description": "",
+        "job_url": "",
+        "stage": "",
+        "stage_context": "",
+        "resume": "",
+        "interviewers": [],
+        "llm_model": mid,
+        "analysis": {},
+        "questions": [],
+        "answers": [],
+        "mode": "prep",
+        "chat_history": [],
+        "current_q_index": 0,
+        "feedback": [],
+        "running_competency_scores": {},
+        "summary": {},
+        "session_complete": False,
+    }
 
 
 def _count_sessions_today(user_id: str) -> int:
@@ -493,7 +608,7 @@ async def health():
 
 
 @app.post("/api/lookup-interviewer")
-async def lookup_interviewer(body: LookupRequest):
+async def lookup_interviewer(request: Request, body: LookupRequest):
     """Search the web for an interviewer's title given their name and company.
 
     Uses DuckDuckGo search to find LinkedIn profiles or public bios,
@@ -519,6 +634,7 @@ async def lookup_interviewer(body: LookupRequest):
     )
 
     result = _llm_json(
+        _agent_state_stub_for_api(_get_current_user(request)),
         system=(
             "Extract a person's current job title from search results. "
             "Return JSON with:\n"
@@ -639,6 +755,9 @@ async def create_session_stream(request: Request, body: SessionCreate):
     if not resume:
         resume = _load_saved_resume(user_id)
 
+    profile = _get_profile(user_id) if user_id and user_id != "anonymous" else None
+    llm_model = resolve_session_model(profile)
+
     initial_state = {
         "company": body.company,
         "role": body.role,
@@ -649,6 +768,7 @@ async def create_session_stream(request: Request, body: SessionCreate):
         "resume": resume,
         "mode": body.mode,
         "interviewers": [i.model_dump() for i in body.interviewers],
+        "llm_model": llm_model,
         "analysis": {},
         "questions": [],
         "answers": [],
@@ -767,6 +887,9 @@ async def create_session(request: Request, body: SessionCreate):
     if not resume:
         resume = _load_saved_resume(user_id)
 
+    profile = _get_profile(user_id) if user_id and user_id != "anonymous" else None
+    llm_model = resolve_session_model(profile)
+
     initial_state = {
         "company": body.company,
         "role": body.role,
@@ -777,6 +900,7 @@ async def create_session(request: Request, body: SessionCreate):
         "resume": resume,
         "mode": body.mode,
         "interviewers": [i.model_dump() for i in body.interviewers],
+        "llm_model": llm_model,
         "analysis": {},
         "questions": [],
         "answers": [],
@@ -1042,6 +1166,41 @@ async def save_resume_endpoint(request: Request, body: ResumeProfile):
     return {"status": "saved"}
 
 
+@app.get("/api/profile/resumes", response_model=SavedResumesResponse)
+async def get_saved_resumes(request: Request):
+    user_id = _get_current_user(request)
+    if not user_id or user_id == "anonymous":
+        raise HTTPException(status_code=401, detail="Authentication required")
+    doc = _get_saved_resumes_document(user_id)
+    items = [
+        ResumeSlot(**i)
+        for i in (doc.get("items") or [])
+        if isinstance(i, dict)
+    ]
+    return SavedResumesResponse(default_id=str(doc["default_id"]), items=items)
+
+
+@app.put("/api/profile/resumes", response_model=SavedResumesResponse)
+async def put_saved_resumes(request: Request, body: PutResumesRequest):
+    user_id = _get_current_user(request)
+    if not user_id or user_id == "anonymous":
+        raise HTTPException(status_code=401, detail="Authentication required")
+    doc = {
+        "version": 1,
+        "default_id": body.default_id,
+        "items": [s.model_dump() for s in body.items],
+    }
+    doc = normalize_document(doc, "")
+    _persist_saved_resumes_doc(user_id, doc)
+    logger.info("Saved resumes updated (%s slots)", len(doc.get("items") or []))
+    items = [
+        ResumeSlot(**i)
+        for i in (doc.get("items") or [])
+        if isinstance(i, dict)
+    ]
+    return SavedResumesResponse(default_id=str(doc["default_id"]), items=items)
+
+
 @app.get("/api/profile/me")
 async def get_me(request: Request):
     """Return current user profile with daily usage stats."""
@@ -1050,12 +1209,15 @@ async def get_me(request: Request):
         profile = _get_profile(user_id)
         used_today = _count_sessions_today(user_id)
         if profile:
+            eff = resolve_session_model(profile)
             return {
                 "user_id": user_id,
                 **profile,
                 "authenticated": True,
                 "daily_sessions_used": used_today,
                 "daily_limit": FREE_DAILY_LIMIT if profile["plan"] == "free" else None,
+                "llm_model_effective": eff,
+                "llm_model_choices": model_choices_for_api(profile["plan"]),
             }
     return {
         "user_id": None,
@@ -1064,6 +1226,40 @@ async def get_me(request: Request):
         "authenticated": False,
         "daily_sessions_used": 0,
         "daily_limit": FREE_DAILY_LIMIT,
+        "llm_model": "",
+        "llm_model_effective": settings.openai_model,
+        "llm_model_choices": model_choices_for_api("free"),
+    }
+
+
+@app.put("/api/profile/llm-model")
+async def put_llm_model(request: Request, body: LlmModelUpdate):
+    user_id = _get_current_user(request)
+    if not user_id or user_id == "anonymous":
+        raise HTTPException(status_code=401, detail="Authentication required")
+    profile = _get_profile(user_id)
+    if not profile:
+        raise HTTPException(status_code=400, detail="Profile not found")
+    mid = body.llm_model.strip()
+    if not is_model_allowed_for_plan(profile["plan"], mid):
+        raise HTTPException(
+            status_code=403,
+            detail="That model is not available on your plan. Upgrade to Pro for premium models.",
+        )
+    conn = _db()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Profile storage unavailable")
+    _ensure_profile(user_id)
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE profiles SET llm_model = %s, updated_at = now() WHERE id = %s",
+            (mid, user_id),
+        )
+    updated = {**profile, "llm_model": mid}
+    return {
+        "llm_model": mid,
+        "llm_model_effective": resolve_session_model(updated),
+        "llm_model_choices": model_choices_for_api(profile["plan"]),
     }
 
 

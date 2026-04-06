@@ -1,5 +1,6 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "../lib/auth";
 
 /* ── Animation variants ─────────────────────────────────────────────── */
@@ -193,6 +194,60 @@ const FEATURES = [
   },
 ];
 
+/* ── Feature section with scroll-driven scale ──────────────────────── */
+
+function FeatureSection({ f, index }: { f: typeof FEATURES[number]; index: number }) {
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
+  const scale = useTransform(scrollYProgress, [0, 0.25, 0.75, 1], [0.93, 1, 1, 0.93]);
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.55, 1, 1, 0.55]);
+  const reversed = index % 2 === 1;
+
+  return (
+    <motion.section
+      ref={ref}
+      style={{ scale, opacity }}
+      className="max-w-6xl mx-auto px-6"
+    >
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={VIEWPORT}
+        variants={stagger}
+        className={`flex flex-col ${reversed ? "lg:flex-row-reverse" : "lg:flex-row"} items-center gap-10 lg:gap-16`}
+      >
+        <motion.div variants={fadeUp} className="flex-1 max-w-lg">
+          <span className="inline-block text-xs font-semibold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider mb-3 px-2.5 py-1 rounded-md bg-indigo-100 border border-indigo-200 dark:bg-indigo-500/10 dark:border-indigo-500/20">
+            {f.label}
+          </span>
+          <h3 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4 text-gray-900 dark:text-white">
+            {f.title}
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-5">
+            {f.description}
+          </p>
+          <ul className="space-y-2.5">
+            {f.bullets.map((b) => (
+              <li key={b} className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                {b}
+              </li>
+            ))}
+          </ul>
+        </motion.div>
+        <motion.div variants={fadeScale} className="flex-1 max-w-md w-full">
+          {f.mockup}
+        </motion.div>
+      </motion.div>
+    </motion.section>
+  );
+}
+
 /* ── Social proof data ──────────────────────────────────────────────── */
 
 const TESTIMONIALS = [
@@ -260,13 +315,16 @@ export default function Landing() {
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-pulse" />
             One structured system for serious technical interviews
           </motion.div>
-          <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-5 text-gray-900 dark:text-white">
+          <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.07] mb-7 text-gray-900 dark:text-white">
             Your interview prep mastermind that{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400">reads the job description</span>,{" "}
-            <br className="hidden sm:block" />
-            models your interviewers, and surfaces your weak spots
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-500 to-cyan-500 dark:from-indigo-400 dark:via-violet-400 dark:to-cyan-400">
+              reads the job description,{" "}
+              <br className="hidden sm:block" />
+              models your interviewers,
+            </span>{" "}
+            and surfaces your weak spots
           </motion.h1>
-          <motion.p variants={fadeUp} className="text-gray-600 dark:text-gray-400 text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
+          <motion.p variants={fadeUp} className="text-gray-500 dark:text-gray-400 text-xl max-w-xl mx-auto mb-10 leading-relaxed">
             Built by people who ship software: analysis, tailored questions, answer frameworks, and scored role-play—so
             you walk in with a plan instead of a prayer.
           </motion.p>
@@ -295,48 +353,9 @@ export default function Landing() {
 
       {/* Feature sections */}
       <div id="features" className="space-y-20 sm:space-y-32 pb-24">
-        {FEATURES.map((f, i) => {
-          const reversed = i % 2 === 1;
-          return (
-            <motion.section
-              key={f.label}
-              initial="hidden"
-              whileInView="visible"
-              viewport={VIEWPORT}
-              variants={stagger}
-              className="max-w-6xl mx-auto px-6"
-            >
-              <div className={`flex flex-col ${reversed ? "lg:flex-row-reverse" : "lg:flex-row"} items-center gap-10 lg:gap-16`}>
-                {/* Text */}
-                <motion.div variants={fadeUp} className="flex-1 max-w-lg">
-                  <span className="inline-block text-xs font-semibold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider mb-3 px-2.5 py-1 rounded-md bg-indigo-100 border border-indigo-200 dark:bg-indigo-500/10 dark:border-indigo-500/20">
-                    {f.label}
-                  </span>
-                  <h3 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4 text-gray-900 dark:text-white">
-                    {f.title}
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-5">
-                    {f.description}
-                  </p>
-                  <ul className="space-y-2.5">
-                    {f.bullets.map((b) => (
-                      <li key={b} className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-                        <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        {b}
-                      </li>
-                    ))}
-                  </ul>
-                </motion.div>
-                {/* Mockup */}
-                <motion.div variants={fadeScale} className="flex-1 max-w-md w-full">
-                  {f.mockup}
-                </motion.div>
-              </div>
-            </motion.section>
-          );
-        })}
+        {FEATURES.map((f, i) => (
+          <FeatureSection key={f.label} f={f} index={i} />
+        ))}
       </div>
 
       {/* Social proof */}

@@ -14,7 +14,7 @@ Reference for contributors and AI assistants. Keep this aligned with the repo as
 |-------|------------|
 | Frontend | React, Vite, TypeScript, Tailwind CSS, Framer Motion |
 | Backend | FastAPI (Python 3.11+) |
-| Agent | LangGraph + LangChain, OpenAI (e.g. GPT-4o-mini) |
+| Agent | LangGraph + LangChain, OpenAI (default `gpt-5.4-nano` via `OPENAI_MODEL`) |
 | Persistence | LangGraph PostgresSaver (Supabase) with MemorySaver fallback locally |
 | Models | Pydantic v2 |
 
@@ -33,21 +33,25 @@ Auth, hosting, and billing details live in deployment config and `ARCHITECTURE.m
 - New session — job description / URL, resume, interviewers, prep vs role-play mode
 - Prep detail — analysis, Q&A, role-play chat per session
 - Progress — competency trends and score history
-- Settings — account, theme, subscription surface
+- Settings — account, theme, subscription surface, **saved resumes** (up to three labeled profiles; one default), **preferred LLM** (catalog: e.g. `gpt-5.4-nano`, `gpt-4o-mini` free; `gpt-5.4-mini` Pro), support contact
 
 ## Data models (high level)
 
 - **Sessions** — id, checkpoints (LangGraph), metadata (status, question counts, scores)
-- **User profile** — resume text, usage counters, plan tier
+- **User profile** — `profiles.resume` (legacy default text, kept in sync), `profiles.saved_resumes`, `profiles.llm_model` (API model id), usage counters, plan tier
 - **Progress** — aggregated scores across sessions (`final_scores`, trend data)
 
 Exact shapes: backend Pydantic models and frontend `lib/api.ts` types.
 
 ## Third-party services
 
-- OpenAI (LLM)
+- OpenAI (LLM) — `OPENAI_MODEL` for the agent graph; optional `OPENAI_EXTRACT_MODEL` for cheaper field extraction (see `backend/.env.example`)
 - Supabase (Postgres checkpointer in production; optional auth patterns)
 - Stripe / monetization (planned or partial; see app for current gates)
+
+## LLM evaluation (cost vs quality)
+
+When comparing models (e.g. `gpt-5.4-nano` vs `gpt-5.4-mini` or `gpt-4o-mini`), run a **small fixed set** of real (redacted) postings through: extract-fields → one full analyze/generate/draft path. Score **extraction** (company, role, stage sanity), **analysis** (jd_fit coherence), and **draft usefulness** (STAR-style relevance). Multiply logged token usage by current list pricing from OpenAI’s docs.
 
 ## Definition of done (typical task)
 

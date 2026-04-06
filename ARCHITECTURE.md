@@ -26,7 +26,7 @@ The single technical reference for how this app works, how to run it, and how to
         │                              │               │
         │                              │               │
         ▼                              ▼               ▼
-   Supabase Auth              Supabase Postgres    OpenAI GPT-4o-mini
+   Supabase Auth              Supabase Postgres    OpenAI GPT-5.4 nano
    (magic link)               (sessions, state)    (LLM calls)
 ```
 
@@ -34,7 +34,7 @@ The single technical reference for how this app works, how to run it, and how to
 **Backend** (Railway): FastAPI (Python). REST + SSE endpoints. LangGraph state machine for all AI logic.
 **Database** (Supabase): Postgres for LangGraph checkpoints, session metadata, and user profiles.
 **Auth** (Supabase): Magic link email auth. JWT tokens verified by the backend.
-**LLM** (OpenAI): GPT-4o-mini for all node operations (parsing, analysis, generation, evaluation).
+**LLM** (OpenAI): Default `gpt-5.4-nano` for node operations (`OPENAI_MODEL`); optional `OPENAI_EXTRACT_MODEL` for extract-fields only.
 
 ---
 
@@ -389,7 +389,7 @@ Do these **in order**. If something fails, fix it before moving on.
    | Variable | Value |
    |---|---|
    | `OPENAI_API_KEY` | Your OpenAI secret key (`sk-...`) |
-   | `OPENAI_MODEL` | e.g. `gpt-4o-mini` |
+   | `OPENAI_MODEL` | e.g. `gpt-5.4-nano` |
    | `DATABASE_URL` | Supabase: Project Settings > Database > Connection string (URI). URL-encode `$` and `!` in passwords. |
    | `SUPABASE_JWT_SECRET` | Supabase: Project Settings > API > JWT Secret (long secret, not the anon key) |
    | `FRONTEND_URL` | Placeholder `https://placeholder.vercel.app` (update after Step 3) |

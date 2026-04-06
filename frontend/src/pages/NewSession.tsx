@@ -6,9 +6,10 @@ import {
   extractFields,
   lookupInterviewer,
   getResume,
-  saveResume,
+  getSavedResumes,
   parseResumeFile,
   type InterviewerInfo,
+  type SavedResumesData,
 } from "../lib/api";
 import UpgradeModal from "../components/UpgradeModal";
 
@@ -39,8 +40,7 @@ type JdMode = "text" | "url";
 /**
  * Form for creating prep sessions. Key handlers: handleAutoFill (extracts fields from job description),
  * handleLookup (web search for interviewer title), handleResumeFile (PDF/DOCX upload),
- * handleSubmit (creates session via SSE stream, navigates early on generate complete),
- * handleSaveResume (persists resume).
+ * handleSubmit (creates session via SSE stream, navigates early on generate complete).
  */
 export default function NewSession() {
   const navigate = useNavigate();
@@ -48,7 +48,10 @@ export default function NewSession() {
   const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState("");
   const [jdMode, setJdMode] = useState<JdMode>("text");
-  const [savedResume, setSavedResume] = useState("");
+  /** Multi-resume profile from API; null if unavailable (fallback to legacy single string). */
+  const [savedResumesData, setSavedResumesData] = useState<SavedResumesData | null>(null);
+  const [selectedResumeId, setSelectedResumeId] = useState<string | "custom">("custom");
+  const [savedResumeLegacy, setSavedResumeLegacy] = useState("");
   const [resumeOverride, setResumeOverride] = useState(false);
   const [customStage, setCustomStage] = useState("");
   const [progress, setProgress] = useState<string[]>([]);
@@ -70,9 +73,24 @@ export default function NewSession() {
   const [interviewers, setInterviewers] = useState<InterviewerInfo[]>([]);
 
   useEffect(() => {
-    getResume().then((r) => {
-      if (r) setSavedResume(r);
-    });
+    let cancelled = false;
+    (async () => {
+      const data = await getSavedResumes();
+      if (cancelled) return;
+      if (data && data.items.length > 0) {
+        setSavedResumesData(data);
+        const def = data.items.find((i) => i.id === data.default_id) ?? data.items[0];
+        setSelectedResumeId(def.id);
+        setResumeOverride(false);
+        setForm((prev) => ({ ...prev, resume: def.text }));
+      } else {
+        const r = await getResume();
+        if (!cancelled && r) setSavedResumeLegacy(r);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const set =
@@ -163,9 +181,14 @@ export default function NewSession() {
     setProgress([]);
     let navigated = false;
     try {
-      const resume = resumeOverride
-        ? form.resume
-        : savedResume || form.resume;
+      let resumePayload = form.resume;
+      if (!resumeOverride && selectedResumeId !== "custom" && savedResumesData) {
+        const slot = savedResumesData.items.find((i) => i.id === selectedResumeId);
+        if (slot) resumePayload = slot.text;
+      } else if (!resumeOverride && !savedResumesData) {
+        resumePayload = savedResumeLegacy || form.resume;
+      }
+      const resume = resumePayload;
       await createSessionStream(
         {
           ...form,
@@ -197,14 +220,6 @@ export default function NewSession() {
     } finally {
       if (!navigated) setLoading(false);
     }
-  };
-
-  /** Persists current resume as default for future sessions. */
-  const handleSaveResume = async () => {
-    if (!form.resume.trim()) return;
-    await saveResume(form.resume);
-    setSavedResume(form.resume);
-    setResumeOverride(false);
   };
 
   function parseNameTitle(raw: string): { name: string; title: string } | null {
@@ -558,52 +573,122 @@ export default function NewSession() {
 
           {/* Resume */}
           <div>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Resume / Background{" "}
                 <span className="text-gray-500">(optional)</span>
               </label>
-              <label className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 cursor-pointer">
-                {uploadingResume ? (
-                  <>
-                    <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Parsing...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                    Upload PDF / DOCX
-                  </>
-                )}
-                <input
-                  type="file"
-                  accept=".pdf,.docx,.txt"
-                  onChange={handleResumeFile}
-                  className="hidden"
-                  disabled={uploadingResume}
-                />
-              </label>
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/app/settings"
+                  className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                >
+                  Manage saved resumes
+                </Link>
+                <label className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 cursor-pointer">
+                  {uploadingResume ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Parsing...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      Upload PDF / DOCX
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept=".pdf,.docx,.txt"
+                    onChange={handleResumeFile}
+                    className="hidden"
+                    disabled={uploadingResume}
+                  />
+                </label>
+              </div>
             </div>
-            {savedResume && !resumeOverride ? (
+
+            {savedResumesData && savedResumesData.items.length > 0 && (
+              <div className="mb-3">
+                <label htmlFor="resume-profile-select" className="sr-only">
+                  Saved resume profile
+                </label>
+                <select
+                  id="resume-profile-select"
+                  value={selectedResumeId}
+                  onChange={(e) => {
+                    const v = e.target.value as string | "custom";
+                    if (v === "custom") {
+                      setSelectedResumeId("custom");
+                      setResumeOverride(true);
+                    } else {
+                      setSelectedResumeId(v);
+                      setResumeOverride(false);
+                      const slot = savedResumesData.items.find((i) => i.id === v);
+                      if (slot) setForm((prev) => ({ ...prev, resume: slot.text }));
+                    }
+                  }}
+                  className={`${inputClass} text-sm py-2`}
+                >
+                  {savedResumesData.items.map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.label || "Untitled"}
+                      {i.id === savedResumesData.default_id ? " (default)" : ""}
+                    </option>
+                  ))}
+                  <option value="custom">Custom (this session only)</option>
+                </select>
+              </div>
+            )}
+
+            {savedResumesData &&
+            savedResumesData.items.length > 0 &&
+            !resumeOverride &&
+            selectedResumeId !== "custom" ? (
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="text-sm text-emerald-700 dark:text-green-400 font-medium">
+                    Using saved profile
+                  </span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                    {(savedResumesData.items.find((i) => i.id === selectedResumeId)?.text ?? "").slice(0, 120)}
+                    {(savedResumesData.items.find((i) => i.id === selectedResumeId)?.text.length ?? 0) > 120
+                      ? "…"
+                      : ""}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const slot = savedResumesData.items.find((i) => i.id === selectedResumeId);
+                    setResumeOverride(true);
+                    if (slot) setForm((prev) => ({ ...prev, resume: slot.text }));
+                  }}
+                  className="text-xs text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium shrink-0"
+                >
+                  Edit text
+                </button>
+              </div>
+            ) : savedResumeLegacy && !savedResumesData && !resumeOverride ? (
               <div className="rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
                 <div className="min-w-0">
                   <span className="text-sm text-emerald-700 dark:text-green-400 font-medium">
                     Saved resume loaded
                   </span>
                   <p className="text-xs text-gray-500 truncate mt-0.5">
-                    {savedResume.slice(0, 100)}...
+                    {savedResumeLegacy.slice(0, 100)}...
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => {
                     setResumeOverride(true);
-                    setForm({ ...form, resume: savedResume });
+                    setForm((prev) => ({ ...prev, resume: savedResumeLegacy }));
                   }}
                   className="text-xs text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium shrink-0 ml-3"
                 >
@@ -615,18 +700,17 @@ export default function NewSession() {
                 <textarea
                   rows={4}
                   value={form.resume}
-                  onChange={set("resume")}
+                  onChange={(e) => {
+                    setResumeOverride(true);
+                    setForm({ ...form, resume: e.target.value });
+                  }}
                   placeholder="Paste your resume or key experience points for personalized answers..."
                   className={`${inputClass} resize-y`}
                 />
-                {form.resume.trim() && (
-                  <button
-                    type="button"
-                    onClick={handleSaveResume}
-                    className="mt-1 text-xs text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
-                  >
-                    Save as default resume
-                  </button>
+                {(selectedResumeId === "custom" || resumeOverride) && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Edits here apply to this session only unless you save profiles in Settings.
+                  </p>
                 )}
               </>
             )}

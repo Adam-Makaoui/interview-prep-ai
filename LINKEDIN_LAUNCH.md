@@ -13,7 +13,7 @@ So I built InterviewPrepAI -- an AI agent that:
 - Runs full mock interviews with a realistic interviewer persona -- and gives you feedback after every answer
 - Shows you where you match the JD and where the gaps are
 
-The stack: React + FastAPI + LangGraph + Supabase + GPT-4o-mini. The whole thing runs as a state machine -- parse, analyze, generate, roleplay, evaluate, summarize -- with persistent sessions so you can come back and drill again.
+The stack: React + FastAPI + LangGraph + Supabase + GPT-5.4 nano (configurable via `OPENAI_MODEL`). The whole thing runs as a state machine -- parse, analyze, generate, roleplay, evaluate, summarize -- with persistent sessions so you can come back and drill again.
 
 It's live now. First session is free.
 

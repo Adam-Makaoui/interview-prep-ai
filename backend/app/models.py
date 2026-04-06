@@ -4,7 +4,9 @@ These models define the contract between the React frontend and the FastAPI
 backend. SessionCreate is intentionally permissive (most fields optional)
 so the LLM-powered parse node can fill in gaps from the job description.
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from app.resume_store import MAX_SLOTS, MAX_TEXT_LEN
 
 
 class InterviewerInfo(BaseModel):
@@ -32,7 +34,36 @@ class AnswerSubmit(BaseModel):
 
 
 class ResumeProfile(BaseModel):
-    resume: str
+    resume: str = Field(default="", max_length=MAX_TEXT_LEN)
+
+
+class ResumeSlot(BaseModel):
+    id: str = Field(min_length=1, max_length=80)
+    label: str = Field(default="", max_length=120)
+    text: str = Field(default="", max_length=MAX_TEXT_LEN)
+
+
+class PutResumesRequest(BaseModel):
+    default_id: str = Field(min_length=1, max_length=80)
+    items: list[ResumeSlot] = Field(min_length=1, max_length=MAX_SLOTS)
+
+    @model_validator(mode="after")
+    def _validate_ids(self) -> "PutResumesRequest":
+        ids = [s.id for s in self.items]
+        if len(set(ids)) != len(ids):
+            raise ValueError("Resume slot ids must be unique")
+        if self.default_id not in ids:
+            raise ValueError("default_id must match a resume slot id")
+        return self
+
+
+class SavedResumesResponse(BaseModel):
+    default_id: str
+    items: list[ResumeSlot]
+
+
+class LlmModelUpdate(BaseModel):
+    llm_model: str = Field(min_length=1, max_length=80)
 
 
 class SessionOut(BaseModel):

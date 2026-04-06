@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     openai_api_key: str
-    openai_model: str = "gpt-4o-mini"
+    openai_model: str = "gpt-5.4-nano"
     openai_extract_model: str = ""
     frontend_url: str = "http://localhost:5173"
 

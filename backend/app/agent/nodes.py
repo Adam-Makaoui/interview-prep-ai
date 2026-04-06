@@ -62,22 +62,29 @@ STAGE_CONTEXT = {
 }
 
 
-def _llm() -> ChatOpenAI:
-    """Create a configured ChatOpenAI instance using app settings."""
+def _effective_model(state: AgentState) -> str:
+    raw = state.get("llm_model")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    return settings.openai_model
+
+
+def _llm(state: AgentState) -> ChatOpenAI:
+    """Chat model for this step, using per-session `llm_model` when set."""
     return ChatOpenAI(
-        model=settings.openai_model,
+        model=_effective_model(state),
         api_key=settings.openai_api_key,
         temperature=0.7,
     )
 
 
-def _llm_json(system: str, user: str) -> dict:
+def _llm_json(state: AgentState, system: str, user: str) -> dict:
     """Call the LLM with JSON-mode output and parse the response.
 
     Uses OpenAI's response_format=json_object to guarantee valid JSON,
     avoiding brittle regex parsing of markdown code blocks.
     """
-    llm = _llm().bind(response_format={"type": "json_object"})
+    llm = _llm(state).bind(response_format={"type": "json_object"})
     resp = llm.invoke([SystemMessage(content=system), HumanMessage(content=user)])
     return json.loads(resp.content)
 
@@ -138,7 +145,7 @@ def _fetch_url(url: str) -> str:
         return ""
 
 
-def _resolve_stage_context(stage: str) -> str:
+def _resolve_stage_context(stage: str, state: AgentState) -> str:
     """Return a human-readable description for any interview stage.
 
     For predefined stages, returns the curated description from STAGE_CONTEXT.
@@ -151,6 +158,7 @@ def _resolve_stage_context(stage: str) -> str:
 
     logger.info(f"Generating context for custom stage: {stage}")
     result = _llm_json(
+        state,
         system=(
             "You are an interview expert. Given an interview stage name, "
             "write a 2-3 sentence description of what this stage typically "
@@ -213,7 +221,7 @@ def parse_job_posting(state: AgentState) -> dict:
 
     # Resolve stage context (LLM fallback for custom stages)
     stage = state.get("stage", "phone_screen")
-    stage_ctx = _resolve_stage_context(stage)
+    stage_ctx = _resolve_stage_context(stage, state)
 
     if state.get("company") and state.get("role") and jd:
         logger.info("Fields already provided, skipping LLM parse")
@@ -226,6 +234,7 @@ def parse_job_posting(state: AgentState) -> dict:
         return {"stage_context": stage_ctx}
 
     result = _llm_json(
+        state,
         system=(
             "Extract structured information from this job posting. "
             "Return a JSON object with:\n"
@@ -283,6 +292,7 @@ def analyze_role(state: AgentState) -> dict:
     )
 
     result = _llm_json(
+        state,
         system=(
             "You are an expert career analyst and interview coach. "
             "Analyze the job description and return a JSON object with:\n"
@@ -353,6 +363,7 @@ def generate_questions(state: AgentState) -> dict:
         )
 
     result = _llm_json(
+        state,
         system=(
             "You are an expert interview coach. Generate realistic interview questions.\n\n"
             f"Interview Stage: {stage_ctx}\n\n"
@@ -411,6 +422,7 @@ def draft_answers(state: AgentState) -> dict:
     )
 
     result = _llm_json(
+        state,
         system=(
             "You are an expert interview coach. Draft personalized answer "
             "frameworks for each interview question.\n\n"
@@ -473,7 +485,7 @@ def roleplay_ask(state: AgentState) -> dict:
         if name:
             persona = f"{name}, {title}," if title else f"{name},"
 
-    llm = _llm()
+    llm = _llm(state)
     resp = llm.invoke([
         SystemMessage(content=(
             f"You are {persona} conducting a real interview at {state['company']}. "
@@ -566,6 +578,7 @@ def evaluate_answer(state: AgentState) -> dict:
         )
 
     result = _llm_json(
+        state,
         system=(
             "You are an expert interview coach evaluating a candidate's answer.\n\n"
             f"Role: {state['role']} at {state['company']}\n"
@@ -669,6 +682,7 @@ def session_summary(state: AgentState) -> dict:
             running_avgs[k] = round(float(v["sum"]) / int(v["count"]), 1)
 
     result = _llm_json(
+        state,
         system=(
             "You are an interview coach wrapping up a practice session. "
             "Synthesize the feedback into an overall assessment.\n\n"

@@ -10,7 +10,7 @@ Each node returns a partial dict of only the fields it modifies.
 """
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 
 class AgentState(TypedDict):
@@ -23,6 +23,7 @@ class AgentState(TypedDict):
     stage_context: str        # human-readable description of what this stage evaluates
     resume: str
     interviewers: list        # list of {"name": str, "title": str} dicts
+    llm_model: NotRequired[str]  # OpenAI model id for this session (from user preference)
 
     # -- Computed fields (populated by agent nodes) --
     analysis: dict            # output of analyze_role node

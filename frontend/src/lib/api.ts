@@ -451,6 +451,46 @@ export async function saveResume(resume: string): Promise<void> {
   });
 }
 
+/** Up to three labeled resumes; `default_id` must match one of `items`. */
+export interface ResumeSlot {
+  id: string;
+  label: string;
+  text: string;
+}
+
+export interface SavedResumesData {
+  default_id: string;
+  items: ResumeSlot[];
+}
+
+/**
+ * Loads all saved resume slots (auth required).
+ * @returns null if unauthenticated or request fails
+ */
+export async function getSavedResumes(): Promise<SavedResumesData | null> {
+  const res = await apiFetch(`${BASE}/profile/resumes`);
+  if (!res.ok) return null;
+  return res.json() as Promise<SavedResumesData>;
+}
+
+/**
+ * Replaces saved resumes (max three items).
+ */
+export async function putSavedResumes(
+  body: SavedResumesData,
+): Promise<SavedResumesData> {
+  const res = await apiFetch(`${BASE}/profile/resumes`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err || `Failed: ${res.status}`);
+  }
+  return res.json() as Promise<SavedResumesData>;
+}
+
 export interface ProgressData {
   sessions_completed: number;
   total_questions: number;
@@ -474,6 +514,15 @@ export async function getProgress(): Promise<ProgressData> {
   return res.json();
 }
 
+/** Selectable LLM; `available` false when gated by plan (e.g. Pro-only). */
+export interface LlmModelChoice {
+  id: string;
+  label: string;
+  description: string;
+  min_plan: string;
+  available: boolean;
+}
+
 export interface UserProfile {
   user_id: string | null;
   plan: string;
@@ -481,6 +530,33 @@ export interface UserProfile {
   authenticated: boolean;
   daily_sessions_used: number;
   daily_limit: number | null;
+  /** Stored preference; may be empty until user picks one explicitly */
+  llm_model?: string;
+  llm_model_effective?: string;
+  llm_model_choices?: LlmModelChoice[];
+}
+
+/**
+ * Persist preferred OpenAI model for prep sessions (tier-validated server-side).
+ */
+export async function putLlmModel(llm_model: string): Promise<Partial<UserProfile>> {
+  const res = await apiFetch(`${BASE}/profile/llm-model`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ llm_model }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    let msg = t || `Failed: ${res.status}`;
+    try {
+      const j = JSON.parse(t) as { detail?: unknown };
+      if (typeof j.detail === "string") msg = j.detail;
+    } catch {
+      /* keep msg */
+    }
+    throw new Error(msg);
+  }
+  return res.json() as Promise<Partial<UserProfile>>;
 }
 
 export async function getProfile(): Promise<UserProfile> {
@@ -493,6 +569,9 @@ export async function getProfile(): Promise<UserProfile> {
       authenticated: false,
       daily_sessions_used: 0,
       daily_limit: 2,
+      llm_model: "",
+      llm_model_effective: undefined,
+      llm_model_choices: [],
     };
   return res.json();
 }
