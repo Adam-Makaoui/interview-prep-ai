@@ -60,9 +60,18 @@ def _ensure_tables():
                 CREATE INDEX IF NOT EXISTS idx_sessions_user_created
                 ON sessions (user_id, created_at)
             """)
-            # Migrate: add final_scores if missing (safe on new installs too)
+            # Migrate: add columns if missing (safe on new installs too)
             cur.execute("""
                 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS final_scores JSONB
+            """)
+            cur.execute("""
+                ALTER TABLE sessions ADD COLUMN IF NOT EXISTS running_scores JSONB
+            """)
+            cur.execute("""
+                ALTER TABLE sessions ADD COLUMN IF NOT EXISTS cached_status TEXT NOT NULL DEFAULT 'analyzing'
+            """)
+            cur.execute("""
+                ALTER TABLE sessions ADD COLUMN IF NOT EXISTS question_count INTEGER NOT NULL DEFAULT 0
             """)
         logger.info("Application tables ensured (sessions, profiles)")
     finally:
@@ -207,6 +216,50 @@ def _save_final_scores(sid: str, state: dict):
         cur.execute(
             "UPDATE sessions SET final_scores = %s WHERE session_id = %s",
             (json.dumps(payload), sid),
+        )
+
+
+def _save_running_scores(sid: str, state: dict):
+    """Persist partial competency scores after each Q&A round for live progress."""
+    conn = _db()
+    if not conn:
+        return
+    running = state.get("running_competency_scores") or {}
+    skill_avgs = _skill_averages_from_running(running)
+    q_count = len(state.get("feedback") or [])
+    payload = {"skill_averages": skill_avgs, "questions_answered": q_count}
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE sessions SET running_scores = %s WHERE session_id = %s",
+            (json.dumps(payload), sid),
+        )
+
+
+def _update_cached_status(sid: str, state: dict):
+    """Write derived status + question_count to sessions table for fast listing."""
+    conn = _db()
+    if not conn:
+        return
+    is_complete = state.get("session_complete", False)
+    mode = state.get("mode", "prep")
+    has_analysis = bool(state.get("analysis"))
+    questions = state.get("questions") or []
+
+    if is_complete:
+        status = "complete"
+    elif mode == "roleplay" and has_analysis and questions:
+        chat_tail = state.get("chat_history") or []
+        last_role = chat_tail[-1].get("role") if chat_tail else None
+        status = "reviewing_feedback" if last_role == "coach" else "awaiting_answer"
+    elif has_analysis:
+        status = "processing"
+    else:
+        status = "analyzing"
+
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE sessions SET cached_status = %s, question_count = %s, mode = %s WHERE session_id = %s",
+            (status, len(questions), mode, sid),
         )
 
 
@@ -632,6 +685,7 @@ async def create_session_stream(request: Request, body: SessionCreate):
                     _update_session_meta(session_id, company=state["company"])
                 if state.get("role"):
                     _update_session_meta(session_id, role=state["role"])
+                _update_cached_status(session_id, state)
                 if state.get("session_complete"):
                     _save_final_scores(session_id, state)
                 q.put({"done": True, "session": _format_session(session_id, state)})
@@ -661,6 +715,34 @@ async def create_session_stream(request: Request, body: SessionCreate):
 @app.get("/api/sessions")
 async def list_sessions(request: Request):
     user_id = _get_current_user(request)
+    conn = _db()
+    if conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT session_id, company, role, stage, mode, pipeline_group, "
+                "created_at, cached_status, question_count, running_scores "
+                "FROM sessions WHERE user_id = %s ORDER BY created_at DESC",
+                (user_id,),
+            )
+            rows = cur.fetchall()
+        sessions = []
+        for r in rows:
+            rs = r[9] if r[9] else {}
+            if isinstance(rs, str):
+                rs = json.loads(rs)
+            sessions.append({
+                "session_id": r[0],
+                "company": r[1],
+                "role": r[2],
+                "stage": r[3],
+                "mode": r[4],
+                "pipeline_group": r[5],
+                "created_at": r[6].isoformat() if hasattr(r[6], "isoformat") else str(r[6]),
+                "status": r[7] or "analyzing",
+                "question_count": r[8] or 0,
+                "skill_averages": rs.get("skill_averages", {}),
+            })
+        return sessions
     metas = _list_session_metas(user_id)
     sessions = []
     for meta in metas:
@@ -669,12 +751,7 @@ async def list_sessions(request: Request):
         if state:
             sessions.append(_format_session(sid, state))
         else:
-            sessions.append({
-                **meta,
-                "status": "unknown",
-                "running_competency_scores": {},
-                "skill_averages": {},
-            })
+            sessions.append({**meta, "status": "unknown", "skill_averages": {}})
     return sessions
 
 
@@ -730,6 +807,7 @@ async def create_session(request: Request, body: SessionCreate):
         _update_session_meta(session_id, company=result["company"])
     if result.get("role"):
         _update_session_meta(session_id, role=result["role"])
+    _update_cached_status(session_id, result)
     if result.get("session_complete"):
         _save_final_scores(session_id, result)
 
@@ -789,6 +867,8 @@ async def submit_answer(session_id: str, body: AnswerSubmit):
 
     agent.update_state(config, {"chat_history": history}, as_node="roleplay_ask")
     result = agent.invoke(None, config)
+    _save_running_scores(session_id, result)
+    _update_cached_status(session_id, result)
     if result.get("session_complete"):
         _save_final_scores(session_id, result)
     return _format_session(session_id, result)
@@ -827,6 +907,7 @@ async def start_roleplay(session_id: str):
     result = agent.invoke(None, config)
 
     _update_session_meta(session_id, mode="roleplay")
+    _update_cached_status(session_id, result)
 
     return _format_session(session_id, result)
 
@@ -845,6 +926,7 @@ async def continue_session(session_id: str):
     config = {"configurable": {"thread_id": session_id}}
     logger.info(f"Session {session_id}: continuing to next question")
     result = agent.invoke(None, config)
+    _update_cached_status(session_id, result)
     if result.get("session_complete"):
         _save_final_scores(session_id, result)
     return _format_session(session_id, result)
@@ -868,6 +950,7 @@ async def finish_session(session_id: str):
     )
     result = agent.invoke(None, config)
     _save_final_scores(session_id, result)
+    _update_cached_status(session_id, result)
     return _format_session(session_id, result)
 
 
@@ -884,8 +967,8 @@ async def get_progress(request: Request):
 
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT session_id, final_scores, created_at FROM sessions "
-            "WHERE user_id = %s AND final_scores IS NOT NULL "
+            "SELECT session_id, final_scores, running_scores, created_at FROM sessions "
+            "WHERE user_id = %s AND (final_scores IS NOT NULL OR running_scores IS NOT NULL) "
             "ORDER BY created_at ASC",
             (user_id,),
         )
@@ -895,19 +978,28 @@ async def get_progress(request: Request):
         return {"sessions_completed": 0, "total_questions": 0, "competency_averages": {}, "score_trend": [], "strongest": None, "weakest": None}
 
     total_questions = 0
+    sessions_completed = 0
     competency_sums: dict[str, float] = {}
     competency_counts: dict[str, int] = {}
     score_trend: list[dict] = []
 
-    for _sid, raw_scores, created_at in rows:
-        scores = raw_scores if isinstance(raw_scores, dict) else json.loads(raw_scores) if raw_scores else {}
-        total_questions += scores.get("total_questions", 0)
-        overall = scores.get("overall_score")
+    for _sid, raw_final, raw_running, created_at in rows:
+        final = raw_final if isinstance(raw_final, dict) else json.loads(raw_final) if raw_final else {}
+        running = raw_running if isinstance(raw_running, dict) else json.loads(raw_running) if raw_running else {}
         dt = created_at.isoformat() if hasattr(created_at, "isoformat") else str(created_at)
-        if overall is not None:
-            score_trend.append({"date": dt, "score": overall})
 
-        for comp, val in (scores.get("skill_averages") or {}).items():
+        if final:
+            sessions_completed += 1
+            total_questions += final.get("total_questions", 0)
+            overall = final.get("overall_score")
+            if overall is not None:
+                score_trend.append({"date": dt, "score": overall})
+            skill_src = final.get("skill_averages") or {}
+        else:
+            total_questions += running.get("questions_answered", 0)
+            skill_src = running.get("skill_averages") or {}
+
+        for comp, val in skill_src.items():
             try:
                 v = float(val)
             except (TypeError, ValueError):
@@ -924,7 +1016,7 @@ async def get_progress(request: Request):
     weakest = min(competency_averages, key=competency_averages.get, default=None) if competency_averages else None  # type: ignore[arg-type]
 
     return {
-        "sessions_completed": len(rows),
+        "sessions_completed": sessions_completed,
         "total_questions": total_questions,
         "competency_averages": competency_averages,
         "score_trend": score_trend,

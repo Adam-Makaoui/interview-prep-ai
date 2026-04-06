@@ -32,14 +32,11 @@ logger = logging.getLogger(__name__)
 # to each interview round -- a recruiter screen produces different
 # questions than a hiring manager deep-dive.
 STAGE_CONTEXT = {
-    "phone_screen": (
-        "Initial phone screen. Focus on motivation, general fit, "
-        "high-level experience, and 'tell me about yourself' style questions."
-    ),
-    "recruiter_screen": (
-        "Recruiter screening call. Focus on salary expectations, availability, "
+    "Phone/Recruiter_screen": (
+        "Recruiter initialscreening call. Focus on salary expectations, availability, motivation, general fit, "
         "visa/relocation needs, basic qualification checks, and 'walk me through "
         "your resume' questions. Recruiters rarely ask deep technical questions."
+        "high-level experience, and 'tell me about yourself' style questions."
     ),
     "hiring_manager": (
         "Hiring manager interview. Focus on team fit, management style alignment, "
@@ -47,8 +44,8 @@ STAGE_CONTEXT = {
         "team/role' questions. Expect a mix of behavioral and light technical."
     ),
     "technical": (
-        "Technical interview. Focus on technical skills, system design, "
-        "problem-solving, coding approaches, and hands-on experience."
+        "Technical interview. Focus on technical skills, system design, high level technical questions based on the job description, industry vertical,"
+        "problem-solving, deep technical questions, coding approaches, and hands-on experience."
     ),
     "behavioral": (
         "Behavioral interview. Focus on STAR-method situational questions "
@@ -56,7 +53,7 @@ STAGE_CONTEXT = {
     ),
     "final_panel": (
         "Final panel interview. Focus on strategic thinking, leadership, "
-        "culture fit, 'why us/why you', and long-term vision questions."
+        "culture fit, 'why us/why you', technical questions, and long-term vision questions."
     ),
     "vp_round": (
         "VP round interview. Focus on strategic thinking, leadership, "
@@ -303,7 +300,10 @@ def analyze_role(state: AgentState) -> dict:
             '- "company_intel": object with:\n'
             '    "employee_size_band": string e.g. "200-500" or "10k+" or "unknown",\n'
             '    "market_position": one sentence (how they position in market),\n'
-            '    "competitors": array of { "name": string, "one_liner": string } (3-5 items),\n'
+            '    "industry": string e.g. "E-commerce", "FinTech", "DevTools", "B2B SaaS",\n'
+            '    "problem_they_solve": one sentence describing the core problem the company solves for customers,\n'
+            '    "main_products": array of 2-4 { "name": string, "description": one sentence } -- key products/services,\n'
+            '    "competitors": array of { "name": string, "one_liner": string, "domain": string (main website domain e.g. "stripe.com") } (3-5 items),\n'
             '    "data_quality_note": short disclaimer if web/snippets missing\n'
             '- "jd_fit": object with:\n'
             '    "aligned_strengths": bullets where resume matches JD,\n'

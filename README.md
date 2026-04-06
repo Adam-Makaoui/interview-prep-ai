@@ -138,12 +138,21 @@ Detailed roadmap lives in Notion. Recently shipped and upcoming priorities:
 - **Session Deletion** — delete sessions from dashboard and detail views (Phase 1b)
 - **Progress Tracking** — final_scores JSONB column, aggregation API, and My Progress page with competency bars and score trend charts (Phase 2)
 - **Daily Free Tier** — 2 free sessions/day with upgrade prompt (monetization foundation)
+- **Landing Page Redesign** — hero with gradient glow, how-it-works steps with Framer Motion, sample session mockups, social proof testimonials, pricing comparison, and footer with scroll-driven background gradient
+- **Light Apple-Style Theme** — full migration from dark to light color scheme across all pages and components (white backgrounds, subtle shadows, dark text)
+- **Auto-Expanding Textarea** — role-play input replaced with auto-growing textarea (up to 6 lines) with Shift+Enter for newlines
+- **Voice Input** — Web Speech API microphone button in role-play chat for speech-to-text transcription
+- **Demo Session** — static DummyCompany session for new users to explore the app before creating their own prep
+- **Analysis Tab Redesign** — company overview with industry/products/problem, competitor logos via favicon API, numbered interview tips with accent borders
+- **Settings Page** — subscription management UI, contact support, and appearance placeholder
+- **Live Progress Updates** — running_scores persisted after each Q&A round so My Progress updates mid-session
+- **Session List Optimization** — cached metadata columns (status, question_count) eliminate N checkpoint loads on list endpoint
 
 ### Backlog
 
-- **Landing Page Redesign** — hero section, how-it-works steps, sample session preview, pricing section, testimonials
 - **UI Polish** — loading skeletons, error states with retry, transitions, meta/OG tags
 - **Google OAuth** — reduce sign-in friction via Supabase Google provider (~15 lines frontend)
 - **LangSmith Observability** — tracing all LLM calls (free tier: 5k traces/month, zero code changes)
 - **Custom Domain + Stripe** — purchase domain, configure DNS for Vercel/Railway, wire Stripe checkout for Pro plan
-- **Chrome extension** — side panel that detects JDs on LinkedIn/Greenhouse and triggers prep
+- **Dark Mode Toggle** — light/dark theme switching via Tailwind dark: prefix and localStorage persistence
+- **Chrome Extension** — side panel that detects JDs on LinkedIn/Greenhouse and triggers prep
