@@ -154,12 +154,25 @@ Detailed roadmap lives in Notion. Recently shipped and upcoming priorities:
 - **Live Progress Updates** — running_scores persisted after each Q&A round so My Progress updates mid-session
 - **Session List Optimization** — cached metadata columns (status, question_count) eliminate N checkpoint loads on list endpoint
 - **Settings: AI model** — choose among GPT-5.4 nano, GPT-4o mini (both free), or GPT-5.4 mini (Pro); preference on profile drives LangGraph nodes; extract-fields still uses server `OPENAI_EXTRACT_MODEL` / default
+- **Custom Domain (`interviewintel.ai`)** — apex + `www` bound to production, `dev.interviewintel.ai` bound to the `dev` branch in Vercel; old `interviewprep-ai-psi.vercel.app` permanently redirects (308) to production
+- **Google OAuth** — Supabase Google provider enabled end-to-end; frontend exposes "Continue with Google" on the login screen with `prompt=select_account`
+- **Resend SMTP for Supabase** — custom SMTP configured with SPF/DKIM/DMARC on `interviewintel.ai`; magic-link deliverability to Gmail and outlook is now reliable
+- **Multi-origin CORS** — backend now splits `FRONTEND_URL` as a comma-separated list so prod, dev, and `localhost` can all hit the same API during the cutover window
+- **Branch-based environments** — `main` → production, `dev` → staging preview; documented `dev → main` merge flow
+- **Magic-link error clarity** — login error mapper now branches on Supabase's structured error codes (`over_email_send_rate_limit`, `validation_failed`, `unexpected_failure`, …) and logs raw `code`/`status`/`message` for debugging instead of silently collapsing every failure into "we couldn't deliver the login email"
+- **Product-shell polish** — new `PageContainer` + `PageHeader` primitives; Dashboard, Progress, NewSession, and PrepDetail now share a consistent max-width, vertical rhythm, and heading style; stat panels + chart panels migrated to shadcn `Card`
 
 ### Backlog
 
 - **Monetization: model tiers** — enforce Pro-only models server-side (done for mini), bundle stronger defaults + limits with Stripe checkout; reflect in pricing copy
-- **UI Polish** — loading skeletons, error states with retry, transitions, meta/OG tags
-- **Google OAuth** — reduce sign-in friction via Supabase Google provider (~15 lines frontend)
+- **Railway dev environment** — split Railway backend so the `dev` branch deploys to a separate service and `dev.interviewintel.ai` frontends can exercise backend changes without risking production (Level 1 isolation; DB still shared)
+- **Testimonials carousel polish** — reduce 3D tilt, smooth easing, mobile scroll-snap fallback
+- **Mobile pass** — AppShell drawer for `<md`, `dvh` viewport in RolePlayChat, responsive grids on Dashboard/NewSession, touch-target audit
+- **GTM hygiene** — favicon set (SVG + PNG fallbacks + apple-touch-icon), `og:image`, `sitemap.xml` + `robots.txt`, Schema.org `SoftwareApplication` + `Organization` JSON-LD, Google Search Console verification
+- **AI SEO** — `/llms.txt` + `/llms-full.txt`, long-form "How it works", "Pricing explainer", and 3–5 use-case pages so AI search engines have substantive content to cite
+- **Soft launch** — Reddit posts (r/cscareerquestions, r/interviewprep), X thread strategy, Show HN copy + demo video, Product Hunt when we have notify-me signups
+- **UI Polish** — loading skeletons, error states with retry, transitions
 - **LangSmith Observability** — tracing all LLM calls (free tier: 5k traces/month, zero code changes)
-- **Custom Domain + Stripe** — purchase domain, configure DNS for Vercel/Railway, wire Stripe checkout for Pro plan
+- **Stripe checkout** — wire Pro plan billing to the existing pricing UI
 - **Chrome Extension** — side panel that detects JDs on LinkedIn/Greenhouse and triggers prep
+- **Parked** — Level 2 backend isolation (separate Supabase project for `dev`) until first schema migration; weekly blog content engine until organic traffic exists; Meta/Google ads until organic CAC is known

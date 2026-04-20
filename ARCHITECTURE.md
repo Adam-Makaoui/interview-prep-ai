@@ -369,9 +369,48 @@ cd frontend && npm run dev
 ### Release Workflow
 
 1. Develop on feature branches locally
-2. Push to GitHub, merge PR to `main`
-3. Railway and Vercel auto-deploy from `main`
-4. No manual deploys, no SSH, no build scripts to remember
+2. Push to `dev` first → `dev.interviewintel.ai` redeploys, exercise change
+3. Open PR from `dev` → `main`, merge
+4. Railway and Vercel auto-deploy `main` → production
+5. No manual deploys, no SSH, no build scripts to remember
+
+### Branch-based environments
+
+| Branch | Frontend (Vercel) | Backend (Railway) | Database (Supabase) |
+|---|---|---|---|
+| `main` | `interviewintel.ai` (prod) | prod service | prod (shared) |
+| `dev` | `dev.interviewintel.ai` (preview) | **prod service for now** — split is tracked in roadmap | prod (shared) |
+
+The frontends are already split by branch on Vercel. The backend and database are currently shared between branches, which means merging to `dev` does **not** isolate backend behaviour from prod users. See the next subsection for the one-time split.
+
+### Railway dev environment (Level 1 backend split)
+
+**Why**: today both `dev.interviewintel.ai` and `interviewintel.ai` frontends hit the same Railway backend. That's fine for frontend-only work but risky for backend changes (a crash on `dev` takes prod down; a request-handling regression leaks into prod traffic).
+
+**Scope of Level 1**: separate backend *deployments* per branch; **keep Supabase shared**. Safe for: adding endpoints, refactoring internals, experimenting with prompts/models. **NOT safe for**: destructive SQL, schema migrations, bulk writes — for those, pursue Level 2 (separate Supabase project).
+
+**One-time setup (user-driven in Railway UI):**
+
+1. Railway → open the existing project → **Settings → Environments → New Environment** named `dev`, cloned from production.
+2. In the `dev` environment, **Service → Settings → Source → Branch** = `dev`. Leave the `main`-tracking environment pointing at `main`.
+3. Review `dev` env vars. Copy `OPENAI_API_KEY`, `OPENAI_MODEL`, `DATABASE_URL`, `SUPABASE_JWT_SECRET` from prod unless you're also splitting them. Override just `FRONTEND_URL` to exclude production:
+   ```
+   FRONTEND_URL=https://dev.interviewintel.ai,http://localhost:5173
+   ```
+   (prod origin should *not* be whitelisted on dev CORS — that's the whole point of the split).
+4. Deploy the `dev` environment. Note its public URL, e.g. `https://interviewintel-agent-dev.up.railway.app`.
+5. **Vercel → project → Settings → Environment Variables → `VITE_API_ORIGIN`**:
+   - Existing entry (prod Railway URL): re-scope to **Production** only.
+   - New entry (dev Railway URL): scope to **Preview + Development**.
+6. Trigger a redeploy on the `dev` branch (empty commit or "Redeploy" in Vercel) so the new `VITE_API_ORIGIN` takes effect.
+
+**Smoke test:**
+
+- `https://dev.interviewintel.ai` → network tab → confirm API requests target the dev Railway URL.
+- `https://interviewintel.ai` → same test → confirm API requests still target prod Railway URL.
+- Break something intentionally on `dev` (throw in a route), confirm prod stays green.
+
+**Level 2 (parked)** — separate Supabase project for `dev`. Do this *before* the first destructive migration; not sooner, because the shared DB makes the dev and prod apps trivially comparable until then.
 
 ---
 
