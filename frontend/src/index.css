@@ -1,17 +1,87 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..700;1,14..32,400..700&family=Plus+Jakarta+Sans:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap");
 
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Marketing landing only: dual font stack (see Landing.tsx). App shell keeps body font-sans. */
-@theme {
+/**
+ * Semantic tokens for shadcn/ui (radix-nova) + app shell. Light/dark align with existing gray surfaces;
+ * primary / ring use indigo hue to match product accent.
+ */
+:root {
+  --radius: 0.5rem;
+  --background: oklch(0.985 0.003 264);
+  --foreground: oklch(0.22 0.04 264);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.04 264);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.04 264);
+  --primary: oklch(0.488 0.21 277);
+  --primary-foreground: oklch(0.99 0.01 277);
+  --secondary: oklch(0.96 0.01 264);
+  --secondary-foreground: oklch(0.22 0.04 264);
+  --muted: oklch(0.96 0.01 264);
+  --muted-foreground: oklch(0.52 0.04 264);
+  --accent: oklch(0.94 0.03 277);
+  --accent-foreground: oklch(0.3 0.12 277);
+  --destructive: oklch(0.55 0.22 25);
+  --border: oklch(0.9 0.02 264);
+  --input: oklch(0.9 0.02 264);
+  --ring: oklch(0.488 0.21 277);
+}
+
+.dark {
+  --background: oklch(0.13 0.02 264);
+  --foreground: oklch(0.97 0.01 264);
+  --card: oklch(0.17 0.02 264);
+  --card-foreground: oklch(0.97 0.01 264);
+  --popover: oklch(0.17 0.02 264);
+  --popover-foreground: oklch(0.97 0.01 264);
+  --primary: oklch(0.58 0.18 277);
+  --primary-foreground: oklch(0.12 0.04 277);
+  --secondary: oklch(0.22 0.03 264);
+  --secondary-foreground: oklch(0.97 0.01 264);
+  --muted: oklch(0.22 0.03 264);
+  --muted-foreground: oklch(0.68 0.03 264);
+  --accent: oklch(0.25 0.06 277);
+  --accent-foreground: oklch(0.88 0.06 277);
+  --destructive: oklch(0.5 0.18 25);
+  --border: oklch(0.28 0.03 264);
+  --input: oklch(0.28 0.03 264);
+  --ring: oklch(0.58 0.18 277);
+}
+
+/* Marketing landing: Plus Jakarta for display; app shell uses Inter via font-sans. */
+@theme inline {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.75);
+  --radius-md: calc(var(--radius) * 0.875);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.25);
 }
 
 body {
-  @apply bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100;
+  @apply bg-background text-foreground antialiased;
 }
 
 /* Subtle film grain for luxury landing backgrounds (light + dark). */
@@ -20,4 +90,3 @@ body {
   background-repeat: repeat;
   background-size: 128px 128px;
 }
-

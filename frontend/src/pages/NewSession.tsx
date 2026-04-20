@@ -248,29 +248,42 @@ export default function NewSession() {
     (jdMode === "text" && form.job_description.trim().length > 20) ||
     (jdMode === "url" && form.job_url.trim().length > 5);
 
+  /** Shared input styling — softer border, subtle inner shadow for depth. */
   const inputClass =
-    "w-full rounded-lg bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none";
+    "w-full rounded-lg bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700/70 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 shadow-sm shadow-gray-200/40 dark:shadow-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-colors";
+
+  /** Section card wrapping related form fields. */
+  const sectionCard =
+    "rounded-xl border border-gray-200/80 bg-white/60 p-5 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40";
+
+  /** Section title inside each card. */
+  const sectionTitle =
+    "text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-4";
 
   const allNodes = form.mode === "prep"
     ? ["parse", "analyze", "generate", "draft"]
     : ["parse", "analyze", "generate", "roleplay_ask"];
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12">
+    <div className="mx-auto max-w-2xl px-6 py-10">
       <Link
         to="/app"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors mb-4"
+        className="group inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-indigo-600 dark:hover:text-indigo-400 mb-6"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
         Back to Sessions
       </Link>
-      <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Start a Prep Session</h1>
-      <p className="text-gray-600 dark:text-gray-400 mb-8">
-        Paste the job description or URL and we'll generate tailored prep
-        materials.
-      </p>
+
+      <div className="mb-10">
+        <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-white">
+          New prep session
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+          Paste a job description or URL and we&apos;ll generate tailored prep materials, questions, and answer frameworks.
+        </p>
+      </div>
 
       {loading ? (
         <div className="space-y-3 py-8">
@@ -327,12 +340,13 @@ export default function NewSession() {
           })}
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Job posting: pasted text or URL */}
-          <div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* ── Job Posting ─────────────────────────────────────── */}
+          <div className={sectionCard}>
+            <h2 className={sectionTitle}>Job Posting</h2>
             <div className="flex items-center gap-1 mb-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Job Description
+                Description
               </label>
               <div className="ml-auto flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700">
                 <button
@@ -399,6 +413,9 @@ export default function NewSession() {
             )}
           </div>
 
+          {/* ── Role Details ────────────────────────────────────── */}
+          <div className={sectionCard}>
+            <h2 className={sectionTitle}>Role Details</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -425,9 +442,9 @@ export default function NewSession() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Hiring pipeline group{" "}
-              <span className="text-gray-500 dark:text-gray-600 font-normal">(optional)</span>
+              <span className="text-gray-400 dark:text-gray-600 font-normal">(optional)</span>
             </label>
             <input
               value={form.pipeline_group}
@@ -479,13 +496,14 @@ export default function NewSession() {
               </select>
             </div>
           </div>
+          </div>
 
-          {/* Interviewers */}
-          <div>
+          {/* ── Interviewers ───────────────────────────────────── */}
+          <div className={sectionCard}>
+            <h2 className={sectionTitle}>Interviewers <span className="font-normal normal-case tracking-normal text-gray-400 dark:text-gray-600">— optional</span></h2>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Interviewers{" "}
-                <span className="text-gray-500">(optional)</span>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
+                Interviewers
               </label>
               <button
                 type="button"
@@ -571,19 +589,19 @@ export default function NewSession() {
             )}
           </div>
 
-          {/* Resume */}
-          <div>
+          {/* ── Resume / Background ────────────────────────────── */}
+          <div className={sectionCard}>
+            <h2 className={sectionTitle}>Resume <span className="font-normal normal-case tracking-normal text-gray-400 dark:text-gray-600">— optional</span></h2>
             <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Resume / Background{" "}
-                <span className="text-gray-500">(optional)</span>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
+                Resume / Background
               </label>
               <div className="flex items-center gap-3">
                 <Link
                   to="/app/settings"
-                  className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                  className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:border-indigo-500/50 dark:hover:text-indigo-400"
                 >
-                  Edit resumes in Settings
+                  Manage saved resumes
                 </Link>
                 <label className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 cursor-pointer">
                   {uploadingResume ? (
@@ -725,7 +743,7 @@ export default function NewSession() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full rounded-xl bg-indigo-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:shadow-indigo-500/35 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
           >
             Start Prep Session
           </button>

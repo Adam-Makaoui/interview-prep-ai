@@ -1,7 +1,15 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "../lib/auth";
 import { getProfile, getProgress, type UserProfile } from "../lib/api";
+import { cn } from "@/lib/utils";
 
 /** Display cap for the sidebar “practice” bar (not a limit on tracking). */
 const PRACTICE_BAR_GOAL = 40;
@@ -80,12 +88,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
       ? Math.max(0, profile.daily_limit - profile.daily_sessions_used)
       : null;
 
+  // Sidebar content for the desktop and mobile views.
   const sidebarContent = (
     <>
       {/* Brand */}
       <div className="px-5 pt-6 pb-4">
         <Link to="/app" className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
-          InterviewPrep<span className="text-indigo-500 dark:text-indigo-400">AI</span>
+          Interview<span className="text-indigo-500 dark:text-indigo-400">Intel</span>
         </Link>
       </div>
 
@@ -94,18 +103,22 @@ export default function AppShell({ children }: { children: ReactNode }) {
         {NAV_ITEMS.map((item) => {
           const active = isActive(location.pathname, item.to, item.exact);
           return (
-            <Link
+            <Button
               key={item.to}
-              to={item.to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              asChild
+              variant="ghost"
+              className={cn(
+                "h-auto w-full justify-start gap-3 px-3 py-2.5 text-sm font-medium",
                 active
-                  ? "bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-600/15 dark:text-indigo-300 dark:border-indigo-500/25"
-                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800/60"
-              }`}
+                  ? "border border-indigo-200 bg-indigo-50 text-indigo-600 dark:border-indigo-500/25 dark:bg-indigo-600/15 dark:text-indigo-300"
+                  : "border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
             >
-              {item.icon}
-              {item.label}
-            </Link>
+              <Link to={item.to}>
+                {item.icon}
+                {item.label}
+              </Link>
+            </Button>
           );
         })}
       </nav>
@@ -152,16 +165,24 @@ export default function AppShell({ children }: { children: ReactNode }) {
         )}
 
         {user && (
-          <div className="px-3 flex items-center justify-between">
-            <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[140px]">
-              {user.email}
-            </span>
-            <button
-              onClick={signOut}
-              className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
-            >
-              Sign out
-            </button>
+          <div className="px-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-full justify-between gap-1 text-xs font-normal text-muted-foreground"
+                >
+                  <span className="truncate text-left">{user.email}</span>
+                  <svg className="size-3.5 shrink-0 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[var(--radix-dropdown-menu-trigger-width)]">
+                <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
       </div>
@@ -171,7 +192,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:flex-col w-60 shrink-0 border-r border-gray-200 dark:border-gray-800/60 bg-white dark:bg-gray-950">
+      <aside className="hidden w-60 shrink-0 border-r border-border bg-card lg:flex lg:flex-col">
         {sidebarContent}
       </aside>
 
@@ -185,7 +206,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile sidebar drawer */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-60 flex flex-col bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800/60 transform transition-transform duration-200 lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-border bg-card transition-transform duration-200 lg:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -195,20 +216,25 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile top bar */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-800/60">
-          <button
+        <header className="lg:hidden flex items-center gap-3 border-b border-border px-4 py-3">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-lg"
+            className="text-muted-foreground"
             onClick={() => setMobileOpen(true)}
-            className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+            aria-label="Open menu"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
-          </button>
+          </Button>
           <Link to="/app" className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
-            InterviewPrep<span className="text-indigo-500 dark:text-indigo-400">AI</span>
+            Interview<span className="text-indigo-500 dark:text-indigo-400">Intel</span>
           </Link>
         </header>
 
+        {/* Main content */}
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>

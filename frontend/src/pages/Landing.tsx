@@ -1,3 +1,15 @@
+/**
+ * @fileoverview Public marketing landing page for InterviewIntel — the unauthenticated entry point and SEO face of the product.
+ *
+ * Composes: hero + feature value-prop bands (with scroll-driven zoom), demo video embed, testimonial carousel,
+ * pricing tiers, and CTAs wired to `/login` or `/app` via {@link useAuth}. All motion uses Framer Motion.
+ *
+ * Heavy decorative visuals (glass panels, animated orbs, 3D carousel) live on THIS route only — keep the
+ * authenticated product shell flatter per CLAUDE.md.
+ *
+ * @module pages/Landing
+ */
+
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -10,10 +22,18 @@ import {
 } from "framer-motion";
 import { useAuth } from "../lib/auth";
 
-/** Replace YOUR_VIDEO_ID with your actual YouTube video ID before going live (e.g. "dQw4w9WgXcQ"). */
+/**
+ * YouTube video ID powering the "See it in action" embed via `youtube-nocookie.com/embed/<id>`.
+ * Swap the placeholder for the real ID before launch — marketing-only, not read by the backend.
+ */
 const DEMO_VIDEO_ID = "YOUR_VIDEO_ID";
 
-/** Thin centered fade between landing bands (Railway-style rhythm; marketing-only hairlines per CLAUDE.md). */
+/**
+ * Decorative 1px gradient hairline rendered between vertical sections to create Railway-style rhythm.
+ * Purely visual (aria-hidden); marketing-only per CLAUDE.md.
+ *
+ * @param className - Extra Tailwind classes (typically vertical spacing like `mt-12`).
+ */
 function SectionHairline({ className = "" }: { className?: string }) {
   return (
     <div className={`flex justify-center px-6 ${className}`} aria-hidden>
@@ -22,33 +42,61 @@ function SectionHairline({ className = "" }: { className?: string }) {
   );
 }
 
-/* ── Animation variants ─────────────────────────────────────────────── */
+/* ── Animation variants (Framer Motion) ─────────────────────────────── */
 
+/**
+ * Variant pair for `initial` / `whileInView`: fade in while translating up 30px.
+ * Pair with a parent using {@link stagger} to sequence children.
+ */
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } },
 };
 
+/**
+ * Variant pair for elements that should "pop" in with a slight zoom (e.g. illustrative mockups, video panel).
+ */
 const fadeScale = {
   hidden: { opacity: 0, scale: 0.95 },
   visible: { opacity: 1, scale: 1, transition: { duration: 0.7, ease: "easeOut" as const } },
 };
 
+/**
+ * Parent variant — only defines `visible` with a staggered transition so direct motion children
+ * that declare their own `variants` animate in sequence (150ms apart).
+ */
 const stagger = {
   visible: { transition: { staggerChildren: 0.15 } },
 };
 
-/** Entrance stagger replays when sections re-enter view; scroll zoom on section wrappers is unchanged. */
+/**
+ * `whileInView` viewport config for sections that should REPLAY their entrance stagger each time they
+ * scroll back into view (`once: false`). `margin: "-8% 0px"` shrinks the intersection box slightly to
+ * reduce edge flicker when scrolling quickly.
+ */
 const VIEWPORT_REPEAT = { once: false as const, amount: 0.25 as const, margin: "-8% 0px" as const };
-/** Single play + no repeat when user prefers reduced motion. */
+
+/**
+ * `whileInView` viewport config for users with `prefers-reduced-motion` — animate at most once
+ * to avoid repeated entrance churn.
+ */
 const VIEWPORT_ONCE = { once: true as const, amount: 0.25 as const };
 
-/** Marketing-only glass surface — keep on landing; product UI uses flatter panels per CLAUDE.md. */
+/**
+ * Shared Tailwind class string for frosted "glass" panels. Landing-only aesthetic; do not reuse in
+ * the authenticated product shell (keep product panels flat per CLAUDE.md).
+ */
 const glassSurface =
   "rounded-xl border border-white/60 bg-white/75 p-5 shadow-xl shadow-violet-200/25 backdrop-blur-xl dark:border-white/10 dark:bg-gray-950/55 dark:shadow-2xl dark:shadow-black/25";
 
 /* ── Landing atmosphere (gradients + orbs + noise) ───────────────────── */
 
+/**
+ * Full-page background layer for the landing route: gradient base + four soft color orbs + SVG noise overlay.
+ * Paints behind every section (`-z-10` / `-z-20`).
+ *
+ * @param reducedMotion - When true, orbs render as static blobs (no pulsing opacity/scale loops).
+ */
 function LandingAtmosphere({ reducedMotion }: { reducedMotion: boolean }) {
   const orb = "pointer-events-none absolute -z-10 rounded-full blur-3xl";
   const base = (
@@ -234,7 +282,21 @@ function MockScorecard() {
 
 /* ── Feature section data ───────────────────────────────────────────── */
 
-const FEATURES = [
+/**
+ * Ordered list of value-prop "bands" rendered between the hero and the testimonials.
+ * Each entry drives one alternating left/right {@link FeatureSection} (copy on one side, mockup on the other).
+ *
+ * Shape per band:
+ * - `id`          — stable React key and anchor-friendly slug.
+ * - `label`       — small uppercase eyebrow shown above the title.
+ * - `title`       — H3 headline for the band.
+ * - `description` — supporting paragraph copy.
+ * - `bullets`     — 3 short proof-points rendered with a checkmark bullet.
+ * - `mockup`      — JSX preview element (illustrative only — not real product state).
+ *
+ * Order matters: it defines the narrative (Context → Frameworks → Rehearsal → Progress).
+ */
+const LANDING_VALUE_PROP_BANDS = [
   {
     id: "context",
     label: "Context",
@@ -288,13 +350,24 @@ const FEATURES = [
 
 /* ── Feature section with scroll-driven scale ──────────────────────── */
 
+/**
+ * Renders a single value-prop band (copy + illustrative mockup) with a scroll-driven zoom.
+ *
+ * Layout alternates each row: even indices place the mockup on the right, odd indices on the left
+ * (`lg:flex-row-reverse`). The wrapper subscribes to its own scroll progress so the band scales up
+ * as it enters the viewport and gently shrinks/fades as it leaves — a Railway-style "card zoom".
+ *
+ * @param band             - The value-prop entry from {@link LANDING_VALUE_PROP_BANDS}.
+ * @param sectionIndex     - Position within the bands list; parity controls mockup side.
+ * @param reducedMotion    - When true, disables scroll scale/opacity transforms for accessibility.
+ */
 function FeatureSection({
-  f,
-  index,
+  band,
+  sectionIndex,
   reducedMotion,
 }: {
-  f: (typeof FEATURES)[number];
-  index: number;
+  band: (typeof LANDING_VALUE_PROP_BANDS)[number];
+  sectionIndex: number;
   reducedMotion: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
@@ -302,9 +375,11 @@ function FeatureSection({
     target: ref,
     offset: ["start end", "end start"],
   });
+  // Zoom up as the band crosses the viewport center, fade out on exit.
   const scale = useTransform(scrollYProgress, [0, 0.22, 0.78, 1], [0.76, 1.06, 1.06, 0.76]);
   const opacity = useTransform(scrollYProgress, [0, 0.18, 0.82, 1], [0.4, 1, 1, 0.4]);
-  const reversed = index % 2 === 1;
+  // Alternate mockup side by index parity (0 = left copy/right mockup, 1 = reversed, …).
+  const mockupOnRight = sectionIndex % 2 === 1;
 
   return (
     <motion.section
@@ -317,31 +392,31 @@ function FeatureSection({
         whileInView="visible"
         viewport={reducedMotion ? VIEWPORT_ONCE : VIEWPORT_REPEAT}
         variants={stagger}
-        className={`flex flex-col ${reversed ? "lg:flex-row-reverse" : "lg:flex-row"} items-center gap-10 lg:gap-16`}
+        className={`flex flex-col ${mockupOnRight ? "lg:flex-row-reverse" : "lg:flex-row"} items-center gap-10 lg:gap-16`}
       >
         <motion.div variants={fadeUp} className="flex-1 max-w-lg">
           <span className="font-display mb-3 inline-block rounded-md border border-indigo-200 bg-indigo-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-indigo-700 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400">
-            {f.label}
+            {band.label}
           </span>
           <h3 className="font-display text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl dark:text-white mb-4">
-            {f.title}
+            {band.title}
           </h3>
           <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-5">
-            {f.description}
+            {band.description}
           </p>
           <ul className="space-y-2.5">
-            {f.bullets.map((b) => (
-              <li key={b} className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+            {band.bullets.map((bulletLine) => (
+              <li key={bulletLine} className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
                 <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                {b}
+                {bulletLine}
               </li>
             ))}
           </ul>
         </motion.div>
         <motion.div variants={fadeScale} className="flex-1 max-w-md w-full">
-          {f.mockup}
+          {band.mockup}
         </motion.div>
       </motion.div>
     </motion.section>
@@ -350,7 +425,12 @@ function FeatureSection({
 
 /* ── Social proof data ──────────────────────────────────────────────── */
 
-const TESTIMONIALS = [
+/**
+ * Static list of customer quotes shown in the testimonials carousel.
+ * Each entry carries a name/role pair, avatar initials + color swatch, and the quote itself.
+ * Keep around 5 items — the 3D ring spaces cards evenly using `360 / length`.
+ */
+const LANDING_CUSTOMER_TESTIMONIALS = [
   {
     name: "Sarah K.",
     role: "Senior SE at Salesforce",
@@ -389,23 +469,37 @@ const TESTIMONIALS = [
   },
 ];
 
-type Testimonial = (typeof TESTIMONIALS)[number];
+/** Element type of {@link LANDING_CUSTOMER_TESTIMONIALS}. */
+type LandingTestimonial = (typeof LANDING_CUSTOMER_TESTIMONIALS)[number];
 
-function TestimonialCard({ t, className = "" }: { t: Testimonial; className?: string }) {
+/**
+ * Presentational card for a single testimonial (quote + avatar + name/role).
+ * Shared between the 3D carousel and the reduced-motion grid fallback.
+ *
+ * @param testimonial - The quote + author metadata to render.
+ * @param className   - Extra classes merged onto the card wrapper (e.g. for carousel positioning).
+ */
+function TestimonialCard({
+  testimonial,
+  className = "",
+}: {
+  testimonial: LandingTestimonial;
+  className?: string;
+}) {
   return (
     <div
       className={`rounded-xl border border-white/55 bg-white/70 p-5 shadow-lg shadow-violet-200/20 backdrop-blur-xl dark:border-white/10 dark:bg-gray-950/50 dark:shadow-black/25 ${className}`}
     >
-      <p className="mb-4 text-sm italic leading-relaxed text-gray-700 dark:text-gray-300">&quot;{t.quote}&quot;</p>
+      <p className="mb-4 text-sm italic leading-relaxed text-gray-700 dark:text-gray-300">&quot;{testimonial.quote}&quot;</p>
       <div className="flex items-center gap-3">
         <div
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${t.color}`}
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${testimonial.color}`}
         >
-          {t.initials}
+          {testimonial.initials}
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-900 dark:text-white">{t.name}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-500">{t.role}</p>
+          <p className="text-sm font-medium text-gray-900 dark:text-white">{testimonial.name}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-500">{testimonial.role}</p>
         </div>
       </div>
     </div>
@@ -413,18 +507,31 @@ function TestimonialCard({ t, className = "" }: { t: Testimonial; className?: st
 }
 
 /**
- * Continuous 3D ring of testimonials (Framer). Large radius + shallow tilt so side cards stay readable;
- * pauses only while the pointer is over a card (nested hovers use a depth counter). Static grid when
- * prefers-reduced-motion.
+ * Continuous 3D ring of testimonials powered by Framer Motion.
+ *
+ * Cards are positioned around a horizontal ring by compounding `rotateY(i * step) translateZ(radius)`.
+ * A {@link useMotionValue} holds the ring's current rotation, and {@link useAnimationFrame} advances it
+ * at ~6°/s (full turn ≈ 60s). Hover pauses rotation using a depth counter so nested
+ * `pointerenter`/`leave` events from child elements don't desync the paused state.
+ *
+ * Accessibility: when `reducedMotion` is true we render a static 3-column grid instead of the ring.
+ *
+ * @param reducedMotion - When true, replaces the ring with a static grid and skips animation frames.
  */
 function TestimonialsCarousel3D({ reducedMotion }: { reducedMotion: boolean }) {
-  const n = TESTIMONIALS.length;
-  const step = 360 / n;
-  /** Responsive radius — tighter ring so cards overlap less and stay readable at every breakpoint. */
+  /** Number of cards on the ring — drives even 360° spacing. */
+  const cardCount = LANDING_CUSTOMER_TESTIMONIALS.length;
+  /** Angular spacing (degrees) between neighbouring cards around the ring. */
+  const anglePerCardDeg = 360 / cardCount;
+  /** Responsive ring radius in px — tighter on small screens so cards don't overflow horizontally. */
   const [radiusPx, setRadiusPx] = useState(520);
+  /** Drives the ring's Y rotation; advanced every frame when not paused. */
   const rotateY = useMotionValue(0);
+  /** True while the pointer is over any card — frame loop skips updates until it goes false. */
   const pausedRef = useRef(false);
+  /** Counts nested pointerenter vs pointerleave so child elements don't prematurely un-pause. */
   const cardHoverDepthRef = useRef(0);
+  /** Mirrors the `reducedMotion` prop inside the animation frame closure without re-binding it. */
   const reducedRef = useRef(reducedMotion);
   reducedRef.current = reducedMotion;
 
@@ -453,7 +560,11 @@ function TestimonialsCarousel3D({ reducedMotion }: { reducedMotion: boolean }) {
     pausedRef.current = cardHoverDepthRef.current > 0;
   }, []);
 
-  // motion-dom frame delta is milliseconds (see motion-dom batcher), not seconds.
+  /**
+   * Animation frame callback — advances `rotateY` by ~6°/second while not paused.
+   * NOTE: Framer's `useAnimationFrame` delivers `delta` in **milliseconds**, not seconds,
+   * so we compute `degPerMs = 360 / (60 * 1000)` (full revolution in 60 000 ms = 60 s).
+   */
   const onFrame = useCallback(
     (_t: number, delta: number) => {
       if (reducedRef.current || pausedRef.current) return;
@@ -468,9 +579,9 @@ function TestimonialsCarousel3D({ reducedMotion }: { reducedMotion: boolean }) {
   if (reducedMotion) {
     return (
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {TESTIMONIALS.map((t) => (
-          <motion.div key={t.name} variants={fadeUp}>
-            <TestimonialCard t={t} />
+        {LANDING_CUSTOMER_TESTIMONIALS.map((testimonial) => (
+          <motion.div key={testimonial.name} variants={fadeUp}>
+            <TestimonialCard testimonial={testimonial} />
           </motion.div>
         ))}
       </div>
@@ -491,17 +602,17 @@ function TestimonialsCarousel3D({ reducedMotion }: { reducedMotion: boolean }) {
           {/* Shallow tilt keeps the ring readable; strong perspective flattens side angles. */}
           <div className="[transform-style:preserve-3d]" style={{ transform: "rotateX(-4deg)" }}>
             <motion.div className="h-0 w-0 [transform-style:preserve-3d]" style={{ rotateY }}>
-              {TESTIMONIALS.map((t, i) => (
+              {LANDING_CUSTOMER_TESTIMONIALS.map((testimonial, cardIndex) => (
                 <div
-                  key={t.name}
+                  key={testimonial.name}
                   className="pointer-events-auto absolute left-0 top-0 w-[min(18rem,calc(100vw-2.5rem))] [backface-visibility:hidden] [transform-style:preserve-3d]"
                   style={{
-                    transform: `rotateY(${i * step}deg) translateZ(${radiusPx}px) translate(-50%, -50%)`,
+                    transform: `rotateY(${cardIndex * anglePerCardDeg}deg) translateZ(${radiusPx}px) translate(-50%, -50%)`,
                   }}
                   onPointerEnter={onCardPointerEnter}
                   onPointerLeave={onCardPointerLeave}
                 >
-                  <TestimonialCard t={t} />
+                  <TestimonialCard testimonial={testimonial} />
                 </div>
               ))}
             </motion.div>
@@ -513,8 +624,11 @@ function TestimonialsCarousel3D({ reducedMotion }: { reducedMotion: boolean }) {
 }
 
 /**
- * TestimonialsSection — Railway-inspired full-bleed dark band.
- * Distinct background hue shift, large heading, CTA arrow, then the 3D carousel.
+ * Full-bleed Railway-inspired "loved by our users" band — heading + CTA link + the 3D carousel.
+ * Uses a distinct background hue to visually separate social proof from the surrounding sections.
+ *
+ * @param reduceMotion - Forwarded from {@link useReducedMotion}; disables entrance replay and ring rotation.
+ * @param ctaHref      - Destination for the inline "Start your first free session" link (auth-aware).
  */
 function TestimonialsSection({ reduceMotion, ctaHref }: { reduceMotion: boolean; ctaHref: string }) {
   return (
@@ -565,9 +679,12 @@ function TestimonialsSection({ reduceMotion, ctaHref }: { reduceMotion: boolean;
 }
 
 /**
- * VideoSection — YouTube demo embed in a glass panel.
- * Uses privacy-enhanced youtube-nocookie.com. Swap DEMO_VIDEO_ID for your real video ID.
- * Marketing-only: scroll-driven scale + opacity matching the other landing sections.
+ * "See it in action" band — product demo embed in a frosted glass panel.
+ * Uses the privacy-enhanced `youtube-nocookie.com` origin; swap {@link DEMO_VIDEO_ID} for the real
+ * video ID before launch. Shares the same scroll-driven zoom curve as pricing/testimonials so the
+ * three terminal bands feel visually consistent.
+ *
+ * @param reduceMotion - When true, disables scroll zoom and viewport entrance replays.
  */
 function VideoSection({ reduceMotion }: { reduceMotion: boolean }) {
   const ref = useRef<HTMLElement>(null);
@@ -599,7 +716,7 @@ function VideoSection({ reduceMotion }: { reduceMotion: boolean }) {
         <div className="aspect-video w-full overflow-hidden rounded-lg">
           <iframe
             src={`https://www.youtube-nocookie.com/embed/${DEMO_VIDEO_ID}`}
-            title="InterviewPrepAI demo video"
+            title="InterviewIntel demo video"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
             className="h-full w-full border-0"
@@ -610,6 +727,22 @@ function VideoSection({ reduceMotion }: { reduceMotion: boolean }) {
   );
 }
 
+/**
+ * Three-tier pricing band: Free → Pro (highlighted) → Plus.
+ *
+ * Layout detail: cards use `items-stretch` + `flex h-full flex-col`, the bullet `<ul>` is `flex-1`,
+ * and each CTA uses `mt-auto min-h-[42px]` so the three CTAs stay vertically aligned regardless of
+ * bullet count. Free and Plus cards add `pt-8` so their titles align with the Pro card's "Most popular"
+ * badge that pushes its content down.
+ *
+ * Tier progression (kept consistent — Free limited, Pro mid-tier, Plus unlimited):
+ * - Free : 2 sessions/day, 1 active posting.
+ * - Pro  : Unlimited sessions, up to 3 active postings + tracking + priority support.
+ * - Plus : Unlimited sessions AND postings + long history + export.
+ *
+ * @param ctaHref      - Target route for all three CTAs (auth-aware: `/login` or `/app`).
+ * @param reduceMotion - When true, disables scroll zoom and entrance replay.
+ */
 function PricingSection({ ctaHref, reduceMotion }: { ctaHref: string; reduceMotion: boolean }) {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
@@ -782,10 +915,24 @@ function PricingSection({ ctaHref, reduceMotion }: { ctaHref: string; reduceMoti
 
 /* ── Main Landing component ─────────────────────────────────────────── */
 
+/**
+ * Public marketing landing page.
+ *
+ * Responsibilities:
+ * 1. Decide the primary CTA destination/label based on auth state (`/app` vs `/login`).
+ * 2. Compose the landing narrative: atmosphere → header → hero → value-prop bands → video → testimonials → pricing → final CTA.
+ * 3. Forward the user's `prefers-reduced-motion` preference to every animated child so accessibility is honored throughout.
+ *
+ * Keep this component presentational — it should not talk to the backend or Supabase directly; navigation
+ * and auth state are the only dynamic inputs.
+ */
 export default function Landing() {
   const { user } = useAuth();
+  /** Where every "start" CTA on the page routes — sign-in wall for guests, dashboard for logged-in users. */
   const ctaHref = user ? "/app" : "/login";
+  /** Button label that mirrors {@link ctaHref} (kept in sync so the hero CTA reads naturally in both states). */
   const ctaLabel = user ? "Go to Dashboard" : "Start Free Session";
+  /** `true` when the OS/browser reports `prefers-reduced-motion: reduce` — propagated to every animated child. */
   const reduceMotion = useReducedMotion();
 
   return (
@@ -796,7 +943,7 @@ export default function Landing() {
       <header className="relative z-10 border-b border-white/50 bg-white/55 backdrop-blur-xl dark:border-white/10 dark:bg-gray-950/45">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <span className="font-display text-xl font-bold tracking-tight">
-            InterviewPrep<span className="text-indigo-600 dark:text-indigo-400">AI</span>
+            Interview<span className="text-indigo-600 dark:text-indigo-400">Intel</span>
           </span>
           {user ? (
             <Link
@@ -888,12 +1035,12 @@ export default function Landing() {
         </h2>
       </motion.div>
 
-      {/* Feature sections */}
+      {/* Feature sections — alternating copy/mockup bands with scroll zoom. */}
       <div id="features" className="space-y-20 sm:space-y-32 pb-24">
-        {FEATURES.map((f, i) => (
-          <Fragment key={f.id}>
-            {i > 0 ? <SectionHairline className="-mt-4 sm:-mt-6" /> : null}
-            <FeatureSection f={f} index={i} reducedMotion={!!reduceMotion} />
+        {LANDING_VALUE_PROP_BANDS.map((band, bandIndex) => (
+          <Fragment key={band.id}>
+            {bandIndex > 0 ? <SectionHairline className="-mt-4 sm:-mt-6" /> : null}
+            <FeatureSection band={band} sectionIndex={bandIndex} reducedMotion={!!reduceMotion} />
           </Fragment>
         ))}
       </div>
@@ -929,7 +1076,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/45 bg-white/35 py-6 text-center text-xs text-gray-600 backdrop-blur-md dark:border-white/10 dark:bg-gray-950/35 dark:text-gray-500">
-        InterviewPrepAI &middot; Built by{" "}
+        InterviewIntel &middot; Built by{" "}
         <a href="https://linkedin.com/in/adammakaoui" target="_blank" rel="noopener" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
           Adam Makaoui
         </a>

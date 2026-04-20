@@ -50,3 +50,5 @@ Before making any code changes, run the relevant tests or start the dev server t
 # Marketing landing vs product UI
 
 The public landing (`Landing.tsx`) uses intentional motion: scroll-driven section scale, thin gradient hairlines, glass panels, and a **3D testimonial ring** (Framer Motion). Keep that flair **landing-only**. The authenticated product shell should stay comparatively flat and utilitarian—do not extend the carousel or heavy marketing effects into app routes unless explicitly requested.
+
+**Product UI components:** Prefer **shadcn/ui** pieces in `frontend/src/components/ui` (buttons, cards, inputs, menus, etc.) plus semantic tokens in `frontend/src/index.css` (`background`, `foreground`, `primary`, `muted`, …) so light/dark stay consistent. Add new primitives with `npx shadcn@latest add <name>` from `frontend/` (see `components.json`). Landing may keep bespoke markup; app routes should not duplicate marketing-only patterns.
