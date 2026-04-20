@@ -1,4 +1,4 @@
-"""LangGraph agent nodes -- the core AI logic of InterviewPrep AI.
+"""LangGraph agent nodes -- the core AI logic of InterviewIntel.
 
 Each function in this module is a node in the LangGraph state machine.
 Nodes receive the full AgentState, perform one focused task (usually an

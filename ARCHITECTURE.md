@@ -1,4 +1,4 @@
-# InterviewPrep AI — Architecture & Operations Guide
+# InterviewIntel — Architecture & Operations Guide
 
 The single technical reference for how this app works, how to run it, and how to deploy it.
 
@@ -30,7 +30,7 @@ The single technical reference for how this app works, how to run it, and how to
    (magic link)               (sessions, state)    (LLM calls)
 ```
 
-**Frontend** (Vercel): React + Vite + TypeScript + Tailwind CSS. SPA with client-side routing.
+**Frontend** (Vercel): React + Vite + TypeScript + Tailwind CSS v4 + shadcn/ui (Radix primitives, Lucide). SPA with client-side routing; semantic theme tokens and default-dark via `.dark` on `<html>`.
 **Backend** (Railway): FastAPI (Python). REST + SSE endpoints. LangGraph state machine for all AI logic.
 **Database** (Supabase): Postgres for LangGraph checkpoints, session metadata, and user profiles.
 **Auth** (Supabase): Magic link email auth. JWT tokens verified by the backend.
@@ -85,7 +85,7 @@ Notes:
 - `OPENAI_MODEL`
 - `DATABASE_URL` — from Supabase: Project Settings > Database > Connection string (URI)
 - `SUPABASE_JWT_SECRET` — from Supabase: Project Settings > API > JWT Secret
-- `FRONTEND_URL` = your Vercel app URL (e.g. `https://your-app.vercel.app`)
+- `FRONTEND_URL` = comma-separated list of production + staging origins (e.g. `https://interviewintel.ai,https://staging.interviewintel.ai`)
 
 **Vercel (frontend service):**
 - `VITE_SUPABASE_URL` — from Supabase: Project Settings > API > Project URL
@@ -270,10 +270,13 @@ frontend/
   src/
     main.tsx           ← React entry point
     App.tsx            ← React Router: / → Landing, /login → Login, /app → Dashboard,
-                         /app/new → NewSession, /app/prep/:id → PrepDetail
-    index.css          ← Tailwind base styles
+                         /app/new → NewSession, /app/prep/:id → PrepDetail, /app/settings → Settings
+    index.css          ← Tailwind v4 + shadcn semantic tokens + tw-animate-css
+    components.json    ← shadcn CLI config (aliases, style: radix-nova)
     lib/
       api.ts           ← all API calls + TypeScript interfaces
+      utils.ts         ← cn() for shadcn class merging
+      theme.tsx        ← light/dark ThemeProvider + document class toggle
       supabase.ts      ← Supabase client init (null if env vars missing)
       auth.tsx         ← AuthProvider context + useAuth hook
     pages/
@@ -283,6 +286,8 @@ frontend/
       NewSession.tsx   ← Form + SSE streaming + early navigation
       PrepDetail.tsx   ← Analysis/Q&A/Role-Play tabs + answer polling
     components/
+      ui/              ← shadcn-generated primitives (button, card, input, …)
+      AppShell.tsx     ← sidebar layout, nav, account dropdown
       QuestionCard.tsx ← Collapsible Q&A card with richer details
       ChatWindow.tsx   ← Roleplay chat + FeedbackCard + CheckpointCard
       SkillsScorecard.tsx ← Competency score visualization
@@ -330,7 +335,7 @@ Deploy configs (repo root):
 | LLM output | JSON-mode (`response_format`) | Function calling / tool use | Our nodes are deterministic steps, not autonomous tool decisions. JSON-mode is simpler and equally structured. |
 | State persistence | PostgresSaver (prod) / MemorySaver (dev) | SQLiteSaver | Supabase Postgres is the production DB. MemorySaver is zero-config for local dev. The switch is one line — swap the checkpointer. |
 | Backend | FastAPI | Flask / Django | Async support, automatic OpenAPI docs, Pydantic validation. API-first architecture. |
-| Frontend | React + Vite + Tailwind | Next.js | Vite is faster dev iteration. No SSR needed — pure SPA. Components are portable to Next.js if needed later. |
+| Frontend | React + Vite + Tailwind v4 + shadcn/ui | Next.js | Vite is faster dev iteration. No SSR needed — pure SPA. shadcn copies components into the repo (full control). Use `npm install --legacy-peer-deps` in `frontend/` until Tailwind’s Vite plugin peer range includes Vite 8. |
 | URL scraping | httpx + BeautifulSoup | Playwright / Selenium | Lightweight and fast. For production we'd use a scraping API or browser extension. |
 | Auth | Supabase Auth (magic link) | Clerk / Auth0 | Already using Supabase for Postgres. One fewer vendor. Magic link is frictionless for MVP. |
 | Deploy | Railway + Vercel | Single platform | Each platform is best-in-class for its service type. Free tiers cover MVP. Configs already exist in repo. |
@@ -392,7 +397,7 @@ Do these **in order**. If something fails, fix it before moving on.
    | `OPENAI_MODEL` | e.g. `gpt-5.4-nano` |
    | `DATABASE_URL` | Supabase: Project Settings > Database > Connection string (URI). URL-encode `$` and `!` in passwords. |
    | `SUPABASE_JWT_SECRET` | Supabase: Project Settings > API > JWT Secret (long secret, not the anon key) |
-   | `FRONTEND_URL` | Placeholder `https://placeholder.vercel.app` (update after Step 3) |
+   | `FRONTEND_URL` | Production + staging origins, comma-separated (e.g. `https://interviewintel.ai,https://staging.interviewintel.ai`). Placeholder OK until Step 3 completes. |
 
 5. Do **not** add `LANGGRAPH_MEMORY_FALLBACK` in production.
 6. Deploy. Verify: `https://<name>.up.railway.app/api/health` returns `{"status":"ok"}`.
@@ -415,17 +420,37 @@ Do these **in order**. If something fails, fix it before moving on.
 ### Step 4 — Wire CORS
 
 1. Go back to Railway > Variables.
-2. Set `FRONTEND_URL` to your **exact** Vercel URL (e.g. `https://<project>.vercel.app`).
+2. Set `FRONTEND_URL` to your production + staging origins, comma-separated. Example: `https://interviewintel.ai,https://staging.interviewintel.ai`. The backend splits on commas and appends `http://localhost:5173` automatically ([`backend/app/main.py`](backend/app/main.py)).
 3. Save and let Railway redeploy.
 
 ### Step 5 — Configure Supabase auth redirects
 
 1. Supabase > Authentication > URL Configuration.
-2. **Site URL**: your Vercel URL.
-3. **Redirect URLs**: add `https://<project>.vercel.app/**`.
+2. **Site URL**: `https://interviewintel.ai` (production).
+3. **Redirect URLs**: add `https://interviewintel.ai/**` and `https://staging.interviewintel.ai/**` (and any legacy origin during cutover windows).
 4. Save.
 
-### Step 6 — Smoke test
+### Step 6 — Configure auth email delivery (Resend custom SMTP)
+
+Supabase's built-in email provider only sends to organization/team members and is rate-limited. For real users (especially Gmail, which enforces the Feb 2024 bulk-sender rules) you need custom SMTP on a domain you control.
+
+1. **Resend > Domains > Add domain.** Use a domain you own (not `*.vercel.app`).
+2. Add the DNS records Resend generates: **SPF** (`TXT v=spf1 include:...resend...`), **DKIM** (two `CNAME` records), **DMARC** (`TXT _dmarc` with at minimum `v=DMARC1; p=none; rua=mailto:you@domain`). Wait until all three are **Verified** in Resend.
+3. **Resend > API keys** — create a key (SMTP-scoped). Resend uses `host = smtp.resend.com`, `port = 465` (SSL) or `587` (STARTTLS), username `resend`, password = the API key.
+4. **Supabase > Authentication > SMTP Settings** — enable **Custom SMTP** and paste the values above. Set **Sender email** to `no-reply@interviewintel.ai` (must match the verified Resend domain) and **Sender name** to `InterviewIntel`.
+5. **Supabase > Authentication > Email Templates > Magic Link** — rewrite the subject and body to match your brand. Friendly copy measurably improves Gmail inbox placement over time.
+6. Confirm delivery: send a sign-in to Gmail, Outlook, iCloud, Yahoo. In Gmail, open **Show original** and verify `SPF: PASS`, `DKIM: PASS`, `DMARC: PASS`.
+
+### Step 6b — Enable Google OAuth
+
+1. **Google Cloud Console** > create/select project > **APIs & Services > OAuth consent screen** > External. Scopes `openid email profile`. Add the production origin under Authorized domains.
+2. **Credentials > Create credentials > OAuth client ID > Web application.**
+   - **Authorized JavaScript origins:** your Vercel production origin (add the new domain later).
+   - **Authorized redirect URIs:** `https://<project-ref>.supabase.co/auth/v1/callback`.
+3. **Supabase > Authentication > Providers > Google** — paste Client ID + Secret, enable.
+4. Frontend is already wired: the **Continue with Google** button in [`frontend/src/pages/Login.tsx`](frontend/src/pages/Login.tsx) calls `supabase.auth.signInWithOAuth({ provider: "google" })`. No backend change is needed — OAuth logins produce the same JWT shape the FastAPI backend already verifies.
+
+### Step 7 — Smoke test
 
 1. Open your Vercel URL in a browser.
 2. Request a magic link, check email, complete sign-in.
@@ -454,3 +479,26 @@ If sessions fail: check Network tab for CORS/401 errors. `401` = JWT/env mismatc
 7. Show Analysis Tab — key skills, culture signals, interviewer focus areas
 8. Switch to Role-Play — answer a question, show feedback card (score, strengths, improvements)
 9. Continue drilling — show checkpoint card with score trends after 5 questions
+
+---
+
+## Providers and Responsibilities
+
+Who owns what — use this to decide which dashboard to open when something breaks.
+
+| Provider | Owns | Configured in |
+|---|---|---|
+| **Vercel** | Frontend hosting, web-app DNS/TLS, preview + production deployments, `VITE_*` env vars | [`frontend/`](frontend/), Vercel dashboard |
+| **Railway** | FastAPI backend runtime, LangGraph execution, SSE endpoints, JWT verification, CORS, backend env vars (`OPENAI_*`, `DATABASE_URL`, `SUPABASE_JWT_SECRET`, `FRONTEND_URL`) | [`backend/`](backend/), Railway dashboard |
+| **Supabase** | Postgres (LangGraph checkpoints, session metadata, profiles); Auth (magic link + Google OAuth, JWT issuance); URL Configuration; email templates. SMTP is delegated to Resend. | Supabase dashboard |
+| **Resend** | Transactional email delivery and sending-domain reputation via SPF / DKIM / DMARC | Resend dashboard + DNS at the domain registrar |
+| **Google Cloud (OAuth)** | Identity provider for Continue with Google. Holds only the OAuth client — user data flows through Supabase, not Google | Google Cloud Console |
+| **OpenAI** | LLM calls from the Railway backend. Model set by `OPENAI_MODEL` (and optionally `OPENAI_EXTRACT_MODEL`) | OpenAI dashboard + Railway env |
+
+### Troubleshooting rule-of-thumb
+
+- **Can't sign in?** → Supabase URL Configuration, Resend DNS status, Google OAuth redirect URI.
+- **Email not arriving?** → Resend delivery logs first, then Supabase SMTP settings, then DNS.
+- **App error on `/app`?** → Vercel deployment logs → Railway backend logs → Supabase Postgres.
+- **Wrong or slow model responses?** → Railway env (`OPENAI_MODEL`) → OpenAI dashboard rate limits.
+- **CORS / 401 in browser?** → `FRONTEND_URL` on Railway must exactly match the browser origin; `SUPABASE_JWT_SECRET` must match the Supabase project.

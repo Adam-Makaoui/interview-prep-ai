@@ -1,10 +1,10 @@
-# InterviewPrep AI — Project spec
+# InterviewIntel — Project spec
 
 Reference for contributors and AI assistants. Keep this aligned with the repo as the product evolves.
 
 ## What it does and who uses it
 
-**InterviewPrep AI** is an AI-powered interview preparation product: it ingests a job posting (URL or pasted text), analyzes the role and company, generates stage-specific questions, drafts personalized answer frameworks (e.g. STAR), and runs interactive role-play practice with scored feedback.
+**InterviewIntel** is an AI-powered interview preparation product: it ingests a job posting (URL or pasted text), analyzes the role and company, generates stage-specific questions, drafts personalized answer frameworks (e.g. STAR), and runs interactive role-play practice with scored feedback.
 
 **Primary audience:** software engineers and adjacent technical roles (e.g. Solutions Engineers, Sales Engineers, pre-sales, DevTools-oriented roles) preparing for structured, multi-round hiring loops—especially at growth-stage and senior levels.
 
@@ -12,7 +12,7 @@ Reference for contributors and AI assistants. Keep this aligned with the repo as
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React, Vite, TypeScript, Tailwind CSS, Framer Motion |
+| Frontend | React, Vite, TypeScript, Tailwind CSS v4 (`@tailwindcss/vite`), shadcn/ui (Radix via `radix-ui`, Lucide), Framer Motion (landing / selective UX) |
 | Backend | FastAPI (Python 3.11+) |
 | Agent | LangGraph + LangChain, OpenAI (default `gpt-5.4-nano` via `OPENAI_MODEL`) |
 | Persistence | LangGraph PostgresSaver (Supabase) with MemorySaver fallback locally |
@@ -33,7 +33,7 @@ Auth, hosting, and billing details live in deployment config and `ARCHITECTURE.m
 - New session — job description / URL, resume, interviewers, prep vs role-play mode
 - Prep detail — analysis, Q&A, role-play chat per session
 - Progress — competency trends and score history
-- Settings — account, theme, subscription surface, **saved resumes** (up to three labeled profiles; one default), **preferred LLM** (catalog: e.g. `gpt-5.4-nano`, `gpt-4o-mini` free; `gpt-5.4-mini` Pro), support contact
+- Settings — account, **light/dark theme** (`theme.tsx` + `.dark` on `<html>`), subscription surface, **saved resumes** (up to three labeled profiles; one default), **preferred LLM** (catalog: e.g. `gpt-5.4-nano`, `gpt-4o-mini` free; `gpt-5.4-mini` Pro), support contact; UI built with shadcn primitives under `src/components/ui`
 
 ## Data models (high level)
 

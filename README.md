@@ -1,4 +1,6 @@
-# InterviewPrep AI
+# InterviewIntel
+
+> Production: [interviewintel.ai](https://interviewintel.ai) · Staging: staging.interviewintel.ai
 
 An AI-powered interview preparation agent that analyzes job postings, generates stage-specific questions, drafts personalized answer frameworks, and runs interactive role-play practice sessions with real-time feedback.
 
@@ -29,7 +31,7 @@ An AI-powered interview preparation agent that analyzes job postings, generates 
 - **Agent Framework**: LangGraph (state machine) + LangChain (tools, LLM interface)
 - **LLM**: OpenAI GPT-5.4 nano (default; override via `OPENAI_MODEL`)
 - **Backend**: FastAPI (Python)
-- **Frontend**: React + Vite + TypeScript + Tailwind CSS
+- **Frontend**: React 19 + Vite 8 + TypeScript + **Tailwind CSS v4** (`@tailwindcss/vite`) + **shadcn/ui** (radix-nova style: Radix primitives via unified `radix-ui` package, Lucide icons, `class-variance-authority`, `tw-animate-css`). Product shell uses generated components under `frontend/src/components/ui` and semantic color tokens in `frontend/src/index.css` (default **dark** theme via `.dark` on `<html>`, optional light via Settings / `theme.tsx`).
 - **State**: LangGraph PostgresSaver (Supabase) with MemorySaver fallback for local dev
 - **Data Models**: Pydantic v2
 
@@ -91,6 +93,9 @@ cd frontend
 npm install --legacy-peer-deps
 npm run dev
 ```
+Use **`--legacy-peer-deps`** here because `@tailwindcss/vite@4` currently declares a Vite peer range that does not yet include Vite 8; installs still work for this project.
+
+Optional (local machine only, not required for the app to run): **`npx shadcn@latest mcp init --client claude`** wires the shadcn MCP server for AI-assisted component lookup—it does not change the built UI.
 
 **4. Open http://localhost:5173**
 
@@ -139,12 +144,13 @@ Detailed roadmap lives in Notion. Recently shipped and upcoming priorities:
 - **Progress Tracking** — final_scores JSONB column, aggregation API, and My Progress page with competency bars and score trend charts (Phase 2)
 - **Daily Free Tier** — 2 free sessions/day with upgrade prompt (monetization foundation)
 - **Landing Page Redesign** — hero with gradient glow, how-it-works steps with Framer Motion, sample session mockups, social proof testimonials, pricing comparison, and footer with scroll-driven background gradient
-- **Light Apple-Style Theme** — full migration from dark to light color scheme across all pages and components (white backgrounds, subtle shadows, dark text)
+- **Dark-first UI + theme toggle** — default dark surfaces; light mode via Settings (class on `<html>`, persisted in `localStorage`). Marketing landing keeps richer motion; authenticated app uses flatter, shadcn-based controls.
+- **shadcn/ui (product shell)** — shared primitives (`Button`, `Card`, `Input`, `DropdownMenu`, `Separator`, etc.) in `src/components/ui`; `@/*` import alias in `tsconfig` and Vite
 - **Auto-Expanding Textarea** — role-play input replaced with auto-growing textarea (up to 6 lines) with Shift+Enter for newlines
 - **Voice Input** — Web Speech API microphone button in role-play chat for speech-to-text transcription
 - **Demo Session** — static DummyCompany session for new users to explore the app before creating their own prep
 - **Analysis Tab Redesign** — company overview with industry/products/problem, competitor logos via favicon API, numbered interview tips with accent borders
-- **Settings Page** — subscription management UI, contact support, and appearance placeholder
+- **Settings Page** — subscription UI, contact support, appearance (light/dark), saved resumes, AI model picker
 - **Live Progress Updates** — running_scores persisted after each Q&A round so My Progress updates mid-session
 - **Session List Optimization** — cached metadata columns (status, question_count) eliminate N checkpoint loads on list endpoint
 - **Settings: AI model** — choose among GPT-5.4 nano, GPT-4o mini (both free), or GPT-5.4 mini (Pro); preference on profile drives LangGraph nodes; extract-fields still uses server `OPENAI_EXTRACT_MODEL` / default
@@ -156,5 +162,4 @@ Detailed roadmap lives in Notion. Recently shipped and upcoming priorities:
 - **Google OAuth** — reduce sign-in friction via Supabase Google provider (~15 lines frontend)
 - **LangSmith Observability** — tracing all LLM calls (free tier: 5k traces/month, zero code changes)
 - **Custom Domain + Stripe** — purchase domain, configure DNS for Vercel/Railway, wire Stripe checkout for Pro plan
-- **Dark Mode Toggle** — light/dark theme switching via Tailwind dark: prefix and localStorage persistence
 - **Chrome Extension** — side panel that detects JDs on LinkedIn/Greenhouse and triggers prep

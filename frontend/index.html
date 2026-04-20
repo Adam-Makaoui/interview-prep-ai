@@ -1,23 +1,50 @@
 <!doctype html>
 <html lang="en">
   <head>
+    {/* Script to toggle the dark mode. */}
     <script>
       (function () {
         try {
+          // Get the theme from the local storage.
           var k = "interviewprep-theme";
           var t = localStorage.getItem(k);
+          // If the theme is light, remove the dark class from the document element.
           if (t === "light") document.documentElement.classList.remove("dark");
+          // If the theme is dark, add the dark class to the document element.
           else document.documentElement.classList.add("dark");
-        } catch (e) {}
+        } catch (e) {
+          // If there is an error, do nothing.
+        }
       })();
     </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    {/* Title for the landing page. */}
+    <title>InterviewIntel — AI Interview Prep</title>
+
+    {/* Meta description for the landing page. */}
+    <meta
+      name="description"
+      content="InterviewIntel helps candidates prep for interviews with AI-generated questions, role-play, and targeted feedback grounded in the actual job description."
+    />
+    <meta property="og:title" content="InterviewIntel — AI Interview Prep" />
+    <meta
+      property="og:description"
+      content="Paste a JD, add your resume, get tailored questions and role-play feedback. Ace the interview, not the prep."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://interviewintel.ai" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="InterviewIntel — AI Interview Prep" />
+    <meta
+      name="twitter:description"
+      content="Paste a JD, add your resume, get tailored questions and role-play feedback."
+    />
   </head>
   <body>
     <div id="root"></div>
+    {/* Main entry point for the application. */}
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

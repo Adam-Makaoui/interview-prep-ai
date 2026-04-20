@@ -111,11 +111,13 @@ async def lifespan(app):
     yield
 
 
-app = FastAPI(title="Interview Prep Agent", lifespan=lifespan)
+app = FastAPI(title="InterviewIntel Agent", lifespan=lifespan)
 
-_allowed_origins = [settings.frontend_url, "http://localhost:5173"]
-if settings.frontend_url != "http://localhost:5173":
-    _allowed_origins.append("http://localhost:5173")
+# FRONTEND_URL may be a single origin or a comma-separated list (prod + staging).
+_primary_origins = [
+    o.strip() for o in settings.frontend_url.split(",") if o.strip()
+]
+_allowed_origins = sorted({*_primary_origins, "http://localhost:5173"})
 
 app.add_middleware(
     CORSMiddleware,

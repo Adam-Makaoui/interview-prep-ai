@@ -1,4 +1,4 @@
-"""LangGraph state machine definition for the interview prep agent.
+"""LangGraph state machine definition for the InterviewIntel agent.
 
 Checkpointer selection:
 - If DATABASE_URL is set, uses PostgresSaver (sessions survive restarts).
@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 def build_graph() -> StateGraph:
+    """Build the LangGraph state machine for the InterviewIntel agent."""
     graph = StateGraph(AgentState)
 
     graph.add_node("parse", parse_job_posting)
@@ -58,13 +59,18 @@ def build_graph() -> StateGraph:
 
     return graph
 
-
+    
 def _make_checkpointer():
+    """Make the checkpointer for the LangGraph state machine."""
     if settings.use_postgres:
+        # Try to use the PostgresSaver.
         try:
+            # Import the PostgresSaver.
             from langgraph.checkpoint.postgres import PostgresSaver
+            # Import the psycopg library.
             import psycopg
 
+            # Set up the connection to the Postgres database.
             setup_conn = psycopg.connect(settings.database_url, autocommit=True)
             PostgresSaver(setup_conn).setup()
             setup_conn.close()
@@ -74,10 +80,12 @@ def _make_checkpointer():
             logger.info("Using PostgresSaver (Postgres)")
             return cp
         except Exception as e:
+            # If the PostgresSaver fails, fall back to the MemorySaver.
             raw = (
                 settings.langgraph_memory_fallback
                 or os.environ.get("LANGGRAPH_MEMORY_FALLBACK", "")
             )
+            # If the MemorySaver is allowed, return it.
             allow = raw.strip().lower() in ("1", "true", "yes")
             if allow:
                 logger.warning(
@@ -86,6 +94,7 @@ def _make_checkpointer():
                     e,
                 )
                 return MemorySaver()
+            # If the MemorySaver is not allowed, raise an exception.
             logger.exception(
                 "DATABASE_URL is set but Postgres checkpointer failed; refusing to fall back "
                 "to MemorySaver in production. Fix the connection string or unset DATABASE_URL "
@@ -93,14 +102,20 @@ def _make_checkpointer():
             )
             raise
 
+    # If the PostgresSaver is not allowed, use the MemorySaver.
     logger.info("Using MemorySaver (ephemeral)")
     return MemorySaver()
 
 
+# Create the checkpointer for the LangGraph state machine.
 checkpointer = _make_checkpointer()
 
+# Compile the LangGraph state machine.
 agent = build_graph().compile(
+    # Set the checkpointer.
     checkpointer=checkpointer,
+    # Set the interrupt before the evaluate node.
     interrupt_before=["evaluate"],
+    # Set the interrupt after the evaluate node.
     interrupt_after=["evaluate"],
 )
