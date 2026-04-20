@@ -366,8 +366,11 @@ export default function ChatWindow({
   }
 
   // --- Active roleplay chat ---
+  // Height strategy: use dynamic viewport units (`dvh`) so the chat resizes correctly when the mobile
+  // keyboard opens (vs `vh` which uses the *initial* viewport and leaves the input hidden behind the
+  // keyboard on iOS Safari). Cap at 640px on desktop so the panel doesn't sprawl on tall monitors.
   return (
-    <div className="flex flex-col h-[500px]">
+    <div className="flex flex-col h-[min(calc(100dvh-14rem),640px)] min-h-[360px]">
       <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
         {chat
           .filter((msg) => msg.role !== "coach")

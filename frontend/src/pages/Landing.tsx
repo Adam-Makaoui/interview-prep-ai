@@ -525,6 +525,11 @@ function TestimonialsCarousel3D({ reducedMotion }: { reducedMotion: boolean }) {
   const anglePerCardDeg = 360 / cardCount;
   /** Responsive ring radius in px — tighter on small screens so cards don't overflow horizontally. */
   const [radiusPx, setRadiusPx] = useState(520);
+  /**
+   * True on viewports < 640px. We swap the 3D ring for a horizontal scroll-snap track below this breakpoint
+   * because the ring becomes illegible — cards overlap, touch can't spin it, and rotation consumes battery.
+   */
+  const [isMobile, setIsMobile] = useState(false);
   /** Drives the ring's Y rotation; advanced every frame when not paused. */
   const rotateY = useMotionValue(0);
   /** True while the pointer is over any card — frame loop skips updates until it goes false. */
@@ -539,6 +544,7 @@ function TestimonialsCarousel3D({ reducedMotion }: { reducedMotion: boolean }) {
     if (reducedMotion) return;
     const syncRadius = () => {
       const w = window.innerWidth;
+      setIsMobile(w < 640);
       if (w < 480) setRadiusPx(200);
       else if (w < 640) setRadiusPx(260);
       else if (w < 900) setRadiusPx(360);
@@ -561,21 +567,25 @@ function TestimonialsCarousel3D({ reducedMotion }: { reducedMotion: boolean }) {
   }, []);
 
   /**
-   * Animation frame callback — advances `rotateY` by ~6°/second while not paused.
-   * NOTE: Framer's `useAnimationFrame` delivers `delta` in **milliseconds**, not seconds,
-   * so we compute `degPerMs = 360 / (60 * 1000)` (full revolution in 60 000 ms = 60 s).
+   * Animation frame callback — rotates the ring counter-clockwise (negative rotateY delta) at
+   * ~9°/second while not paused, completing a full revolution in ~40 s (33% faster than the
+   * original 60 s cadence).
+   *
+   * NOTE: Framer's `useAnimationFrame` delivers `delta` in **milliseconds**, not seconds, so we
+   * compute `degPerMs = 360 / (40 * 1000)`.
    */
   const onFrame = useCallback(
     (_t: number, delta: number) => {
       if (reducedRef.current || pausedRef.current) return;
-      const degPerMs = 360 / (60 * 1000);
-      rotateY.set((rotateY.get() + degPerMs * delta) % 360);
+      const degPerMs = 360 / (40 * 1000);
+      rotateY.set((rotateY.get() - degPerMs * delta) % 360);
     },
     [rotateY],
   );
 
   useAnimationFrame(onFrame);
 
+  // Fallback for users who prefer reduced motion: static 3-column grid.
   if (reducedMotion) {
     return (
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -583,6 +593,27 @@ function TestimonialsCarousel3D({ reducedMotion }: { reducedMotion: boolean }) {
           <motion.div key={testimonial.name} variants={fadeUp}>
             <TestimonialCard testimonial={testimonial} />
           </motion.div>
+        ))}
+      </div>
+    );
+  }
+
+  // Mobile fallback: horizontal scroll-snap track. 3D rings don't translate to small touch surfaces
+  // (cards overlap, no hover, touch can't spin), so we swap to a swipeable carousel instead.
+  if (isMobile) {
+    return (
+      <div
+        className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="region"
+        aria-label="Customer testimonials"
+      >
+        {LANDING_CUSTOMER_TESTIMONIALS.map((testimonial) => (
+          <div
+            key={testimonial.name}
+            className="w-[85vw] max-w-[22rem] shrink-0 snap-center"
+          >
+            <TestimonialCard testimonial={testimonial} />
+          </div>
         ))}
       </div>
     );

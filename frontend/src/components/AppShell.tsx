@@ -190,7 +190,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       {/* Desktop sidebar */}
       <aside className="hidden w-60 shrink-0 border-r border-border bg-card lg:flex lg:flex-col">
         {sidebarContent}
