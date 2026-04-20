@@ -4,6 +4,7 @@ import { getSession, submitAnswer, deleteSession, type Session } from "../lib/ap
 import ChatWindow from "../components/ChatWindow";
 import QuestionCard, { QuestionOnlyCard } from "../components/QuestionCard";
 import SkillsScorecard from "../components/SkillsScorecard";
+import { PageContainer } from "@/components/ui/page-container";
 
 const TABS = ["Analysis", "Q&A", "Role-Play", "Scorecard"] as const;
 type Tab = (typeof TABS)[number];
@@ -127,7 +128,7 @@ export default function PrepDetail() {
   const statusCfg = STATUS_CONFIG[session.status] || STATUS_CONFIG.processing;
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
+    <PageContainer size="lg">
 
       {/* Header */}
       <div className="mb-8">
@@ -479,6 +480,6 @@ export default function PrepDetail() {
       {tab === "Scorecard" && (
         <SkillsScorecard session={session} />
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { listSessions, deleteSession, type Session } from "../lib/api";
+import { PageContainer } from "@/components/ui/page-container";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
 
 const STAGE_LABELS: Record<string, string> = {
   phone_screen: "Phone Screen",
@@ -20,6 +23,7 @@ const STATUS_DOT: Record<string, string> = {
   analyzing: "bg-indigo-400",
 };
 
+// HeroIllustration component for the dashboard page.
 function HeroIllustration() {
   return (
     <div className="relative w-20 h-20 mx-auto mb-5">
@@ -48,6 +52,7 @@ function HeroIllustration() {
   );
 }
 
+// SessionCard component for the dashboard page.
 function SessionCard({
   s,
   onDelete,
@@ -197,46 +202,50 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Your prep hub</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-          {sessions.length === 0
+    <PageContainer size="lg">
+      <PageHeader
+        title="Your prep hub"
+        description={
+          sessions.length === 0
             ? "Start a session to get job description analysis, Q&A frameworks, and mock interview scoring."
-            : `${sessions.length} session${sessions.length > 1 ? "s" : ""} · grouped by hiring pipeline`}
-        </p>
-      </div>
+            : `${sessions.length} session${sessions.length > 1 ? "s" : ""} · grouped by hiring pipeline`
+        }
+        action={
+          sessions.length > 0 ? (
+            <Button asChild size="sm">
+              <Link to="/app/new">New session</Link>
+            </Button>
+          ) : undefined
+        }
+      />
 
       {sessions.length === 0 ? (
-        <div className="text-center py-20 rounded-2xl border border-dashed border-gray-300 bg-gray-50 dark:border-gray-800/60 dark:bg-gray-900/20">
+        <div className="text-center py-20 rounded-2xl border border-dashed border-border bg-muted/40">
           <HeroIllustration />
-          <p className="text-gray-700 dark:text-gray-400 text-lg font-medium mb-2">
+          <p className="text-foreground text-lg font-medium mb-2">
             Prep smarter for your next interview
           </p>
-          <p className="text-gray-600 dark:text-gray-500 text-sm mb-2 max-w-md mx-auto">
+          <p className="text-muted-foreground text-sm mb-5 max-w-md mx-auto">
             Paste a job description, get role-specific questions and answer frameworks, then
             practice with scored role-play.
           </p>
-          <Link
-            to="/app/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-sm shadow-indigo-500/20 mt-4"
-          >
-            Create your first session
-          </Link>
+          <Button asChild>
+            <Link to="/app/new">Create your first session</Link>
+          </Button>
         </div>
       ) : (
         <div className="space-y-8">
           {grouped.map(({ pipeline_group, displayName, items }) => (
             <section key={pipeline_group}>
               <div className="flex items-center gap-2 mb-3">
-                <span className="h-px flex-1 bg-gray-300 dark:bg-gray-800/80 max-w-[40px]" />
-                <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-300 tracking-tight">
+                <span className="h-px flex-1 bg-border max-w-[40px]" />
+                <h2 className="text-sm font-semibold text-foreground tracking-tight">
                   {displayName}
                 </h2>
-                <span className="text-xs text-gray-500 dark:text-gray-600">
+                <span className="text-xs text-muted-foreground">
                   {items.length} round{items.length > 1 ? "s" : ""}
                 </span>
-                <span className="h-px flex-1 bg-gray-300 dark:bg-gray-800/80" />
+                <span className="h-px flex-1 bg-border" />
               </div>
               <div className="grid gap-2 pl-0 sm:pl-2 border-l-2 border-indigo-300 dark:border-indigo-500/20 ml-1">
                 {items.map((s) => (
@@ -247,6 +256,6 @@ export default function Dashboard() {
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

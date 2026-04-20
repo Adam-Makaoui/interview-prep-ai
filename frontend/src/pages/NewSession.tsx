@@ -12,6 +12,8 @@ import {
   type SavedResumesData,
 } from "../lib/api";
 import UpgradeModal from "../components/UpgradeModal";
+import { PageContainer } from "@/components/ui/page-container";
+import { PageHeader } from "@/components/ui/page-header";
 
 /** Interview stage options for the form. */
 const STAGES = [
@@ -265,10 +267,10 @@ export default function NewSession() {
     : ["parse", "analyze", "generate", "roleplay_ask"];
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <PageContainer size="sm">
       <Link
         to="/app"
-        className="group inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-indigo-600 dark:hover:text-indigo-400 mb-6"
+        className="group mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-indigo-600 dark:hover:text-indigo-400"
       >
         <svg className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -276,14 +278,11 @@ export default function NewSession() {
         Back to Sessions
       </Link>
 
-      <div className="mb-10">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-white">
-          New prep session
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-          Paste a job description or URL and we&apos;ll generate tailored prep materials, questions, and answer frameworks.
-        </p>
-      </div>
+      <PageHeader
+        title={<span className="font-display">New prep session</span>}
+        description="Paste a job description or URL and we'll generate tailored prep materials, questions, and answer frameworks."
+        className="mb-8"
+      />
 
       {loading ? (
         <div className="space-y-3 py-8">
@@ -416,7 +415,7 @@ export default function NewSession() {
           {/* ── Role Details ────────────────────────────────────── */}
           <div className={sectionCard}>
             <h2 className={sectionTitle}>Role Details</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Company
@@ -457,7 +456,7 @@ export default function NewSession() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Interview Stage
@@ -750,6 +749,6 @@ export default function NewSession() {
         </form>
       )}
       <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
-    </div>
+    </PageContainer>
   );
 }
