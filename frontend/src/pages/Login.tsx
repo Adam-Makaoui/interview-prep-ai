@@ -3,28 +3,61 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 
-// Takes a Supabase error object and returns a user-facing error message for magic link authentication.
-function getMagicLinkErrorMessage(err: { message: string; code?: string }) {
+// Maps a Supabase auth error to a user-facing message. Prefers Supabase's
+// structured error codes (stable across SDK versions) before falling back to
+// substring matching on the message text. Always logs the raw error so future
+// debugging doesn't require source-diving.
+function getMagicLinkErrorMessage(err: {
+  message: string;
+  code?: string;
+  status?: number;
+}): string {
   const code = err.code?.toLowerCase() ?? "";
+  const status = err.status;
   const msg = err.message.toLowerCase();
 
-  if (code === "email_address_not_authorized" || msg.includes("not authorized")) {
-    return "Email login is not enabled for external inboxes yet. Configure custom SMTP in Supabase Auth before Gmail and other non-team addresses can receive magic links.";
+  console.error("[login] signInWithOtp failed:", {
+    code: err.code,
+    status,
+    message: err.message,
+  });
+
+  if (code === "over_email_send_rate_limit") {
+    return "Too many magic-link requests to this email in the last hour. Please wait ~60 min and try again, or use Continue with Google.";
+  }
+  if (code === "over_request_rate_limit" || status === 429) {
+    return "Too many requests from this device. Please wait a minute and try again.";
+  }
+  if (code === "validation_failed" || code === "email_address_invalid") {
+    return "That doesn't look like a valid email. Please double-check and try again.";
+  }
+  if (code === "email_address_not_authorized") {
+    return "This email isn't allowed to sign in yet. If you're expecting access, contact support.";
+  }
+  if (code === "email_provider_disabled") {
+    return "Email sign-in is temporarily disabled. Please use Continue with Google.";
+  }
+  if (code === "signup_disabled" || code === "signups_not_allowed") {
+    return "New sign-ups are disabled. If you have an account, use Continue with Google.";
+  }
+  if (code === "unexpected_failure" || status === 500) {
+    return "Auth service hit an unexpected error. Try Continue with Google, or try again in a few minutes.";
   }
 
   if (msg.includes("rate limit") || msg.includes("too many")) {
-    return "Too many attempts. Please wait a minute and try again.";
+    return "Too many attempts. Please wait a minute and try again, or use Continue with Google.";
+  }
+  if (msg.includes("site url") || msg.includes("redirect")) {
+    return "Magic-link redirect is misconfigured on the server. Please contact support.";
+  }
+  if (msg.includes("smtp") || msg.includes("delivery")) {
+    return "The email provider rejected the send. Try Continue with Google, or contact support.";
+  }
+  if (msg.includes("invalid email") || msg.includes("email format")) {
+    return "That doesn't look like a valid email. Please double-check and try again.";
   }
 
-  if (msg.includes("redirect") || msg.includes("site url")) {
-    return "Magic link redirect is misconfigured. Check your Supabase Site URL and allowed Redirect URLs.";
-  }
-
-  if (msg.includes("confirmation") || msg.includes("email")) {
-    return "We couldn't deliver the login email. Please double-check your address and try again in a moment.";
-  }
-
-  return err.message;
+  return err.message.length > 140 ? err.message.slice(0, 140) + "…" : err.message;
 }
 // Main login component for handling authentication UI and logic.
 // Manages state for email input, error messages, loading indicators,
