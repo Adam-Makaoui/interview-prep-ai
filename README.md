@@ -1,6 +1,6 @@
 # InterviewIntel
 
-> Production: [interviewintel.ai](https://interviewintel.ai) · Staging: staging.interviewintel.ai
+> Production: [interviewintel.ai](https://interviewintel.ai) · Dev: [dev.interviewintel.ai](https://dev.interviewintel.ai)
 
 An AI-powered interview preparation agent that analyzes job postings, generates stage-specific questions, drafts personalized answer frameworks, and runs interactive role-play practice sessions with real-time feedback.
 
