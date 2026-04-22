@@ -992,14 +992,21 @@ export default function Landing() {
       <LandingAtmosphere reducedMotion={!!reduceMotion} />
 
       <header className="relative z-10 border-b border-white/50 bg-white/55 backdrop-blur-xl dark:border-white/10 dark:bg-gray-950/45">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <Link to="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-90">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-6 sm:px-6">
+          <Link
+            to="/"
+            className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-90 sm:gap-2.5"
+          >
             <BrandMark size="sm" />
             {/* Wordmark: single compound word for brand strength (Stripe/Figma/Linear
                 pattern), but with `tracking-normal` for breathing room and
                 `font-extrabold` on "Intel" so the eye still parses it as two
-                concepts without literal whitespace between them. */}
-            <span className="font-display text-xl font-bold tracking-normal">
+                concepts without literal whitespace between them.
+
+                Hidden below sm: the logo orb is doing the job on iPhone-
+                sized screens; suppressing the wordmark gives the CTAs the
+                breathing room they need. Same pattern Linear/Vercel use. */}
+            <span className="hidden font-display text-xl font-bold tracking-normal sm:inline">
               Interview<span className="font-extrabold text-indigo-600 dark:text-indigo-400">Intel</span>
             </span>
           </Link>
@@ -1011,7 +1018,7 @@ export default function Landing() {
               Dashboard
             </Link>
           ) : (
-            <div className="flex shrink-0 items-center gap-4 sm:gap-5">
+            <div className="flex shrink-0 items-center gap-3 sm:gap-5">
               <Link
                 to="/login"
                 className="px-1 text-sm font-medium text-gray-700 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
@@ -1022,7 +1029,12 @@ export default function Landing() {
                 to={ctaHref}
                 className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-colors hover:bg-indigo-500 sm:px-4"
               >
-                Start Free Session
+                {/* Two-label swap: short on iPhone to give "Sign in" room,
+                    full copy on tablet+ where real estate is not the
+                    bottleneck. Both labels share identical styling so the
+                    button height never jumps across breakpoints. */}
+                <span className="sm:hidden">Start free</span>
+                <span className="hidden sm:inline">Start Free Session</span>
               </Link>
             </div>
           )}

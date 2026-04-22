@@ -2,17 +2,28 @@
 <html lang="en">
   <head>
     <script>
+      // Theme resolution runs BEFORE React mounts so we never flash the
+      // wrong scheme. Precedence:
+      //   1. Explicit user choice in localStorage ("dark" | "light") —
+      //      wins over everything. Set by the Settings → Theme toggle.
+      //   2. OS / browser preference via `prefers-color-scheme: dark` —
+      //      honors iOS "Dark Mode" and macOS / Windows system theme.
+      //   3. Hard fallback → dark (our brand default when the media
+      //      query is indeterminate, e.g. ancient browsers).
       (function () {
         try {
-          // Get the theme from the local storage.
           var k = "interviewprep-theme";
-          var t = localStorage.getItem(k);
-          // If the theme is light, remove the dark class from the document element.
-          if (t === "light") document.documentElement.classList.remove("dark");
-          // If the theme is dark, add the dark class to the document element.
-          else document.documentElement.classList.add("dark");
+          var stored = localStorage.getItem(k);
+          var prefersDark =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var dark =
+            stored === "dark" ||
+            (stored !== "light" && (prefersDark || stored === null));
+          if (dark) document.documentElement.classList.add("dark");
+          else document.documentElement.classList.remove("dark");
         } catch (e) {
-          // If there is an error, do nothing.
+          document.documentElement.classList.add("dark");
         }
       })();
     </script>

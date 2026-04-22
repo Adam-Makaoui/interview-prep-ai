@@ -44,13 +44,21 @@ const EYE_CROP_STYLE = {
 
 const SIZE_CLASSES = {
   sm: "h-9 w-9",
-  lg: "h-20 w-20",
+  // `lg` is responsive on purpose: 56px on <sm (iPhone portrait), 80px
+  // at tablet+. The hero orb at a fixed 80px was eating ~20% of an
+  // iPhone's first-fold height, pushing the H1 and CTA below the
+  // scroll line and making the page feel cramped. We keep the prop
+  // API flat (still just `size="lg"` at the callsite) since the hero
+  // is the only consumer — any future non-hero caller that needs a
+  // fixed 80px can add an `xl` variant.
+  lg: "h-14 w-14 sm:h-20 sm:w-20",
 } as const;
 
 type BrandMarkProps = {
   /**
    * `sm` → 36px (fits a nav bar next to the wordmark).
-   * `lg` → 80px (Screen-Studio-style floating orb above the H1).
+   * `lg` → 56px on mobile, 80px at `sm:` (Screen-Studio-style floating
+   * orb above the H1 that adapts to iPhone-sized viewports).
    */
   size: keyof typeof SIZE_CLASSES;
   /** Extra classes (e.g. margin, shadow overrides). */
