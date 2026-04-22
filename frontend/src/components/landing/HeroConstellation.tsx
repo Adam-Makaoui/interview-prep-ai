@@ -65,9 +65,16 @@ const EDGES: ReadonlyArray<readonly [number, number]> = [
   [2, 9], [7, 13], [14, 21],
 ];
 
-/** Palette — violet echoing the site-wide accent color, at low alpha. */
-const NODE_FILL = "rgba(139, 92, 246, 0.55)";
-const EDGE_STROKE = "rgba(139, 92, 246, 0.18)";
+/**
+ * Palette — violet echoing the site-wide accent color.
+ *
+ * Alphas are tuned so the layer reads clearly on the dark aurora without
+ * competing with hero copy. The big win over v1 is the drop-shadow glow
+ * applied per-node via `.constellation-pulse` (see index.css), which
+ * creates a bloom halo so the network feels lit rather than just drawn.
+ */
+const NODE_FILL = "rgba(167, 139, 250, 0.95)";
+const EDGE_STROKE = "rgba(139, 92, 246, 0.35)";
 
 /**
  * Hero-scoped constellation. Must be rendered inside a `position: relative`
@@ -78,7 +85,7 @@ export function HeroConstellation() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 -z-20 opacity-[0.08] dark:opacity-[0.14]"
+      className="pointer-events-none absolute inset-0 -z-20 opacity-[0.35] dark:opacity-[0.55]"
     >
       <svg
         viewBox="0 0 1000 600"
@@ -98,7 +105,7 @@ export function HeroConstellation() {
                 x2={x2}
                 y2={y2}
                 stroke={EDGE_STROKE}
-                strokeWidth={0.6}
+                strokeWidth={1}
               />
             );
           })}
@@ -109,7 +116,7 @@ export function HeroConstellation() {
               key={`node-${i}`}
               cx={cx}
               cy={cy}
-              r={2}
+              r={3}
               fill={NODE_FILL}
               className="constellation-pulse"
               // Spread 24 nodes across the 5s cycle so the twinkle is

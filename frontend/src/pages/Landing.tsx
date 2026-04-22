@@ -985,8 +985,12 @@ export default function Landing() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <Link to="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-90">
             <BrandMark size="sm" />
-            <span className="font-display text-xl font-bold tracking-tight">
-              Interview<span className="text-indigo-600 dark:text-indigo-400">Intel</span>
+            {/* Wordmark: single compound word for brand strength (Stripe/Figma/Linear
+                pattern), but with `tracking-normal` for breathing room and
+                `font-extrabold` on "Intel" so the eye still parses it as two
+                concepts without literal whitespace between them. */}
+            <span className="font-display text-xl font-bold tracking-normal">
+              Interview<span className="font-extrabold text-indigo-600 dark:text-indigo-400">Intel</span>
             </span>
           </Link>
           {user ? (
@@ -997,10 +1001,10 @@ export default function Landing() {
               Dashboard
             </Link>
           ) : (
-            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="flex shrink-0 items-center gap-4 sm:gap-5">
               <Link
                 to="/login"
-                className="text-sm font-medium text-gray-700 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                className="px-1 text-sm font-medium text-gray-700 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
               >
                 Sign in
               </Link>
@@ -1045,9 +1049,9 @@ export default function Landing() {
             variants={fadeUp}
             className="font-display mx-auto mb-6 max-w-4xl text-5xl font-bold leading-[1.06] tracking-tight text-gray-900 sm:text-6xl lg:text-6xl dark:text-white"
           >
-            <span className="block">Your interview prep</span>
+            <span className="block">From job posting to</span>
             <span className="block bg-gradient-to-r from-indigo-600 via-violet-500 to-fuchsia-500 bg-clip-text text-transparent dark:from-indigo-400 dark:via-violet-400 dark:to-fuchsia-400">
-              mastermind
+              interview-ready in minutes
             </span>
           </motion.h1>
 
@@ -1059,11 +1063,11 @@ export default function Landing() {
             className="mx-auto mb-3 max-w-xl text-base font-medium leading-relaxed text-gray-700 sm:text-lg dark:text-gray-200"
           >
             <span className="whitespace-nowrap">Reads job postings</span>
-            <span aria-hidden className="mx-2.5 text-gray-400 dark:text-gray-600">
+            <span aria-hidden className="mx-3 text-gray-500 dark:text-gray-400">
               ·
             </span>
             <span className="whitespace-nowrap">Models interview panels</span>
-            <span aria-hidden className="mx-2.5 text-gray-400 dark:text-gray-600">
+            <span aria-hidden className="mx-3 text-gray-500 dark:text-gray-400">
               ·
             </span>
             <span className="whitespace-nowrap">Scores your answers</span>
@@ -1162,12 +1166,47 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-white/45 bg-white/35 py-6 text-center text-xs text-gray-600 backdrop-blur-md dark:border-white/10 dark:bg-gray-950/35 dark:text-gray-500">
-        InterviewIntel &middot; Built by{" "}
-        <a href="https://linkedin.com/in/adammakaoui" target="_blank" rel="noopener" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
-          Adam Makaoui
-        </a>
+      {/* Footer — screen.studio-style stacked brand + links + legal line.
+          Matches the glass aesthetic (border-white/45 + backdrop-blur) used
+          throughout the landing page so it doesn't feel bolted on. */}
+      <footer className="relative z-10 border-t border-white/45 bg-white/35 px-6 py-10 backdrop-blur-md dark:border-white/10 dark:bg-gray-950/40">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 sm:flex-row sm:justify-between">
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
+            aria-label="InterviewIntel home"
+          >
+            <BrandMark size="sm" />
+            <span className="font-display text-lg font-bold tracking-normal text-gray-900 dark:text-white">
+              Interview<span className="font-extrabold text-indigo-600 dark:text-indigo-400">Intel</span>
+            </span>
+          </Link>
+          <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-5 text-sm text-gray-600 dark:text-gray-400">
+            <a
+              href="https://linkedin.com/in/adammakaoui"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-gray-900 dark:hover:text-white"
+            >
+              LinkedIn
+            </a>
+            <a
+              href="mailto:adam.makaoui@outlook.com?subject=InterviewIntel"
+              className="transition-colors hover:text-gray-900 dark:hover:text-white"
+            >
+              Contact
+            </a>
+            <Link
+              to="/login"
+              className="transition-colors hover:text-gray-900 dark:hover:text-white"
+            >
+              Sign in
+            </Link>
+          </nav>
+        </div>
+        <div className="mx-auto mt-6 max-w-5xl text-center text-xs text-gray-500 dark:text-gray-500">
+          &copy; 2026 Adam Makaoui. All rights reserved.
+        </div>
       </footer>
     </div>
   );

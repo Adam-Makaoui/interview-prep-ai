@@ -216,25 +216,44 @@ body {
 /* ── Hero constellation (intelligence motif) ──────────────────────────
  * Node pulse for the knowledge-graph SVG behind the aurora. Each <circle>
  * gets an inline `animation-delay` in the component so the twinkle is
- * desynchronized across the 24 nodes. Animating only `opacity` keeps the
- * compositor fast-path — no layout, no paint, no reflow.
+ * desynchronized across the 24 nodes.
+ *
+ * v2: animating BOTH opacity and `filter: drop-shadow` so each node
+ * breathes light rather than just winking in/out. drop-shadow runs on
+ * the compositor thread (no paint/layout) — the extra cost is a soft
+ * bloom halo per node, which is what gives the constellation its
+ * "thinking back there" feel and finally makes it visible against the
+ * dark aurora.
+ *
+ * Baseline at 0/100%: bright-ish (0.55) with a soft 3px bloom — so the
+ * network is never invisible, even between pulses.
+ * Peak at 50%: full opacity with an 8px bloom — the glow swell.
  */
 @keyframes constellationPulse {
   0%,
   100% {
-    opacity: 0.35;
+    opacity: 0.55;
+    filter: drop-shadow(0 0 3px rgba(167, 139, 250, 0.45));
   }
   50% {
     opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.85));
   }
 }
 
 .constellation-pulse {
   animation: constellationPulse 5s ease-in-out infinite;
+  /* GPU-compositor hint: drop-shadow animates on the compositor thread
+     only when the filter property is part of a stacking context. */
+  will-change: opacity, filter;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .constellation-pulse {
     animation: none;
+    /* Keep the bloom static so the network is still clearly visible
+       when motion is off — just no breathing. */
+    filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.6));
+    opacity: 0.85;
   }
 }
