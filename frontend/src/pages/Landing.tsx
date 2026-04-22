@@ -25,12 +25,17 @@ import { HeroProductDemo } from "../components/landing/HeroProductDemo";
 import { BrandMark } from "../components/landing/BrandMark";
 import { AboutFounder } from "../components/landing/AboutFounder";
 import { HeroAurora } from "../components/landing/HeroAurora";
-// HeroConstellation was mounted here in an earlier iteration as an
-// "intelligence" knowledge-graph motif. User feedback (2026-04-19): the
-// network was too visually dense behind the H1 and competed with reading.
-// Component is intentionally left in the repo for an easy revert path,
-// but is not rendered on the live landing — the aurora alone carries
-// the atmosphere now.
+import { HeroMascot } from "../components/landing/HeroMascot";
+import { HeroConstellation } from "../components/landing/HeroConstellation";
+// Hero layers stack (back -> front), all inside the hero's relative
+// overflow-hidden wrapper:
+//   HeroAurora          @ -z-30  — dark cloud drift (lighten-capped)
+//   HeroMascot          @ -z-20  — giant ghost scanner eye (brand DNA)
+//   HeroConstellation   @ -z-10  — sparse mesh, bright nodes/dim edges
+// The sharp BrandMark orb (z-0) sits vertically where the mascot's iris
+// is drawn, so peripherally the orb "completes" the ghost scanner —
+// that tie is what makes the mascot sticky without it competing with
+// the copy.
 
 /**
  * YouTube video ID powering the "See it in action" embed via `youtube-nocookie.com/embed/<id>`.
@@ -1028,9 +1033,13 @@ export default function Landing() {
           <section> inside stays max-w-4xl for content. The aurora is scoped to
           this wrapper, so it costs nothing on every section below. */}
       <div className="relative overflow-hidden">
-        {/* HeroAurora at -z-10 is the only hero-scoped background layer now.
-            Content at z-0 reads cleanly above it. */}
+        {/* Hero background stack — three ambient layers, all aria-hidden,
+            pointer-events-none, and stacked by negative z-index so the
+            content sits cleanly above them. See import block above for
+            the per-layer rationale. */}
         <HeroAurora />
+        <HeroMascot />
+        <HeroConstellation />
         <section className="relative z-0 mx-auto max-w-4xl px-6 pb-20 pt-10 text-center sm:pt-14">
         <motion.div initial="hidden" animate="visible" variants={stagger} className="relative">
           <motion.div variants={fadeUp} className="mb-6 flex justify-center">

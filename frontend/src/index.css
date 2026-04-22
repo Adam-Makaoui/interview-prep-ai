@@ -170,125 +170,294 @@ body {
   }
 }
 
-/* ── Hero aurora ──────────────────────────────────────────────────────
- * TWO gradient layers panning in opposing directions at different cycle
- * lengths. That asymmetry is what produces the "clouds morphing" feel the
- * user asked for — a single translating gradient only slides, but two
- * layers counter-moving with different periods overlap and diverge
- * constantly, so the silhouettes visibly change shape.
+/* ── Hero dark-cloud drift ────────────────────────────────────────────
+ * Three radial-gradient layers blended with `mix-blend-mode: lighten`
+ * over a solid near-black base. `lighten` is per-channel max(), not
+ * addition, so overlapping layers CAN NEVER produce a pixel brighter
+ * than the brightest single stop color anywhere in the stack. This is
+ * the mathematical guarantee that killed the "too bright" regressions
+ * in prior iterations — with additive/normal compositing, two alpha
+ * violet gradients on top of each other summed to a brighter pixel
+ * than either input.
  *
- * `background-position` is one of the cheapest properties a browser can
- * animate (composited on GPU, no layout, no paint on intermediate frames).
- * Both layers run their own keyframe — the cost of the second layer is
- * one extra compositor-layer, which is negligible.
+ * The three layers each own their own transform keyframe (different
+ * period, different path) so they drift past each other at different
+ * phases. What reads on screen is "dark cloud shifting shape" rather
+ * than "sliding layers".
  *
- * Cycles: primary 14s (down from 18s earlier — the longer cycle felt
- * imperceptibly slow), secondary 22s. Coprime-ish so the two never sync
- * up. Direction-wise, primary walks a clockwise-ish rectangle through its
- * anchor points, secondary walks counter-clockwise through its own set of
- * anchors; the two compositions thus constantly cross each other at
- * different phases.
+ * Cycles deliberately slow (24s / 32s / 40s): ambient motion that does
+ * not distract from reading. Slow + small translate deltas deliver
+ * "ambient drift" rather than "active animation".
  *
- * Previous `heroHueBreathe` keyframe was deleted earlier because rotating
- * hue +/-18deg produced a "dark -> light -> dark" washout; motion now
- * comes purely from position drift on two layers, not color rotation.
+ * Translations capped at ±8% so the 160%-sized layers never show an
+ * unpainted edge against the overflow-hidden container.
  */
-@keyframes heroAuroraPrimary {
-  0% {
-    background-position: 10% 20%;
+.hero-dark-cloud {
+  position: absolute;
+  width: 160%;
+  height: 160%;
+  left: -30%;
+  top: -30%;
+  /* `lighten` = per-channel max(backdrop, source). Guarantees no
+     blended pixel exceeds the brighter single stop color. This IS
+     the brightness-cap — do not remove. */
+  mix-blend-mode: lighten;
+  will-change: transform;
+}
+
+.hero-dark-cloud-a {
+  animation: heroDarkCloudA 24s ease-in-out infinite;
+}
+
+.hero-dark-cloud-b {
+  animation: heroDarkCloudB 32s ease-in-out infinite;
+}
+
+.hero-dark-cloud-accent {
+  animation: heroDarkAccent 40s ease-in-out infinite;
+}
+
+@keyframes heroDarkCloudA {
+  0%,
+  100% {
+    transform: translate3d(-5%, -3%, 0) scale(1);
   }
-  25% {
-    background-position: 85% 15%;
+  33% {
+    transform: translate3d(5%, 2%, 0) scale(1.04);
   }
-  50% {
-    background-position: 90% 85%;
+  66% {
+    transform: translate3d(-2%, 5%, 0) scale(1.02);
+  }
+}
+
+@keyframes heroDarkCloudB {
+  0%,
+  100% {
+    transform: translate3d(4%, 3%, 0) scale(1.05);
+  }
+  40% {
+    transform: translate3d(-5%, -3%, 0) scale(1.08);
   }
   75% {
-    background-position: 10% 90%;
-  }
-  100% {
-    background-position: 10% 20%;
+    transform: translate3d(0%, -5%, 0) scale(1.03);
   }
 }
 
-/* Counter-clockwise path through a different anchor set. Note the
-   `to` position is also the `from` so the loop is seamless. */
-@keyframes heroAuroraSecondary {
+@keyframes heroDarkAccent {
   0% {
-    background-position: 90% 80%;
+    transform: translate3d(-18%, -12%, 0) scale(1);
+    opacity: 0.15;
   }
   25% {
-    background-position: 15% 85%;
+    transform: translate3d(15%, -8%, 0) scale(1.1);
+    opacity: 0.55;
   }
   50% {
-    background-position: 10% 15%;
+    transform: translate3d(12%, 12%, 0) scale(0.95);
+    opacity: 0.2;
   }
   75% {
-    background-position: 85% 10%;
+    transform: translate3d(-12%, 8%, 0) scale(1.05);
+    opacity: 0.45;
   }
   100% {
-    background-position: 90% 80%;
+    transform: translate3d(-18%, -12%, 0) scale(1);
+    opacity: 0.15;
   }
-}
-
-.hero-aurora-primary {
-  animation: heroAuroraPrimary 14s cubic-bezier(0.6, 0.05, 0.3, 0.95) infinite;
-  will-change: background-position;
-}
-
-.hero-aurora-secondary {
-  animation: heroAuroraSecondary 22s cubic-bezier(0.65, 0.1, 0.35, 0.9) infinite;
-  will-change: background-position;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-aurora-primary,
-  .hero-aurora-secondary {
+  .hero-dark-cloud-a,
+  .hero-dark-cloud-b,
+  .hero-dark-cloud-accent {
     animation: none;
+  }
+  /* Default the accent to a low, static opacity when animation is
+     disabled — otherwise its 0%-frame value (0.15) would be its
+     constant brightness, which is fine; but pinning it keeps intent
+     explicit for future edits. */
+  .hero-dark-cloud-accent {
+    opacity: 0.25;
   }
 }
 
-/* ── Hero constellation (intelligence motif) ──────────────────────────
- * Node pulse for the knowledge-graph SVG behind the aurora. Each <circle>
- * gets an inline `animation-delay` in the component so the twinkle is
- * desynchronized across the 24 nodes.
+/* ── Hero scanning mascot ─────────────────────────────────────────────
+ * Sizing + the container-level opacity pulse for HeroMascot. Sizing is
+ * CSS-only so HeroMascot.tsx stays a pure render (no prop drilling for
+ * breakpoint values). The container opacity pulse is the outermost
+ * multiplier — no primitive inside the SVG can read brighter than
+ * (its local alpha) × (container opacity at that instant). With the
+ * peak at 0.18 that means the brightest pixel in the mascot is
+ * 0.55 (iris fill alpha) × 0.18 = 0.099 — ~10% alpha, a ghost.
  *
- * v2: animating BOTH opacity and `filter: drop-shadow` so each node
- * breathes light rather than just winking in/out. drop-shadow runs on
- * the compositor thread (no paint/layout) — the extra cost is a soft
- * bloom halo per node, which is what gives the constellation its
- * "thinking back there" feel and finally makes it visible against the
- * dark aurora.
- *
- * Baseline at 0/100%: bright-ish (0.55) with a soft 3px bloom — so the
- * network is never invisible, even between pulses.
- * Peak at 50%: full opacity with an 8px bloom — the glow swell.
+ * Desktop 560×560, mobile 380×380. Positioned via parent's absolute
+ * left-1/2 top-54% translate to sit behind the brand orb and H1.
  */
-@keyframes constellationPulse {
+.hero-mascot {
+  width: 380px;
+  height: 380px;
+  /* Anchor to a fixed offset from the top of the hero wrapper. The
+     SVG's iris sits at 65% of the rendered height; with top = -70px
+     and height = 380px on mobile the iris lands at ~180px from the
+     top of the hero wrapper, which is near the mobile H1 baseline. */
+  top: -70px;
+  /* Container-level opacity peaks at 0.22 on breath. The brightest
+     primitive inside is the iris fill at 0.55 alpha, so the absolute
+     brightest rendered pixel is 0.55 × 0.22 = 0.121 — a ghost. */
+  opacity: 0.2;
+  animation: heroMascotBreath 10s ease-in-out infinite;
+}
+
+@media (min-width: 640px) {
+  .hero-mascot {
+    width: 560px;
+    height: 560px;
+    /* Desktop: iris at 65% of 560 = 364px. With top = -90px, iris
+       lands at ~274px from wrapper top — between the brand orb and
+       the H1, so the orb visually "sits on" the scanner eye. */
+    top: -90px;
+  }
+}
+
+@keyframes heroMascotBreath {
+  0%,
+  100% {
+    opacity: 0.14;
+  }
+  50% {
+    opacity: 0.24;
+  }
+}
+
+/* Signal-arc pulse — each arc translates UP + fades out, like a sonar
+   ping moving away from its source. Staggered via per-arc delay so the
+   three arcs emanate sequentially. `transform-box: fill-box` +
+   `transform-origin: center` ensures the arc scales around its local
+   center; otherwise the SVG root origin would distort the path. */
+.hero-mascot-arc {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: heroMascotArcPulse 3.2s ease-out infinite;
+  will-change: transform, opacity;
+}
+
+.hero-mascot-arc-1 {
+  animation-delay: 0s;
+}
+.hero-mascot-arc-2 {
+  animation-delay: 0.55s;
+}
+.hero-mascot-arc-3 {
+  animation-delay: 1.1s;
+}
+
+@keyframes heroMascotArcPulse {
+  0% {
+    transform: translateY(0) scale(0.96);
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(-18px) scale(1.05);
+    opacity: 0;
+  }
+}
+
+/* Iris "scanner" — the pupil + iris translate left ↔ right to read as
+   the scanner tracking something across the field. Kept subtle (±5px)
+   so it's not distracting but is noticeable on a second look. */
+.hero-mascot-iris {
+  animation: heroMascotIrisScan 5.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes heroMascotIrisScan {
+  0%,
+  100% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+}
+
+/* Ping ring — starts at the pupil's circumference, expands to ~2.6×
+   size while fading out. This is the "I just detected something"
+   radiation pulse. Reset is instantaneous at 100% so the next ping
+   spawns fresh from the pupil again. */
+.hero-mascot-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: heroMascotPing 4.2s ease-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes heroMascotPing {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.55;
+    stroke-opacity: 0.55;
+  }
+  70% {
+    opacity: 0;
+    stroke-opacity: 0;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+    stroke-opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-mascot,
+  .hero-mascot-arc,
+  .hero-mascot-iris,
+  .hero-mascot-ping {
+    animation: none;
+  }
+  /* Hold the mascot at its static mid-opacity so it's still present
+     as a ghost watermark when motion is disabled. */
+  .hero-mascot {
+    opacity: 0.14;
+  }
+}
+
+/* ── Hero constellation mesh ──────────────────────────────────────────
+ * Node twinkle for the sparse knowledge-graph overlay. Each node gets
+ * an inline `animation-delay` from the component so the 12 nodes pulse
+ * out of phase (no mass-synchronized flash).
+ *
+ * Opacity-only animation — no filter/drop-shadow. Earlier iterations
+ * animated drop-shadow to produce a bloom halo, but combined with the
+ * mascot breath + cloud drift the halo became visual noise. Clean
+ * opacity breath is sufficient to read as "thinking" at this density.
+ */
+@keyframes heroConstellationTwinkle {
   0%,
   100% {
     opacity: 0.55;
-    filter: drop-shadow(0 0 3px rgba(167, 139, 250, 0.45));
   }
   50% {
     opacity: 1;
-    filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.85));
   }
 }
 
-.constellation-pulse {
-  animation: constellationPulse 5s ease-in-out infinite;
-  /* GPU-compositor hint: drop-shadow animates on the compositor thread
-     only when the filter property is part of a stacking context. */
-  will-change: opacity, filter;
+.hero-constellation-node {
+  animation: heroConstellationTwinkle 4.8s ease-in-out infinite;
+  will-change: opacity;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .constellation-pulse {
+  .hero-constellation-node {
     animation: none;
-    /* Keep the bloom static so the network is still clearly visible
-       when motion is off — just no breathing. */
-    filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.6));
     opacity: 0.85;
   }
 }
+
+/* Legacy `.constellation-pulse` rules intentionally removed — they drove
+ * the earlier dense mesh with a drop-shadow bloom, which the user
+ * flagged as "distracting". The new mesh (see HeroConstellation.tsx +
+ * `.hero-constellation-node` above) is opacity-only and sparse. */
