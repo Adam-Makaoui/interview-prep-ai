@@ -49,7 +49,7 @@ export default function NewSession() {
   const [loading, setLoading] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState("");
-  const [jdMode, setJdMode] = useState<JdMode>("text");
+  const [jdMode, setJdMode] = useState<JdMode>("url");
   /** Multi-resume profile from API; null if unavailable (fallback to legacy single string). */
   const [savedResumesData, setSavedResumesData] = useState<SavedResumesData | null>(null);
   const [selectedResumeId, setSelectedResumeId] = useState<string | "custom">("custom");
@@ -119,8 +119,16 @@ export default function NewSession() {
         stage: result.stage_suggestion || prev.stage,
         job_description: result.job_description || prev.job_description,
       }));
-    } catch {
-      setError("Failed to extract fields. Check the job description or URL and try again.");
+    } catch (err) {
+      // Prefer the backend's actionable message (fetch_failed /
+      // extraction_empty / missing_input) over a generic string. Only
+      // fall back to the old copy if the server wasn't reachable at
+      // all or responded with an unexpected shape.
+      const message =
+        err instanceof Error && err.message && !/^Failed:\s*\d+/.test(err.message)
+          ? err.message
+          : "Failed to extract fields. Check the job description or URL and try again.";
+      setError(message);
     } finally {
       setExtracting(false);
     }
@@ -350,17 +358,6 @@ export default function NewSession() {
               <div className="ml-auto flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700">
                 <button
                   type="button"
-                  onClick={() => setJdMode("text")}
-                  className={`px-3 py-1 text-xs font-medium transition-colors ${
-                    jdMode === "text"
-                      ? "bg-indigo-600 text-white"
-                      : "bg-gray-100 text-gray-600 hover:text-gray-900 dark:bg-gray-900 dark:text-gray-400 dark:hover:text-white"
-                  }`}
-                >
-                  Paste Text
-                </button>
-                <button
-                  type="button"
                   onClick={() => setJdMode("url")}
                   className={`px-3 py-1 text-xs font-medium transition-colors ${
                     jdMode === "url"
@@ -369,6 +366,17 @@ export default function NewSession() {
                   }`}
                 >
                   Paste URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setJdMode("text")}
+                  className={`px-3 py-1 text-xs font-medium transition-colors ${
+                    jdMode === "text"
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:text-gray-900 dark:bg-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  }`}
+                >
+                  Paste Text
                 </button>
               </div>
             </div>

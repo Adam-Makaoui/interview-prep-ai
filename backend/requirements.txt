@@ -12,6 +12,7 @@ python-multipart
 httpx
 beautifulsoup4
 duckduckgo-search
+firecrawl-py>=2.0.0,<3.0.0
 pdfplumber
 python-docx
 PyJWT[crypto]

@@ -204,7 +204,22 @@ export async function extractFields(data: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error(`Failed: ${res.status}`);
+  if (!res.ok) {
+    // Backend emits FastAPI-style {detail: {code, message}} for the
+    // known failure modes (fetch_failed, extraction_empty,
+    // missing_input). Surface detail.message verbatim so the UI can
+    // tell the user *why* parsing failed instead of the old generic
+    // "Failed: 422". Fall back to the string form of detail when the
+    // server throws an older-shape error, and to a status-code string
+    // as a last resort.
+    const body = await res.json().catch(() => null);
+    const detail = body?.detail;
+    const message =
+      (detail && typeof detail === "object" && typeof detail.message === "string" && detail.message) ||
+      (typeof detail === "string" && detail) ||
+      `Failed: ${res.status}`;
+    throw new Error(message);
+  }
   return res.json();
 }
 

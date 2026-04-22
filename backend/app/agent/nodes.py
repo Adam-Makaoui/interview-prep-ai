@@ -123,26 +123,121 @@ def _company_intel_snippets(company: str) -> str:
         return ""
 
 
-def _fetch_url(url: str) -> str:
-    """Fetch a URL and extract readable text, stripping boilerplate HTML.
+# ── Job-URL fetch pipeline ───────────────────────────────────────────
+# Two-tier fetcher, used by parse_job_posting to support "paste URL"
+# input mode. Primary path is Firecrawl's headless-browser scrape_url
+# (handles JS-rendered boards like Greenhouse EU + anti-bot). Fallback
+# is a hardened httpx+BeautifulSoup path with a realistic Chrome UA
+# and the full Accept headers job boards sniff for. We keep the
+# fallback unconditional — when FIRECRAWL_API_KEY is missing or
+# Firecrawl raises, the fallback still gets a shot before we give up.
+_FETCH_CHAR_CAP = 20_000
+_HTTPX_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/131.0.0.0 Safari/537.36"
+    ),
+    "Accept": (
+        "text/html,application/xhtml+xml,application/xml;q=0.9,"
+        "image/avif,image/webp,*/*;q=0.8"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Upgrade-Insecure-Requests": "1",
+}
 
-    Used by parse_job_posting to support "paste URL" input mode.
-    Strips script/style/nav/footer tags and truncates to 8k chars to
-    stay within LLM context limits.
+
+def _fetch_url_httpx_fallback(url: str) -> str:
+    """Hardened httpx + BeautifulSoup fallback.
+
+    Strips script/style/nav/footer tags and returns up to
+    _FETCH_CHAR_CAP characters of readable text. Returns "" on any
+    failure so callers can branch on truthiness; the caller is
+    responsible for translating that into a user-facing error.
     """
     try:
-        resp = httpx.get(url, follow_redirects=True, timeout=15, headers={
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-        })
+        resp = httpx.get(
+            url,
+            follow_redirects=True,
+            timeout=20,
+            headers=_HTTPX_HEADERS,
+        )
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         for tag in soup(["script", "style", "nav", "footer", "header"]):
             tag.decompose()
         text = soup.get_text(separator="\n", strip=True)
-        return text[:8000]
+        return text[:_FETCH_CHAR_CAP]
     except Exception as e:
-        logger.warning(f"Failed to fetch URL {url}: {e}")
+        logger.warning("httpx fallback failed for %s: %s", url, e)
         return ""
+
+
+def _fetch_url_firecrawl(url: str) -> str:
+    """Firecrawl primary path — headless browser + Readability cleanup.
+
+    Returns the scraped page as markdown (best signal density for the
+    downstream LLM extractor), capped at _FETCH_CHAR_CAP. Returns ""
+    if firecrawl-py isn't installed, no key is configured, or the call
+    fails for any reason — callers fall back to httpx.
+    """
+    api_key = settings.firecrawl_api_key
+    if not api_key:
+        return ""
+    try:
+        # Import lazily so the backend still boots when firecrawl-py
+        # isn't installed (e.g. older deploy images that haven't yet
+        # picked up requirements.txt changes).
+        from firecrawl import FirecrawlApp  # type: ignore
+    except Exception as e:
+        logger.warning("firecrawl-py not importable: %s", e)
+        return ""
+
+    try:
+        app = FirecrawlApp(api_key=api_key)
+        # scrape_url returns an object with a `.markdown` attr in
+        # firecrawl-py v2+. Some versions return a dict-like payload;
+        # handle both shapes defensively.
+        response = app.scrape_url(
+            url,
+            formats=["markdown"],
+            only_main_content=True,
+            timeout=20000,
+        )
+        markdown = getattr(response, "markdown", None)
+        if markdown is None and isinstance(response, dict):
+            markdown = response.get("markdown") or response.get("data", {}).get("markdown")
+        if not markdown:
+            logger.warning("firecrawl returned empty markdown for %s", url)
+            return ""
+        return markdown[:_FETCH_CHAR_CAP]
+    except Exception as e:
+        logger.warning("firecrawl fetch failed for %s: %s", url, e)
+        return ""
+
+
+def _fetch_url(url: str) -> str:
+    """Fetch a job-posting URL and return readable text for LLM extraction.
+
+    Strategy: try Firecrawl first when configured; on empty/failure,
+    fall back to the hardened httpx path. Returns "" only if both
+    paths produce nothing — the endpoint turns that into a structured
+    ``fetch_failed`` error for the UI.
+    """
+    if settings.firecrawl_api_key:
+        markdown = _fetch_url_firecrawl(url)
+        if markdown:
+            logger.info("job-url fetch via firecrawl succeeded (%s)", url)
+            return markdown
+        logger.info("firecrawl empty/failed, falling back to httpx (%s)", url)
+
+    text = _fetch_url_httpx_fallback(url)
+    if text:
+        logger.info("job-url fetch via httpx fallback succeeded (%s)", url)
+    return text
 
 
 def _resolve_stage_context(stage: str, state: AgentState) -> str:

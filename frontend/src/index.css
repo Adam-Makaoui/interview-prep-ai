@@ -301,10 +301,11 @@ body {
      and height = 380px on mobile the iris lands at ~180px from the
      top of the hero wrapper, which is near the mobile H1 baseline. */
   top: -70px;
-  /* Container-level opacity peaks at 0.22 on breath. The brightest
+  /* Container-level opacity peaks at 0.32 on breath. The brightest
      primitive inside is the iris fill at 0.55 alpha, so the absolute
-     brightest rendered pixel is 0.55 × 0.22 = 0.121 — a ghost. */
-  opacity: 0.2;
+     brightest rendered pixel is 0.55 × 0.32 = 0.176 — still a ghost,
+     just a slightly more confident one than the prior 0.121 ceiling. */
+  opacity: 0.26;
   animation: heroMascotBreath 10s ease-in-out infinite;
 }
 
@@ -322,10 +323,10 @@ body {
 @keyframes heroMascotBreath {
   0%,
   100% {
-    opacity: 0.14;
+    opacity: 0.2;
   }
   50% {
-    opacity: 0.24;
+    opacity: 0.32;
   }
 }
 
@@ -419,9 +420,12 @@ body {
     animation: none;
   }
   /* Hold the mascot at its static mid-opacity so it's still present
-     as a ghost watermark when motion is disabled. */
+     as a ghost watermark when motion is disabled. Pinned at 0.22 so
+     the static read roughly matches the midpoint of the animated
+     0.20<->0.32 breath envelope — same brightness a viewer would see
+     glancing at the animated version at a random moment. */
   .hero-mascot {
-    opacity: 0.14;
+    opacity: 0.22;
   }
 }
 

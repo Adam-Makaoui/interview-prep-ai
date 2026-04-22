@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str = ""
     langgraph_memory_fallback: str = ""
 
+    firecrawl_api_key: str | None = None
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
     @property
