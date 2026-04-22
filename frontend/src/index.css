@@ -90,3 +90,79 @@ body {
   background-repeat: repeat;
   background-size: 128px 128px;
 }
+
+/* ── Landing background orb drift ─────────────────────────────────────
+ * Slow elliptical translations — pure CSS so they run on the compositor
+ * and cost zero main-thread frames. Each orb also scales a little over
+ * the loop so the composition breathes; the Framer opacity pulse in
+ * LandingAtmosphere layers on top of this via a different property
+ * (opacity only — never transform — so it does not clobber these).
+ *
+ * The four keyframes use slightly different deltas, phases, and periods
+ * so the orbs never visibly sync up, which is what sells the "cloud"
+ * feel vs. a single looped CSS animation.
+ *
+ * Gated with `prefers-reduced-motion: reduce` below.
+ */
+@keyframes orbDriftA {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, -3%, 0) scale(1.06);
+  }
+}
+@keyframes orbDriftB {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-5%, 4%, 0) scale(1.05);
+  }
+}
+@keyframes orbDriftC {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.04);
+  }
+  50% {
+    transform: translate3d(3%, 5%, 0) scale(1);
+  }
+}
+@keyframes orbDriftD {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-4%, -5%, 0) scale(1.07);
+  }
+}
+
+.orb-drift-a {
+  animation: orbDriftA 28s ease-in-out infinite;
+  will-change: transform;
+}
+.orb-drift-b {
+  animation: orbDriftB 34s ease-in-out 1.2s infinite;
+  will-change: transform;
+}
+.orb-drift-c {
+  animation: orbDriftC 42s ease-in-out 0.6s infinite;
+  will-change: transform;
+}
+.orb-drift-d {
+  animation: orbDriftD 38s ease-in-out 2s infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb-drift-a,
+  .orb-drift-b,
+  .orb-drift-c,
+  .orb-drift-d {
+    animation: none;
+  }
+}

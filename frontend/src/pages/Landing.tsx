@@ -22,6 +22,8 @@ import {
 } from "framer-motion";
 import { useAuth } from "../lib/auth";
 import { HeroProductDemo } from "../components/landing/HeroProductDemo";
+import { BrandMark } from "../components/landing/BrandMark";
+import { AboutFounder } from "../components/landing/AboutFounder";
 
 /**
  * YouTube video ID powering the "See it in action" embed via `youtube-nocookie.com/embed/<id>`.
@@ -126,31 +128,36 @@ function LandingAtmosphere({ reducedMotion }: { reducedMotion: boolean }) {
     );
   }
 
+  // Framer handles opacity-only pulses here — the scale/translate drift is
+  // driven by the `.orb-drift-*` CSS classes in index.css so it runs on the
+  // compositor (no per-frame JS). Framer and CSS animate DIFFERENT properties
+  // on the same element, which is safe; animating `transform` from both would
+  // clobber each other.
   return (
     <>
       {base}
       <motion.div
-        className={`${orb} top-[8%] left-[8%] h-[min(480px,55vw)] w-[min(480px,55vw)] bg-violet-400/32 dark:bg-violet-600/22`}
+        className={`${orb} orb-drift-a top-[8%] left-[8%] h-[min(480px,55vw)] w-[min(480px,55vw)] bg-violet-400/32 dark:bg-violet-600/22`}
         aria-hidden
-        animate={{ opacity: [0.42, 0.62, 0.42], scale: [1, 1.05, 1] }}
+        animate={{ opacity: [0.42, 0.62, 0.42] }}
         transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className={`${orb} top-[22%] right-[4%] h-[min(400px,48vw)] w-[min(400px,48vw)] bg-fuchsia-400/24 dark:bg-fuchsia-600/18`}
+        className={`${orb} orb-drift-b top-[22%] right-[4%] h-[min(400px,48vw)] w-[min(400px,48vw)] bg-fuchsia-400/24 dark:bg-fuchsia-600/18`}
         aria-hidden
-        animate={{ opacity: [0.32, 0.52, 0.32], scale: [1, 1.06, 1] }}
+        animate={{ opacity: [0.32, 0.52, 0.32] }}
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
       />
       <motion.div
-        className={`${orb} bottom-[12%] left-[18%] h-[min(520px,60vw)] w-[min(520px,60vw)] bg-indigo-400/28 dark:bg-indigo-600/20`}
+        className={`${orb} orb-drift-c bottom-[12%] left-[18%] h-[min(520px,60vw)] w-[min(520px,60vw)] bg-indigo-400/28 dark:bg-indigo-600/20`}
         aria-hidden
-        animate={{ opacity: [0.38, 0.58, 0.38], scale: [1.04, 1, 1.04] }}
+        animate={{ opacity: [0.38, 0.58, 0.38] }}
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
       />
       <motion.div
-        className={`${orb} bottom-[6%] right-[12%] h-[min(360px,42vw)] w-[min(360px,42vw)] bg-cyan-400/20 dark:bg-cyan-600/14`}
+        className={`${orb} orb-drift-d bottom-[6%] right-[12%] h-[min(360px,42vw)] w-[min(360px,42vw)] bg-cyan-400/20 dark:bg-cyan-600/14`}
         aria-hidden
-        animate={{ opacity: [0.28, 0.48, 0.28], scale: [1, 1.07, 1] }}
+        animate={{ opacity: [0.28, 0.48, 0.28] }}
         transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
       {noise}
@@ -973,10 +980,13 @@ export default function Landing() {
       <LandingAtmosphere reducedMotion={!!reduceMotion} />
 
       <header className="relative z-10 border-b border-white/50 bg-white/55 backdrop-blur-xl dark:border-white/10 dark:bg-gray-950/45">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="font-display text-xl font-bold tracking-tight">
-            Interview<span className="text-indigo-600 dark:text-indigo-400">Intel</span>
-          </span>
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+          <Link to="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-90">
+            <BrandMark size="sm" />
+            <span className="font-display text-xl font-bold tracking-tight">
+              Interview<span className="text-indigo-600 dark:text-indigo-400">Intel</span>
+            </span>
+          </Link>
           {user ? (
             <Link
               to={ctaHref}
@@ -1003,14 +1013,21 @@ export default function Landing() {
         </div>
       </header>
 
-      <section className="relative z-0 mx-auto max-w-4xl px-6 pb-20 pt-20 text-center">
+      <section className="relative z-0 mx-auto max-w-4xl px-6 pb-20 pt-10 text-center sm:pt-14">
         <motion.div initial="hidden" animate="visible" variants={stagger} className="relative">
+          <motion.div variants={fadeUp} className="mb-6 flex justify-center">
+            <BrandMark
+              size="lg"
+              className="shadow-2xl shadow-violet-500/30 ring-violet-400/25"
+            />
+          </motion.div>
+
           <motion.div
             variants={fadeUp}
-            className="mb-8 inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-100/90 px-4 py-1.5 text-xs font-medium text-indigo-800 backdrop-blur-sm dark:border-indigo-500/25 dark:bg-indigo-500/12 dark:text-indigo-300"
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-100/90 px-3 py-1 text-[11px] font-medium text-indigo-800 backdrop-blur-sm dark:border-indigo-500/25 dark:bg-indigo-500/12 dark:text-indigo-300"
           >
             <span className="motion-reduce:animate-none h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-600 dark:bg-indigo-400" />
-            One structured system for serious technical interviews
+            The interview prep system
           </motion.div>
 
           <motion.h1
@@ -1045,7 +1062,14 @@ export default function Landing() {
             </a>
           </motion.div>
 
-          <motion.div variants={fadeScale} className="mt-14 sm:mt-16">
+          <motion.p
+            variants={fadeUp}
+            className="mt-4 text-xs text-gray-500 dark:text-gray-500"
+          >
+            Free forever · no credit card
+          </motion.p>
+
+          <motion.div variants={fadeScale} className="mt-10 sm:mt-12">
             <HeroProductDemo />
           </motion.div>
 
@@ -1082,6 +1106,11 @@ export default function Landing() {
 
       {/* Social proof */}
       <TestimonialsSection reduceMotion={!!reduceMotion} ctaHref={ctaHref} />
+
+      {/* Founder story — human trust signal before the pricing ask */}
+      <SectionHairline className="mt-4" />
+      <AboutFounder />
+      <SectionHairline className="mb-8" />
 
       {/* Pricing */}
       <PricingSection ctaHref={ctaHref} reduceMotion={!!reduceMotion} />

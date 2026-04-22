@@ -161,10 +161,10 @@ Detailed roadmap lives in Notion. Recently shipped and upcoming priorities:
 - **Branch-based environments** — `main` → production, `dev` → staging preview; documented `dev → main` merge flow
 - **Magic-link error clarity** — login error mapper now branches on Supabase's structured error codes (`over_email_send_rate_limit`, `validation_failed`, `unexpected_failure`, …) and logs raw `code`/`status`/`message` for debugging instead of silently collapsing every failure into "we couldn't deliver the login email"
 - **Product-shell polish** — new `PageContainer` + `PageHeader` primitives; Dashboard, Progress, NewSession, and PrepDetail now share a consistent max-width, vertical rhythm, and heading style; stat panels + chart panels migrated to shadcn `Card`
+- **Animated hero (product-demo card stack)** — replaces the aborted "intelligence grid"; 12s loop through paste-URL → intelligence extracted → mock interview → scorecard, discrete timeline-based animation so no per-frame JS cost; reduced-motion users see the final composition statically
+- **Screen-Studio hero polish** — eye-logo in nav + floating orb above the H1, tighter Screen-Studio vertical rhythm so the card stack peeks above the fold, slow CSS-only orb drift for ambient "cloud" motion (zero main-thread cost), founder About section between testimonials and pricing
 
 ### Backlog
-
-- **Animated hero (product-demo style)** — replacement for the aborted "intelligence grid" (reverted in commit `d14b357` — label-in-a-box design read as random jargon). Replace with a mini faux-product-screen looping through paste-URL → extracted intelligence → interviewer dialogue → score card, so the hero itself communicates the product's value in one viewing
 - **YouTube demo video + embed upgrade** — record with [Screen.studio](https://screen.studio), upload as unlisted, swap the `DEMO_VIDEO_ID` placeholder in `Landing.tsx`, replace the iframe with `lite-youtube-embed` for lazy loading
 - **"How it works" inline clips** — per-band Screen.studio loops (JD intelligence, STAR frameworks, mock interviews, scorecard) — one short muted MP4 per value-prop band, replacing the static mockups
 - **Auto-redirect signed-in users `/` → `/app`** — was bundled in the reverted commit; re-apply as its own small change once hero direction is settled
@@ -172,7 +172,8 @@ Detailed roadmap lives in Notion. Recently shipped and upcoming priorities:
 - **Monetization: model tiers** — enforce Pro-only models server-side (done for mini), bundle stronger defaults + limits with Stripe checkout; reflect in pricing copy
 - **Railway dev environment** — split Railway backend so the `dev` branch deploys to a separate service and `dev.interviewintel.ai` frontends can exercise backend changes without risking production (Level 1 isolation; DB still shared)
 - **Testimonials swap** — drop the 3D rotating ring entirely; replace with a horizontal auto-scrolling strip (Vercel/Stripe pattern) — pauses on hover, infinite loop, zero interaction required, mobile works out of the box
-- **GTM hygiene** — favicon set (SVG + PNG fallbacks + apple-touch-icon), `og:image`, `sitemap.xml` + `robots.txt`, Schema.org `SoftwareApplication` + `Organization` JSON-LD, Google Search Console verification
+- **GTM hygiene** — generate full favicon set (16/32/180/512 + ICO multi-res) from the new eye badge; composite OG image (1200×630) with the eye + wordmark; `sitemap.xml` + `robots.txt`, Schema.org `SoftwareApplication` + `Organization` JSON-LD, Google Search Console verification
+- **Founder About copy + headshot** — replace the placeholder 3-sentence bio in `AboutFounder.tsx` with the real story, swap the "AM" gradient avatar for a real headshot at `/public/brand/founder-headshot.jpg`
 - **AI SEO** — `/llms.txt` + `/llms-full.txt`, long-form "How it works", "Pricing explainer", and 3–5 use-case pages so AI search engines have substantive content to cite
 - **Soft launch** — Reddit posts (r/cscareerquestions, r/interviewprep), X thread strategy, Show HN copy + demo video, Product Hunt when we have notify-me signups
 - **UI Polish** — loading skeletons, error states with retry, transitions
