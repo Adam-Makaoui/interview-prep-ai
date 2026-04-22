@@ -25,7 +25,12 @@ import { HeroProductDemo } from "../components/landing/HeroProductDemo";
 import { BrandMark } from "../components/landing/BrandMark";
 import { AboutFounder } from "../components/landing/AboutFounder";
 import { HeroAurora } from "../components/landing/HeroAurora";
-import { HeroConstellation } from "../components/landing/HeroConstellation";
+// HeroConstellation was mounted here in an earlier iteration as an
+// "intelligence" knowledge-graph motif. User feedback (2026-04-19): the
+// network was too visually dense behind the H1 and competed with reading.
+// Component is intentionally left in the repo for an easy revert path,
+// but is not rendered on the live landing — the aurora alone carries
+// the atmosphere now.
 
 /**
  * YouTube video ID powering the "See it in action" embed via `youtube-nocookie.com/embed/<id>`.
@@ -1023,10 +1028,8 @@ export default function Landing() {
           <section> inside stays max-w-4xl for content. The aurora is scoped to
           this wrapper, so it costs nothing on every section below. */}
       <div className="relative overflow-hidden">
-        {/* Layer order matters: constellation (-z-20) sits deepest, aurora (-z-10)
-            paints on top of it via soft-light blend, content (z-0) reads cleanly
-            above both. */}
-        <HeroConstellation />
+        {/* HeroAurora at -z-10 is the only hero-scoped background layer now.
+            Content at z-0 reads cleanly above it. */}
         <HeroAurora />
         <section className="relative z-0 mx-auto max-w-4xl px-6 pb-20 pt-10 text-center sm:pt-14">
         <motion.div initial="hidden" animate="visible" variants={stagger} className="relative">
@@ -1166,22 +1169,32 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Footer — screen.studio-style stacked brand + links + legal line.
-          Matches the glass aesthetic (border-white/45 + backdrop-blur) used
-          throughout the landing page so it doesn't feel bolted on. */}
+      {/* Footer — brand mark (logo + wordmark + copyright sub-line) on the
+          left, nav links on the right. Copyright lives directly under the
+          wordmark, left-aligned, rather than centered on its own row: that
+          makes the footer feel like a signature block rather than a form
+          with a legal disclaimer pinned beneath it. */}
       <footer className="relative z-10 border-t border-white/45 bg-white/35 px-6 py-10 backdrop-blur-md dark:border-white/10 dark:bg-gray-950/40">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 sm:flex-row sm:justify-between">
-          <Link
-            to="/"
-            className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
-            aria-label="InterviewIntel home"
-          >
-            <BrandMark size="sm" />
-            <span className="font-display text-lg font-bold tracking-normal text-gray-900 dark:text-white">
-              Interview<span className="font-extrabold text-indigo-600 dark:text-indigo-400">Intel</span>
-            </span>
-          </Link>
-          <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-5 text-sm text-gray-600 dark:text-gray-400">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 sm:flex-row sm:items-start sm:justify-between">
+          {/* Brand block: logo + wordmark on row 1, copyright line on row 2.
+              The copyright anchors to the brand so it reads as "attribution
+              to this product" rather than floating boilerplate. */}
+          <div className="flex flex-col items-center gap-1.5 sm:items-start">
+            <Link
+              to="/"
+              className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
+              aria-label="InterviewIntel home"
+            >
+              <BrandMark size="sm" />
+              <span className="font-display text-lg font-bold tracking-normal text-gray-900 dark:text-white">
+                Interview<span className="font-extrabold text-indigo-600 dark:text-indigo-400">Intel</span>
+              </span>
+            </Link>
+            <p className="text-xs text-gray-500 dark:text-gray-500">
+              &copy; 2026 Adam Makaoui. All rights reserved.
+            </p>
+          </div>
+          <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-5 text-sm text-gray-600 sm:justify-end dark:text-gray-400">
             <a
               href="https://linkedin.com/in/adammakaoui"
               target="_blank"
@@ -1203,9 +1216,6 @@ export default function Landing() {
               Sign in
             </Link>
           </nav>
-        </div>
-        <div className="mx-auto mt-6 max-w-5xl text-center text-xs text-gray-500 dark:text-gray-500">
-          &copy; 2026 Adam Makaoui. All rights reserved.
         </div>
       </footer>
     </div>

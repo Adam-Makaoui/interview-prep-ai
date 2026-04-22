@@ -141,21 +141,23 @@ body {
   }
 }
 
-/* Cycle lengths chosen so no two orbs share a period — avoids visible sync. */
+/* Cycle lengths chosen so no two orbs share a period — avoids visible sync.
+   Shortened from 18-26s to 14-20s in the 2026-04-19 pass so the drift is
+   actually perceptible; longer cycles read as static to most viewers. */
 .orb-drift-a {
-  animation: orbDriftA 20s ease-in-out infinite;
+  animation: orbDriftA 16s ease-in-out infinite;
   will-change: transform;
 }
 .orb-drift-b {
-  animation: orbDriftB 24s ease-in-out 1.2s infinite;
+  animation: orbDriftB 20s ease-in-out 1.2s infinite;
   will-change: transform;
 }
 .orb-drift-c {
-  animation: orbDriftC 26s ease-in-out 0.6s infinite;
+  animation: orbDriftC 18s ease-in-out 0.6s infinite;
   will-change: transform;
 }
 .orb-drift-d {
-  animation: orbDriftD 18s ease-in-out 2s infinite;
+  animation: orbDriftD 14s ease-in-out 2s infinite;
   will-change: transform;
 }
 
@@ -169,22 +171,29 @@ body {
 }
 
 /* ── Hero aurora ──────────────────────────────────────────────────────
- * Pans a 200%-sized radial-gradient stack through 5 anchor points so the
- * colors flow across the hero like drifting fog. `background-position` is
- * one of the cheapest properties a browser can animate (composited, no
- * layout, no paint on intermediate frames).
+ * TWO gradient layers panning in opposing directions at different cycle
+ * lengths. That asymmetry is what produces the "clouds morphing" feel the
+ * user asked for — a single translating gradient only slides, but two
+ * layers counter-moving with different periods overlap and diverge
+ * constantly, so the silhouettes visibly change shape.
  *
- * Anchors widened from the original ~25-80% range to 10-90% so each step
- * moves the gradient centers farther and the drift is actually visible.
- * Cycle shortened to 18s and eased with a steeper cubic-bezier so there is
- * less pause at the anchor points — the earlier default `ease-in-out`
- * spent most of the cycle near zero velocity, which is why the drift felt
- * imperceptibly slow. The previous `heroHueBreathe` keyframe was removed
- * in this pass; rotating hue through +/-18deg was what produced the
- * "dark -> light -> dark" washout the user flagged, and it added nothing
- * the position drift does not already do.
+ * `background-position` is one of the cheapest properties a browser can
+ * animate (composited on GPU, no layout, no paint on intermediate frames).
+ * Both layers run their own keyframe — the cost of the second layer is
+ * one extra compositor-layer, which is negligible.
+ *
+ * Cycles: primary 14s (down from 18s earlier — the longer cycle felt
+ * imperceptibly slow), secondary 22s. Coprime-ish so the two never sync
+ * up. Direction-wise, primary walks a clockwise-ish rectangle through its
+ * anchor points, secondary walks counter-clockwise through its own set of
+ * anchors; the two compositions thus constantly cross each other at
+ * different phases.
+ *
+ * Previous `heroHueBreathe` keyframe was deleted earlier because rotating
+ * hue +/-18deg produced a "dark -> light -> dark" washout; motion now
+ * comes purely from position drift on two layers, not color rotation.
  */
-@keyframes heroAurora {
+@keyframes heroAuroraPrimary {
   0% {
     background-position: 10% 20%;
   }
@@ -202,13 +211,39 @@ body {
   }
 }
 
-.hero-aurora-drift {
-  animation: heroAurora 18s cubic-bezier(0.6, 0.05, 0.3, 0.95) infinite;
+/* Counter-clockwise path through a different anchor set. Note the
+   `to` position is also the `from` so the loop is seamless. */
+@keyframes heroAuroraSecondary {
+  0% {
+    background-position: 90% 80%;
+  }
+  25% {
+    background-position: 15% 85%;
+  }
+  50% {
+    background-position: 10% 15%;
+  }
+  75% {
+    background-position: 85% 10%;
+  }
+  100% {
+    background-position: 90% 80%;
+  }
+}
+
+.hero-aurora-primary {
+  animation: heroAuroraPrimary 14s cubic-bezier(0.6, 0.05, 0.3, 0.95) infinite;
+  will-change: background-position;
+}
+
+.hero-aurora-secondary {
+  animation: heroAuroraSecondary 22s cubic-bezier(0.65, 0.1, 0.35, 0.9) infinite;
   will-change: background-position;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-aurora-drift {
+  .hero-aurora-primary,
+  .hero-aurora-secondary {
     animation: none;
   }
 }
