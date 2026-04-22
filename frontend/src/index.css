@@ -170,81 +170,125 @@ body {
   }
 }
 
-/* ── Hero aurora ──────────────────────────────────────────────────────
- * TWO gradient layers panning in opposing directions at different cycle
- * lengths. That asymmetry is what produces the "clouds morphing" feel the
- * user asked for — a single translating gradient only slides, but two
- * layers counter-moving with different periods overlap and diverge
- * constantly, so the silhouettes visibly change shape.
+/* ── Hero dark-cloud drift ────────────────────────────────────────────
+ * Three radial-gradient layers blended with `mix-blend-mode: lighten`
+ * over a solid near-black base. `lighten` is per-channel max(), not
+ * addition, so overlapping layers CAN NEVER produce a pixel brighter
+ * than the brightest single stop color anywhere in the stack. This is
+ * the mathematical guarantee that killed the "too bright" regressions
+ * in prior iterations — with additive/normal compositing, two alpha
+ * violet gradients on top of each other summed to a brighter pixel
+ * than either input.
  *
- * `background-position` is one of the cheapest properties a browser can
- * animate (composited on GPU, no layout, no paint on intermediate frames).
- * Both layers run their own keyframe — the cost of the second layer is
- * one extra compositor-layer, which is negligible.
+ * The three layers each own their own transform keyframe (different
+ * period, different path) so they drift past each other at different
+ * phases. What reads on screen is "dark cloud shifting shape" rather
+ * than "sliding layers".
  *
- * Cycles: primary 14s (down from 18s earlier — the longer cycle felt
- * imperceptibly slow), secondary 22s. Coprime-ish so the two never sync
- * up. Direction-wise, primary walks a clockwise-ish rectangle through its
- * anchor points, secondary walks counter-clockwise through its own set of
- * anchors; the two compositions thus constantly cross each other at
- * different phases.
+ * Cycles deliberately slow (24s / 32s / 40s): the user wants visible
+ * motion that is not distracting from reading. Slow + small translate
+ * deltas deliver "ambient drift" rather than "active animation".
  *
- * Previous `heroHueBreathe` keyframe was deleted earlier because rotating
- * hue +/-18deg produced a "dark -> light -> dark" washout; motion now
- * comes purely from position drift on two layers, not color rotation.
+ * Translations capped at ±8% so the 160%-sized layers never show an
+ * unpainted edge against the overflow-hidden container.
  */
-@keyframes heroAuroraPrimary {
-  0% {
-    background-position: 10% 20%;
+.hero-dark-cloud {
+  position: absolute;
+  /* 160% of container so ±8% translate doesn't reveal seams. */
+  width: 160%;
+  height: 160%;
+  left: -30%;
+  top: -30%;
+  /* `lighten` = per-channel max(backdrop, source). Guarantees no
+     blended pixel exceeds the brighter single stop color. This IS
+     the brightness-cap — do not remove. */
+  mix-blend-mode: lighten;
+  /* Hint to the compositor — transform animations run off the main
+     thread on their own GPU layer. */
+  will-change: transform;
+}
+
+.hero-dark-cloud-a {
+  animation: heroDarkCloudA 24s ease-in-out infinite;
+}
+
+.hero-dark-cloud-b {
+  animation: heroDarkCloudB 32s ease-in-out infinite;
+}
+
+/* Accent is smaller and partially transparent on top of an already-
+   small opacity-pulsing keyframe. This is what produces the "tiny
+   light-purple in small amount, appearing briefly" read the user
+   asked for — the patch is fully off-opacity most of the cycle and
+   swells up to 0.6 opacity only briefly at ~25% and ~75%. */
+.hero-dark-cloud-accent {
+  animation: heroDarkAccent 40s ease-in-out infinite;
+}
+
+@keyframes heroDarkCloudA {
+  0%,
+  100% {
+    transform: translate3d(-5%, -3%, 0) scale(1);
   }
-  25% {
-    background-position: 85% 15%;
+  33% {
+    transform: translate3d(5%, 2%, 0) scale(1.04);
   }
-  50% {
-    background-position: 90% 85%;
+  66% {
+    transform: translate3d(-2%, 5%, 0) scale(1.02);
+  }
+}
+
+@keyframes heroDarkCloudB {
+  0%,
+  100% {
+    transform: translate3d(4%, 3%, 0) scale(1.05);
+  }
+  40% {
+    transform: translate3d(-5%, -3%, 0) scale(1.08);
   }
   75% {
-    background-position: 10% 90%;
-  }
-  100% {
-    background-position: 10% 20%;
+    transform: translate3d(0%, -5%, 0) scale(1.03);
   }
 }
 
-/* Counter-clockwise path through a different anchor set. Note the
-   `to` position is also the `from` so the loop is seamless. */
-@keyframes heroAuroraSecondary {
+/* Accent: wider translate path (the "brief light patch" sweeps across
+   a tight zone), and opacity keyframed so it FADES in and out rather
+   than sitting at a constant amount of brightness. Peak opacity 0.55
+   keeps it low enough that the tint at peak is still within our
+   "slightly-brighter purple in a small amount" budget. */
+@keyframes heroDarkAccent {
   0% {
-    background-position: 90% 80%;
+    transform: translate3d(-18%, -12%, 0) scale(1);
+    opacity: 0.15;
   }
   25% {
-    background-position: 15% 85%;
+    transform: translate3d(15%, -8%, 0) scale(1.1);
+    opacity: 0.55;
   }
   50% {
-    background-position: 10% 15%;
+    transform: translate3d(12%, 12%, 0) scale(0.95);
+    opacity: 0.2;
   }
   75% {
-    background-position: 85% 10%;
+    transform: translate3d(-12%, 8%, 0) scale(1.05);
+    opacity: 0.45;
   }
   100% {
-    background-position: 90% 80%;
+    transform: translate3d(-18%, -12%, 0) scale(1);
+    opacity: 0.15;
   }
-}
-
-.hero-aurora-primary {
-  animation: heroAuroraPrimary 14s cubic-bezier(0.6, 0.05, 0.3, 0.95) infinite;
-  will-change: background-position;
-}
-
-.hero-aurora-secondary {
-  animation: heroAuroraSecondary 22s cubic-bezier(0.65, 0.1, 0.35, 0.9) infinite;
-  will-change: background-position;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-aurora-primary,
-  .hero-aurora-secondary {
+  .hero-dark-cloud-a,
+  .hero-dark-cloud-b,
+  .hero-dark-cloud-accent {
     animation: none;
+  }
+  /* Keep the accent faded way down for static viewers — no drift to
+     make it read as a transient effect, so default it to minimal. */
+  .hero-dark-cloud-accent {
+    opacity: 0.25;
   }
 }
 
