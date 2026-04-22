@@ -1040,12 +1040,28 @@ export default function Landing() {
             </span>
           </motion.h1>
 
+          {/* Primary value prop — three selling points, bullet-separated. Each phrase
+              is wrapped in whitespace-nowrap so only the middots act as line-break
+              opportunities on narrow screens (prevents "Reads job" / "postings" ugly breaks). */}
           <motion.p
             variants={fadeUp}
-            className="mx-auto mb-8 max-w-xl text-base leading-relaxed text-gray-600 sm:text-lg dark:text-gray-400"
+            className="mx-auto mb-3 max-w-xl text-base font-medium leading-relaxed text-gray-700 sm:text-lg dark:text-gray-200"
           >
-            Reads the posting. Models the panel. Scores your answers. Built for high-stakes technical and
-            behavioral loops.
+            <span className="whitespace-nowrap">Reads job postings</span>
+            <span aria-hidden className="mx-2.5 text-gray-400 dark:text-gray-600">
+              ·
+            </span>
+            <span className="whitespace-nowrap">Models interview panels</span>
+            <span aria-hidden className="mx-2.5 text-gray-400 dark:text-gray-600">
+              ·
+            </span>
+            <span className="whitespace-nowrap">Scores your answers</span>
+          </motion.p>
+          <motion.p
+            variants={fadeUp}
+            className="mx-auto mb-8 max-w-xl text-sm leading-relaxed text-gray-500 sm:text-base dark:text-gray-500"
+          >
+            Built for high-stakes technical and behavioral interview loops.
           </motion.p>
           <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-4">
             <Link
