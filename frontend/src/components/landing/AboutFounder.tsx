@@ -7,10 +7,10 @@
  * The avatar is served from `/public/brand/founder-headshot.png` — a
  * 512×512 square of the founder on a violet→pink gradient disc. The
  * asset is pre-cropped so the gradient disc fills the canvas
- * edge-to-edge (no white padding). We intentionally do *not* apply an
- * extra center-zoom pass here — aggressive zoom (1.4×+) made the
- * face dominate the circle like a phone selfie crop; LinkedIn-style
- * framing is closer to this full-disc composition at 80×80.
+ * edge-to-edge (no white padding), then a single mild ~1.10× center
+ * zoom with a slight upward bias — about a 10% tighten from the full
+ * disc so the face reads a bit larger without returning to the harsh
+ * 1.45×+ crop that felt like a phone selfie.
  *
  * Earlier we shipped a blue-background jpg and used `filter:
  * hue-rotate(50deg)` to shift the background into violet. That worked
@@ -57,7 +57,7 @@ export function AboutFounder() {
             was picking up as empty "white space" around the avatar on
             dark backgrounds. */}
         <img
-          src="/brand/founder-headshot.png?v=4"
+          src="/brand/founder-headshot.png?v=5"
           alt="Adam Makaoui, founder of InterviewIntel"
           className="h-20 w-20 rounded-full object-cover shadow-lg shadow-violet-500/40 ring-2 ring-violet-500/35 dark:ring-violet-400/40"
           loading="lazy"
