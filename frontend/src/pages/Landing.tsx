@@ -368,6 +368,41 @@ const LANDING_VALUE_PROP_BANDS = [
   },
 ];
 
+/* ── Section heading decoration ──────────────────────────────────────── */
+
+/**
+ * Double hand-drawn-style squiggle under value-prop H3s — two offset
+ * wavy strokes in brand violet (matches the user's reference: organic
+ * underline, not a straight rule).
+ */
+function SectionHeadingSquiggle() {
+  return (
+    <svg
+      viewBox="0 0 260 22"
+      className="mb-4 block h-[18px] w-[min(16.5rem,92%)] text-violet-500 sm:h-5 sm:w-[min(18rem,90%)] dark:text-violet-400"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M2 8.5c16-5.5 34 6 52-1.5s36-5 54 2.5 38-7 58 1 36-4 54 0 36-5 52 1"
+        stroke="currentColor"
+        strokeWidth="2.15"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 15c18 6 34-6 52 1.5s32 5 50-1.5 40-4 58 2.5 34 4 52-1 38 2 54-2"
+        stroke="currentColor"
+        strokeWidth="1.85"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.92}
+      />
+    </svg>
+  );
+}
+
 /* ── Feature section with scroll-driven scale ──────────────────────── */
 
 /**
@@ -418,9 +453,10 @@ function FeatureSection({
           <span className="font-display mb-3 inline-block rounded-md border border-indigo-200 bg-indigo-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-indigo-700 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400">
             {band.label}
           </span>
-          <h3 className="font-display text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl dark:text-white mb-4">
+          <h3 className="font-display mb-2 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl dark:text-white">
             {band.title}
           </h3>
+          <SectionHeadingSquiggle />
           <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-5">
             {band.description}
           </p>
@@ -1073,7 +1109,7 @@ export default function Landing() {
             variants={fadeUp}
             className="font-display mx-auto mb-6 max-w-4xl text-5xl font-bold leading-[1.06] tracking-tight text-gray-900 sm:text-6xl lg:text-6xl dark:text-white"
           >
-            <span className="block">From job posting to</span>
+            <span className="block">Job posting to</span>
             <span className="block bg-gradient-to-r from-indigo-600 via-violet-500 to-fuchsia-500 bg-clip-text text-transparent dark:from-indigo-400 dark:via-violet-400 dark:to-fuchsia-400">
               interview-ready in minutes
             </span>
@@ -1086,15 +1122,15 @@ export default function Landing() {
             variants={fadeUp}
             className="mx-auto mb-3 max-w-xl text-base font-medium leading-relaxed text-gray-700 sm:text-lg dark:text-gray-200"
           >
-            <span className="whitespace-nowrap">Reads job postings</span>
+            <span className="whitespace-nowrap">Reads Job Descriptions</span>
             <span aria-hidden className="mx-3 text-gray-500 dark:text-gray-400">
               ·
             </span>
-            <span className="whitespace-nowrap">Models interview panels</span>
+            <span className="whitespace-nowrap">Models Interviewer Panels</span>
             <span aria-hidden className="mx-3 text-gray-500 dark:text-gray-400">
               ·
             </span>
-            <span className="whitespace-nowrap">Scores your answers</span>
+            <span className="whitespace-nowrap">Scores Your Answers</span>
           </motion.p>
           <motion.p
             variants={fadeUp}
@@ -1121,7 +1157,7 @@ export default function Landing() {
             variants={fadeUp}
             className="mt-4 text-xs text-gray-500 dark:text-gray-500"
           >
-            Free forever · no credit card
+            No credit card required
           </motion.p>
 
           <motion.div variants={fadeScale} className="mt-10 sm:mt-12">
