@@ -43,13 +43,20 @@ export function AboutFounder() {
         variants={fadeUp}
         className="flex flex-col items-center gap-5"
       >
-        {/* TODO: swap this placeholder for an <img src="/brand/founder-headshot.jpg" /> once the headshot is added. */}
-        <span
-          aria-hidden
-          className="font-display flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-base font-bold text-white shadow-lg shadow-violet-500/30 ring-2 ring-white/10"
-        >
-          AM
-        </span>
+        {/* CSS hue-rotate shifts the photo's blue (~215deg) background to
+            violet (~265deg), keeping skin tones mostly untouched because
+            they sit at low saturation. Reversible in one line if we swap
+            for a Canva-recolored headshot under the same filename. */}
+        <img
+          src="/brand/founder-headshot.jpg"
+          alt="Adam Makaoui, founder of InterviewIntel"
+          className="h-20 w-20 rounded-full object-cover shadow-lg shadow-violet-500/40 ring-2 ring-white/15"
+          style={{ filter: "hue-rotate(50deg) saturate(1.05)" }}
+          loading="lazy"
+          decoding="async"
+          width={80}
+          height={80}
+        />
 
         <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-violet-500 dark:text-violet-400">
           Who built this

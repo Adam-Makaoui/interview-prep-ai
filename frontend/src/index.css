@@ -172,52 +172,69 @@ body {
  * Pans a 200%-sized radial-gradient stack through 5 anchor points so the
  * colors flow across the hero like drifting fog. `background-position` is
  * one of the cheapest properties a browser can animate (composited, no
- * layout, no paint on intermediate frames). The hue-rotate on top adds a
- * very slow color shift so the aurora never looks identical twice.
+ * layout, no paint on intermediate frames).
  *
- * Both animations apply to the same element via the `.hero-aurora-drift`
- * class. `animation: a, b` is the modern multi-animation syntax.
+ * Anchors widened from the original ~25-80% range to 10-90% so each step
+ * moves the gradient centers farther and the drift is actually visible.
+ * Cycle shortened to 18s and eased with a steeper cubic-bezier so there is
+ * less pause at the anchor points — the earlier default `ease-in-out`
+ * spent most of the cycle near zero velocity, which is why the drift felt
+ * imperceptibly slow. The previous `heroHueBreathe` keyframe was removed
+ * in this pass; rotating hue through +/-18deg was what produced the
+ * "dark -> light -> dark" washout the user flagged, and it added nothing
+ * the position drift does not already do.
  */
 @keyframes heroAurora {
   0% {
-    background-position: 25% 30%;
+    background-position: 10% 20%;
   }
   25% {
-    background-position: 70% 20%;
+    background-position: 85% 15%;
   }
   50% {
-    background-position: 80% 70%;
+    background-position: 90% 85%;
   }
   75% {
-    background-position: 20% 80%;
+    background-position: 10% 90%;
   }
   100% {
-    background-position: 25% 30%;
-  }
-}
-
-@keyframes heroHueBreathe {
-  0%,
-  100% {
-    filter: hue-rotate(0deg);
-  }
-  33% {
-    filter: hue-rotate(18deg);
-  }
-  66% {
-    filter: hue-rotate(-12deg);
+    background-position: 10% 20%;
   }
 }
 
 .hero-aurora-drift {
-  animation:
-    heroAurora 24s ease-in-out infinite,
-    heroHueBreathe 48s ease-in-out infinite;
-  will-change: background-position, filter;
+  animation: heroAurora 18s cubic-bezier(0.6, 0.05, 0.3, 0.95) infinite;
+  will-change: background-position;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hero-aurora-drift {
+    animation: none;
+  }
+}
+
+/* ── Hero constellation (intelligence motif) ──────────────────────────
+ * Node pulse for the knowledge-graph SVG behind the aurora. Each <circle>
+ * gets an inline `animation-delay` in the component so the twinkle is
+ * desynchronized across the 24 nodes. Animating only `opacity` keeps the
+ * compositor fast-path — no layout, no paint, no reflow.
+ */
+@keyframes constellationPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.constellation-pulse {
+  animation: constellationPulse 5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .constellation-pulse {
     animation: none;
   }
 }

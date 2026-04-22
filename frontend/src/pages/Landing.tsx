@@ -25,6 +25,7 @@ import { HeroProductDemo } from "../components/landing/HeroProductDemo";
 import { BrandMark } from "../components/landing/BrandMark";
 import { AboutFounder } from "../components/landing/AboutFounder";
 import { HeroAurora } from "../components/landing/HeroAurora";
+import { HeroConstellation } from "../components/landing/HeroConstellation";
 
 /**
  * YouTube video ID powering the "See it in action" embed via `youtube-nocookie.com/embed/<id>`.
@@ -308,7 +309,7 @@ function MockScorecard() {
 const LANDING_VALUE_PROP_BANDS = [
   {
     id: "context",
-    label: "Context",
+    label: "01",
     title: "Job description intelligence",
     description:
       "Paste a posting URL or full job description and get a structured breakdown fast: company context, must-have skills, culture signals, and how your resume lines up with what they actually asked for.",
@@ -321,7 +322,7 @@ const LANDING_VALUE_PROP_BANDS = [
   },
   {
     id: "frameworks",
-    label: "Frameworks",
+    label: "02",
     title: "Tailored Q&A Frameworks",
     description: "Stage-specific questions with personalized STAR-method answer frameworks built from your resume. Not generic top-10 lists from the internet.",
     bullets: [
@@ -333,7 +334,7 @@ const LANDING_VALUE_PROP_BANDS = [
   },
   {
     id: "rehearsal",
-    label: "Rehearsal",
+    label: "03",
     title: "AI Mock Interviews",
     description: "Practice with an AI interviewer persona that adapts to your stage, role, and interviewers. Get scored feedback with an improved answer after every response.",
     bullets: [
@@ -345,7 +346,7 @@ const LANDING_VALUE_PROP_BANDS = [
   },
   {
     id: "progress",
-    label: "Progress",
+    label: "04",
     title: "Skills Scorecard & Progress",
     description: "Track your performance across competency dimensions. See what you're strong at and where to drill before the real thing. All tracked across sessions.",
     bullets: [
@@ -1018,6 +1019,10 @@ export default function Landing() {
           <section> inside stays max-w-4xl for content. The aurora is scoped to
           this wrapper, so it costs nothing on every section below. */}
       <div className="relative overflow-hidden">
+        {/* Layer order matters: constellation (-z-20) sits deepest, aurora (-z-10)
+            paints on top of it via soft-light blend, content (z-0) reads cleanly
+            above both. */}
+        <HeroConstellation />
         <HeroAurora />
         <section className="relative z-0 mx-auto max-w-4xl px-6 pb-20 pt-10 text-center sm:pt-14">
         <motion.div initial="hidden" animate="visible" variants={stagger} className="relative">
@@ -1106,15 +1111,15 @@ export default function Landing() {
         whileInView="visible"
         viewport={VIEWPORT_ONCE}
         variants={fadeUp}
-        className="pb-16 text-center"
+        className="pb-16 pt-8 text-center sm:pt-16"
       >
-        <h2 className="font-display text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl dark:text-white">
+        <h2 className="font-display mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl dark:text-white">
           Here&apos;s how it works
         </h2>
       </motion.div>
 
       {/* Feature sections — alternating copy/mockup bands with scroll zoom. */}
-      <div id="features" className="space-y-20 sm:space-y-32 pb-24">
+      <div id="features" className="mt-8 space-y-20 pb-24 sm:mt-12 sm:space-y-32">
         {LANDING_VALUE_PROP_BANDS.map((band, bandIndex) => (
           <Fragment key={band.id}>
             {bandIndex > 0 ? <SectionHairline className="-mt-4 sm:-mt-6" /> : null}
