@@ -29,20 +29,21 @@
  *   - Base: rgb(10, 8, 22) — nearly pitch black with a violet whisper.
  *   - Cloud A center: rgb(20, 14, 38) — dark purple. Barely brighter
  *     than the base, reads as "slightly-lighter shade of the same
- *     dark", which is what the user described.
+ *     dark".
  *   - Cloud B center: rgb(32, 22, 56) — a shade lighter. Still very
  *     dark — nowhere near "medium purple".
  *   - Accent center: rgb(52, 38, 92) — dark-medium purple. This is
  *     the ONE place in the hero that ever gets "slightly brighter"
  *     and it is intentionally small + partially transparent + brief.
- *     Crucially still WAY darker than the old rgb(139, 92, 246) that
- *     kept flashing "too bright".
  *
  * Motion:
  *   Three layers, each translated on its own keyframe (different
  *   period, different path). Drifts are slow (24s / 32s / 40s) so the
  *   motion reads as "clouds lazily shifting" — visible but not busy
  *   enough to compete with the text.
+ *
+ * z-index: rendered at `-z-30` so it sits beneath the HeroMascot
+ * (-z-20) and HeroConstellation (-z-10) in the hero wrapper.
  *
  * Performance:
  *   Pure CSS, no SVG filters, no JS per frame. `transform: translate`
@@ -68,7 +69,7 @@ export function HeroAurora() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      className="pointer-events-none absolute inset-0 -z-30 overflow-hidden"
       style={{
         // Absolute floor color of the hero. Anywhere no cloud is
         // overlapping, this is what paints. Keep very dark so the
@@ -86,7 +87,8 @@ export function HeroAurora() {
       />
 
       {/* Cloud B — mid dark-violet blob, drifts opposite to A. Slightly
-          bigger center color to create visible "two shades of dark" feel. */}
+          brighter center color so the two layers create the "two shades
+          of dark" effect the user asked for. */}
       <div
         className="hero-dark-cloud hero-dark-cloud-b"
         style={{
@@ -95,11 +97,9 @@ export function HeroAurora() {
         }}
       />
 
-      {/* Accent — a small, briefly-brighter-purple patch that drifts
-          through a tight path at reduced opacity. This is the "tiny
-          light-purple in a small amount, just appearing somewhere" the
-          user asked for. rgb(52, 38, 92) is DARK-MEDIUM purple — any
-          brighter and it trips the "too bright" trigger again. */}
+      {/* Accent — small, briefly-brighter-purple patch that drifts
+          through a tight path. Fades opacity 0.15 <-> 0.55 <-> 0.15 so
+          the brighter tone only appears BRIEFLY in small areas. */}
       <div
         className="hero-dark-cloud hero-dark-cloud-accent"
         style={{
