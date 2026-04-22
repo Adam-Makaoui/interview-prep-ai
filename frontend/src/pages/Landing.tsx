@@ -1175,7 +1175,7 @@ export default function Landing() {
           makes the footer feel like a signature block rather than a form
           with a legal disclaimer pinned beneath it. */}
       <footer className="relative z-10 border-t border-white/45 bg-white/35 px-6 py-10 backdrop-blur-md dark:border-white/10 dark:bg-gray-950/40">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 sm:flex-row sm:items-start sm:justify-between">
           {/* Brand block: logo + wordmark on row 1, copyright line on row 2.
               The copyright anchors to the brand so it reads as "attribution
               to this product" rather than floating boilerplate. */}
