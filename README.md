@@ -164,10 +164,14 @@ Detailed roadmap lives in Notion. Recently shipped and upcoming priorities:
 
 ### Backlog
 
+- **Animated hero (product-demo style)** — replacement for the aborted "intelligence grid" (reverted in commit `d14b357` — label-in-a-box design read as random jargon). Replace with a mini faux-product-screen looping through paste-URL → extracted intelligence → interviewer dialogue → score card, so the hero itself communicates the product's value in one viewing
+- **YouTube demo video + embed upgrade** — record with [Screen.studio](https://screen.studio), upload as unlisted, swap the `DEMO_VIDEO_ID` placeholder in `Landing.tsx`, replace the iframe with `lite-youtube-embed` for lazy loading
+- **"How it works" inline clips** — per-band Screen.studio loops (JD intelligence, STAR frameworks, mock interviews, scorecard) — one short muted MP4 per value-prop band, replacing the static mockups
+- **Auto-redirect signed-in users `/` → `/app`** — was bundled in the reverted commit; re-apply as its own small change once hero direction is settled
+- **Session-length documentation** — add short ARCHITECTURE.md section explaining Supabase defaults (1h JWT access token + 7d rolling refresh token) — no config change, just codify the decision
 - **Monetization: model tiers** — enforce Pro-only models server-side (done for mini), bundle stronger defaults + limits with Stripe checkout; reflect in pricing copy
 - **Railway dev environment** — split Railway backend so the `dev` branch deploys to a separate service and `dev.interviewintel.ai` frontends can exercise backend changes without risking production (Level 1 isolation; DB still shared)
-- **Testimonials carousel polish** — reduce 3D tilt, smooth easing, mobile scroll-snap fallback
-- **Mobile pass** — AppShell drawer for `<md`, `dvh` viewport in RolePlayChat, responsive grids on Dashboard/NewSession, touch-target audit
+- **Testimonials swap** — drop the 3D rotating ring entirely; replace with a horizontal auto-scrolling strip (Vercel/Stripe pattern) — pauses on hover, infinite loop, zero interaction required, mobile works out of the box
 - **GTM hygiene** — favicon set (SVG + PNG fallbacks + apple-touch-icon), `og:image`, `sitemap.xml` + `robots.txt`, Schema.org `SoftwareApplication` + `Organization` JSON-LD, Google Search Console verification
 - **AI SEO** — `/llms.txt` + `/llms-full.txt`, long-form "How it works", "Pricing explainer", and 3–5 use-case pages so AI search engines have substantive content to cite
 - **Soft launch** — Reddit posts (r/cscareerquestions, r/interviewprep), X thread strategy, Show HN copy + demo video, Product Hunt when we have notify-me signups
