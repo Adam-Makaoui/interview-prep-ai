@@ -21,6 +21,7 @@ import {
   useTransform,
 } from "framer-motion";
 import { useAuth } from "../lib/auth";
+import { HeroProductDemo } from "../components/landing/HeroProductDemo";
 
 /**
  * YouTube video ID powering the "See it in action" embed via `youtube-nocookie.com/embed/<id>`.
@@ -1014,26 +1015,20 @@ export default function Landing() {
 
           <motion.h1
             variants={fadeUp}
-            className="font-display mx-auto mb-10 max-w-4xl text-5xl font-bold leading-[1.06] tracking-tight text-gray-900 sm:text-6xl lg:text-7xl dark:text-white"
+            className="font-display mx-auto mb-6 max-w-4xl text-5xl font-bold leading-[1.06] tracking-tight text-gray-900 sm:text-6xl lg:text-6xl dark:text-white"
           >
-            <span className="mb-4 block text-[11px] font-semibold uppercase tracking-[0.2em] text-violet-700/90 sm:mb-5 sm:text-xs dark:text-violet-400/90">
-              Structured prep · from posting to offer
-            </span>
             <span className="block">Your interview prep</span>
             <span className="block bg-gradient-to-r from-indigo-600 via-violet-500 to-fuchsia-500 bg-clip-text text-transparent dark:from-indigo-400 dark:via-violet-400 dark:to-fuchsia-400">
               mastermind
-            </span>
-            <span className="mt-3 block text-[0.55em] font-semibold tracking-tight text-gray-600 sm:mt-4 dark:text-gray-400">
-              Reads the posting. Models the panel. Surfaces your gaps.
             </span>
           </motion.h1>
 
           <motion.p
             variants={fadeUp}
-            className="mx-auto mb-10 max-w-xl text-lg leading-relaxed text-gray-600 sm:text-xl dark:text-gray-400"
+            className="mx-auto mb-8 max-w-xl text-base leading-relaxed text-gray-600 sm:text-lg dark:text-gray-400"
           >
-            Built for multi-round technical and behavioral loops at high-stakes companies. Analysis, tailored questions,
-            answer frameworks, and scored role-play — so you walk in with a plan instead of a prayer.
+            Reads the posting. Models the panel. Scores your answers. Built for high-stakes technical and
+            behavioral loops.
           </motion.p>
           <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-4">
             <Link
@@ -1049,7 +1044,12 @@ export default function Landing() {
               See how it works
             </a>
           </motion.div>
-          <SectionHairline className="mt-14" />
+
+          <motion.div variants={fadeScale} className="mt-14 sm:mt-16">
+            <HeroProductDemo />
+          </motion.div>
+
+          <SectionHairline className="mt-16" />
         </motion.div>
       </section>
 
