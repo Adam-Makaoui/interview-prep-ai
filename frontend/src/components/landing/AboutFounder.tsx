@@ -1,5 +1,4 @@
 /**
-/**
  * @fileoverview Founder section for the landing page.
  *
  * Renders between the testimonials and pricing sections to give prospects
@@ -7,9 +6,10 @@
  *
  * The avatar is served from `/public/brand/founder-headshot.png` — a
  * 512×512 square of the founder on a violet→pink gradient disc. The
- * image was pre-cropped so the gradient disc fills the PNG edge-to-edge
- * (no white padding), which means CSS `rounded-full` clips exactly
- * along the disc boundary and leaves nothing white poking through.
+ * asset is pre-cropped so the disc fills the canvas edge-to-edge, then
+ * re-exported with a ~1.48× center zoom + slight upward bias so the
+ * face fills the circle the way a LinkedIn profile crop does (less
+ * empty gradient / shoulder at the bottom of the round mask).
  *
  * Earlier we shipped a blue-background jpg and used `filter:
  * hue-rotate(50deg)` to shift the background into violet. That worked
@@ -51,15 +51,14 @@ export function AboutFounder() {
         variants={fadeUp}
         className="flex flex-col items-center gap-5"
       >
-        {/* Headshot PNG is pre-baked with the violet→pink gradient and
-            tightly cropped to the disc, so `rounded-full` clips exactly
-            along the gradient edge. No hue-rotate filter — the
-            background colors are correct as-shot, which lets the skin
-            tones render naturally instead of shifting toward green. */}
+        {/* Headshot: violet→pink gradient baked in; no hue-rotate. A
+            violet ring reads as intentional brand chrome — `ring-white`
+            was picking up as empty "white space" around the avatar on
+            dark backgrounds. */}
         <img
           src="/brand/founder-headshot.png"
           alt="Adam Makaoui, founder of InterviewIntel"
-          className="h-20 w-20 rounded-full object-cover shadow-lg shadow-violet-500/40 ring-2 ring-white/15"
+          className="h-20 w-20 rounded-full object-cover shadow-lg shadow-violet-500/40 ring-2 ring-violet-500/35 dark:ring-violet-400/40"
           loading="lazy"
           decoding="async"
           width={80}
