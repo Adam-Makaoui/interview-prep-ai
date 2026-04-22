@@ -110,7 +110,7 @@ body {
     transform: translate3d(0, 0, 0) scale(1);
   }
   50% {
-    transform: translate3d(4%, -3%, 0) scale(1.06);
+    transform: translate3d(14%, -11%, 0) scale(1.14);
   }
 }
 @keyframes orbDriftB {
@@ -119,16 +119,16 @@ body {
     transform: translate3d(0, 0, 0) scale(1);
   }
   50% {
-    transform: translate3d(-5%, 4%, 0) scale(1.05);
+    transform: translate3d(-15%, 13%, 0) scale(1.12);
   }
 }
 @keyframes orbDriftC {
   0%,
   100% {
-    transform: translate3d(0, 0, 0) scale(1.04);
+    transform: translate3d(0, 0, 0) scale(1.05);
   }
   50% {
-    transform: translate3d(3%, 5%, 0) scale(1);
+    transform: translate3d(12%, 14%, 0) scale(1);
   }
 }
 @keyframes orbDriftD {
@@ -137,24 +137,25 @@ body {
     transform: translate3d(0, 0, 0) scale(1);
   }
   50% {
-    transform: translate3d(-4%, -5%, 0) scale(1.07);
+    transform: translate3d(-13%, -15%, 0) scale(1.15);
   }
 }
 
+/* Cycle lengths chosen so no two orbs share a period — avoids visible sync. */
 .orb-drift-a {
-  animation: orbDriftA 28s ease-in-out infinite;
+  animation: orbDriftA 20s ease-in-out infinite;
   will-change: transform;
 }
 .orb-drift-b {
-  animation: orbDriftB 34s ease-in-out 1.2s infinite;
+  animation: orbDriftB 24s ease-in-out 1.2s infinite;
   will-change: transform;
 }
 .orb-drift-c {
-  animation: orbDriftC 42s ease-in-out 0.6s infinite;
+  animation: orbDriftC 26s ease-in-out 0.6s infinite;
   will-change: transform;
 }
 .orb-drift-d {
-  animation: orbDriftD 38s ease-in-out 2s infinite;
+  animation: orbDriftD 18s ease-in-out 2s infinite;
   will-change: transform;
 }
 
@@ -163,6 +164,60 @@ body {
   .orb-drift-b,
   .orb-drift-c,
   .orb-drift-d {
+    animation: none;
+  }
+}
+
+/* ── Hero aurora ──────────────────────────────────────────────────────
+ * Pans a 200%-sized radial-gradient stack through 5 anchor points so the
+ * colors flow across the hero like drifting fog. `background-position` is
+ * one of the cheapest properties a browser can animate (composited, no
+ * layout, no paint on intermediate frames). The hue-rotate on top adds a
+ * very slow color shift so the aurora never looks identical twice.
+ *
+ * Both animations apply to the same element via the `.hero-aurora-drift`
+ * class. `animation: a, b` is the modern multi-animation syntax.
+ */
+@keyframes heroAurora {
+  0% {
+    background-position: 25% 30%;
+  }
+  25% {
+    background-position: 70% 20%;
+  }
+  50% {
+    background-position: 80% 70%;
+  }
+  75% {
+    background-position: 20% 80%;
+  }
+  100% {
+    background-position: 25% 30%;
+  }
+}
+
+@keyframes heroHueBreathe {
+  0%,
+  100% {
+    filter: hue-rotate(0deg);
+  }
+  33% {
+    filter: hue-rotate(18deg);
+  }
+  66% {
+    filter: hue-rotate(-12deg);
+  }
+}
+
+.hero-aurora-drift {
+  animation:
+    heroAurora 24s ease-in-out infinite,
+    heroHueBreathe 48s ease-in-out infinite;
+  will-change: background-position, filter;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-aurora-drift {
     animation: none;
   }
 }

@@ -163,6 +163,7 @@ Detailed roadmap lives in Notion. Recently shipped and upcoming priorities:
 - **Product-shell polish** — new `PageContainer` + `PageHeader` primitives; Dashboard, Progress, NewSession, and PrepDetail now share a consistent max-width, vertical rhythm, and heading style; stat panels + chart panels migrated to shadcn `Card`
 - **Animated hero (product-demo card stack)** — replaces the aborted "intelligence grid"; 12s loop through paste-URL → intelligence extracted → mock interview → scorecard, discrete timeline-based animation so no per-frame JS cost; reduced-motion users see the final composition statically
 - **Screen-Studio hero polish** — eye-logo in nav + floating orb above the H1, tighter Screen-Studio vertical rhythm so the card stack peeks above the fold, slow CSS-only orb drift for ambient "cloud" motion (zero main-thread cost), founder About section between testimonials and pricing
+- **Hero aurora "alive" background** — hero-scoped CSS aurora layer (stacked radial gradients, 200%-size `background-position` pan over 24s + 48s hue-breathe), boosted orb drift deltas so clouds visibly move. Pure CSS, composited on GPU, scoped to the hero `<section>` (zero cost below the fold), `prefers-reduced-motion` honored
 
 ### Backlog
 - **YouTube demo video + embed upgrade** — record with [Screen.studio](https://screen.studio), upload as unlisted, swap the `DEMO_VIDEO_ID` placeholder in `Landing.tsx`, replace the iframe with `lite-youtube-embed` for lazy loading
@@ -180,4 +181,8 @@ Detailed roadmap lives in Notion. Recently shipped and upcoming priorities:
 - **LangSmith Observability** — tracing all LLM calls (free tier: 5k traces/month, zero code changes)
 - **Stripe checkout** — wire Pro plan billing to the existing pricing UI
 - **Chrome Extension** — side panel that detects JDs on LinkedIn/Greenhouse and triggers prep
+- **Parked: hero motion intensifiers** — escalate the native CSS aurora only if A/B shows engagement gain. Three escalation tiers, none required for launch:
+  - _Tier 1: looping video background_ — produce a 6-10s 1080p MP4 in After Effects / Screen.studio (abstract violet cloud loop, ~1–2 MB via `ffmpeg -crf 28 -movflags +faststart`), drop as `<video autoplay muted loop playsinline poster=…>` inside the hero `<section>`, gate with `prefers-reduced-motion` to the static poster. Risk: +2-5 MB per visit, Safari low-power autoplay failures.
+  - _Tier 2: Lottie aurora_ — source a cloud/aurora animation on LottieFiles or author in After Effects + [Bodymovin](https://github.com/airbnb/lottie-web), install `lottie-react` (~60 KB gzipped), render via `<Lottie animationData={aurora} loop autoplay />`. Risk: bundle growth, CPU cost on low-end mobile (Lottie renders on main thread unless `renderer: "canvas"`).
+  - _Tier 3: Canvas/WebGL flow field_ — install `ogl` (~10 KB) or vanilla `three` (~120 KB), port a Shadertoy fragment shader (e.g. `curl-noise`) into a full-viewport `<canvas>`, animate via `requestAnimationFrame`. Risk: highest perf cost, must gate on `navigator.hardwareConcurrency >= 4` + `prefers-reduced-motion` with a CSS fallback.
 - **Parked** — Level 2 backend isolation (separate Supabase project for `dev`) until first schema migration; weekly blog content engine until organic traffic exists; Meta/Google ads until organic CAC is known
