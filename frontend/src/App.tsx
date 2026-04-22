@@ -12,22 +12,34 @@ import PrepDetail from "./pages/PrepDetail";
 import Progress from "./pages/Progress";
 import Settings from "./pages/Settings";
 
+function AuthLoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="relative w-10 h-10">
+        <div className="absolute inset-0 rounded-full border-2 border-gray-200 dark:border-gray-700" />
+        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-indigo-500 animate-spin" />
+      </div>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="relative w-10 h-10">
-          <div className="absolute inset-0 rounded-full border-2 border-gray-200 dark:border-gray-700" />
-          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-indigo-500 animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
+  if (loading) return <AuthLoadingSpinner />;
   if (!user) return <Navigate to="/login" replace />;
   return <AppShell>{children}</AppShell>;
+}
+
+/**
+ * Root-route guard: signed-in visitors skip the marketing landing and go straight to the app shell.
+ * Rendering `null` during `loading` avoids a flash of the landing page for returning users.
+ */
+function HomeRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user) return <Navigate to="/app" replace />;
+  return <Landing />;
 }
 
 function AnimatedRoutes() {
@@ -40,7 +52,7 @@ function AnimatedRoutes() {
           path="/"
           element={
             <RouteFade>
-              <Landing />
+              <HomeRoute />
             </RouteFade>
           }
         />

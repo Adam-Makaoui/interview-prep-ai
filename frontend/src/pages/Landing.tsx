@@ -21,6 +21,7 @@ import {
   useTransform,
 } from "framer-motion";
 import { useAuth } from "../lib/auth";
+import { InterviewGrid } from "../components/landing/InterviewGrid";
 
 /**
  * YouTube video ID powering the "See it in action" embed via `youtube-nocookie.com/embed/<id>`.
@@ -1002,8 +1003,12 @@ export default function Landing() {
         </div>
       </header>
 
-      <section className="relative z-0 mx-auto max-w-4xl px-6 pb-20 pt-20 text-center">
+      <section className="relative z-0 mx-auto max-w-4xl px-6 pb-20 pt-16 text-center sm:pt-20">
         <motion.div initial="hidden" animate="visible" variants={stagger} className="relative">
+          <motion.div variants={fadeScale} className="mb-10 flex justify-center sm:mb-12">
+            <InterviewGrid />
+          </motion.div>
+
           <motion.div
             variants={fadeUp}
             className="mb-8 inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-100/90 px-4 py-1.5 text-xs font-medium text-indigo-800 backdrop-blur-sm dark:border-indigo-500/25 dark:bg-indigo-500/12 dark:text-indigo-300"
