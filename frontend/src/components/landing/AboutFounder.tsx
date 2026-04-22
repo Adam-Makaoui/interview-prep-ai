@@ -1,13 +1,21 @@
 /**
+/**
  * @fileoverview Founder section for the landing page.
  *
  * Renders between the testimonials and pricing sections to give prospects
  * a human signal — who built this and why — before the pricing ask.
  *
- * The avatar is a gradient placeholder (initials "AM") until a real headshot
- * is dropped in at `/public/brand/founder-headshot.jpg`. When that file
- * exists, swap the placeholder `<span>` for an `<img>` pointing at that
- * path — single-line edit, flagged in a comment below.
+ * The avatar is served from `/public/brand/founder-headshot.png` — a
+ * 512×512 square of the founder on a violet→pink gradient disc. The
+ * image was pre-cropped so the gradient disc fills the PNG edge-to-edge
+ * (no white padding), which means CSS `rounded-full` clips exactly
+ * along the disc boundary and leaves nothing white poking through.
+ *
+ * Earlier we shipped a blue-background jpg and used `filter:
+ * hue-rotate(50deg)` to shift the background into violet. That worked
+ * for the backdrop but also rotated the skin tones, turning the
+ * founder's face green. The new PNG bakes the gradient in directly,
+ * so we can drop the hue-rotate entirely and the face stays natural.
  *
  * Copy is draft-quality — fine for a soft launch but rewrite before any
  * larger marketing push. Flagged with a TODO so it is easy to grep.
@@ -43,15 +51,15 @@ export function AboutFounder() {
         variants={fadeUp}
         className="flex flex-col items-center gap-5"
       >
-        {/* CSS hue-rotate shifts the photo's blue (~215deg) background to
-            violet (~265deg), keeping skin tones mostly untouched because
-            they sit at low saturation. Reversible in one line if we swap
-            for a Canva-recolored headshot under the same filename. */}
+        {/* Headshot PNG is pre-baked with the violet→pink gradient and
+            tightly cropped to the disc, so `rounded-full` clips exactly
+            along the gradient edge. No hue-rotate filter — the
+            background colors are correct as-shot, which lets the skin
+            tones render naturally instead of shifting toward green. */}
         <img
-          src="/brand/founder-headshot.jpg"
+          src="/brand/founder-headshot.png"
           alt="Adam Makaoui, founder of InterviewIntel"
           className="h-20 w-20 rounded-full object-cover shadow-lg shadow-violet-500/40 ring-2 ring-white/15"
-          style={{ filter: "hue-rotate(50deg) saturate(1.05)" }}
           loading="lazy"
           decoding="async"
           width={80}
