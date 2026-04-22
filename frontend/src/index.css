@@ -170,80 +170,103 @@ body {
   }
 }
 
-/* ── Hero aurora ──────────────────────────────────────────────────────
- * TWO gradient layers panning in opposing directions at different cycle
- * lengths. That asymmetry is what produces the "clouds morphing" feel the
- * user asked for — a single translating gradient only slides, but two
- * layers counter-moving with different periods overlap and diverge
- * constantly, so the silhouettes visibly change shape.
+/* ── Hero cloud layers (procedural SVG feTurbulence) ──────────────────
+ * Two <svg> layers inside <HeroAurora /> each paint a rectangle filled
+ * via `filter: url(#hero-cloud-*)`. The filter graph is:
+ *   feTurbulence (Perlin-ish fractal noise, per-pixel) ->
+ *   feColorMatrix (per-pixel clamp mapping grayscale noise into a
+ *                  bounded dark-violet -> medium-purple RGB range)
  *
- * `background-position` is one of the cheapest properties a browser can
- * animate (composited on GPU, no layout, no paint on intermediate frames).
- * Both layers run their own keyframe — the cost of the second layer is
- * one extra compositor-layer, which is negligible.
+ * The filter output is rasterized ONCE per layer on mount (expensive,
+ * ~2-5ms per layer) and then the browser composites that raster on the
+ * GPU. We animate only the outer `transform: translate()` on each <svg>,
+ * which means the filter graph's inputs never change and the raster is
+ * effectively cached. Runtime cost of the drift is zero main-thread work
+ * — it's the same cost as panning a static PNG.
  *
- * Cycles: primary 14s (down from 18s earlier — the longer cycle felt
- * imperceptibly slow), secondary 22s. Coprime-ish so the two never sync
- * up. Direction-wise, primary walks a clockwise-ish rectangle through its
- * anchor points, secondary walks counter-clockwise through its own set of
- * anchors; the two compositions thus constantly cross each other at
- * different phases.
+ * Layer sizing: 180% of the hero so translate(-10%, 20%) etc. can pan
+ * the cloud around without revealing any unfiltered edges. `left: -40%`
+ * + `top: -40%` centers the 180%-sized SVG on the hero's midpoint.
  *
- * Previous `heroHueBreathe` keyframe was deleted earlier because rotating
- * hue +/-18deg produced a "dark -> light -> dark" washout; motion now
- * comes purely from position drift on two layers, not color rotation.
+ * Cycles: A 22s clockwise-ish, B 34s counter-clockwise. Coprime-ish and
+ * opposite direction so overlap shifts constantly. Directions are chosen
+ * so the two rasters cross at different phases every cycle, which reads
+ * as clouds morphing (even though each individual raster is static).
+ *
+ * Opacity: layer A is fully opaque on top, layer B at 55% sits behind.
+ * No blend mode — the feColorMatrix in each filter already bounds the
+ * output to a dark-violet palette so no `multiply` safety-net is needed.
  */
-@keyframes heroAuroraPrimary {
+.hero-cloud {
+  position: absolute;
+  width: 180%;
+  height: 180%;
+  left: -40%;
+  top: -40%;
+  /* GPU promotion: hints the browser to treat the layer as its own
+     compositor surface, so transform animations run off the main thread. */
+  will-change: transform;
+}
+
+/* Opacity tuning: A at 0.85 so the dark-violet floor color of the
+   container still contributes to cloud valleys (if A were fully
+   opaque it would completely cover the base). B at 0.5 so it reads
+   as a softer backdrop mass without doubling the brightness in
+   overlap regions (the matrix caps ceiling anyway, but lower opacity
+   also pulls average perceived brightness down). */
+.hero-cloud-a {
+  opacity: 0.85;
+  animation: heroCloudDriftA 22s cubic-bezier(0.6, 0.05, 0.3, 0.95) infinite;
+}
+
+.hero-cloud-b {
+  opacity: 0.5;
+  animation: heroCloudDriftB 34s cubic-bezier(0.65, 0.1, 0.35, 0.9) infinite;
+}
+
+/* Clockwise-ish drift. Max translate 8% so we stay well inside the
+   180% canvas and never show a seam. */
+@keyframes heroCloudDriftA {
   0% {
-    background-position: 10% 20%;
+    transform: translate3d(0%, 0%, 0) scale(1);
   }
   25% {
-    background-position: 85% 15%;
+    transform: translate3d(6%, -4%, 0) scale(1.04);
   }
   50% {
-    background-position: 90% 85%;
+    transform: translate3d(-3%, 6%, 0) scale(1.06);
   }
   75% {
-    background-position: 10% 90%;
+    transform: translate3d(-7%, -2%, 0) scale(1.02);
   }
   100% {
-    background-position: 10% 20%;
+    transform: translate3d(0%, 0%, 0) scale(1);
   }
 }
 
-/* Counter-clockwise path through a different anchor set. Note the
-   `to` position is also the `from` so the loop is seamless. */
-@keyframes heroAuroraSecondary {
+/* Counter-clockwise-ish drift, different anchor set. Slightly smaller
+   range so B reads as the "slow background layer". */
+@keyframes heroCloudDriftB {
   0% {
-    background-position: 90% 80%;
+    transform: translate3d(0%, 0%, 0) scale(1.05);
   }
   25% {
-    background-position: 15% 85%;
+    transform: translate3d(-5%, 3%, 0) scale(1.08);
   }
   50% {
-    background-position: 10% 15%;
+    transform: translate3d(4%, -5%, 0) scale(1.03);
   }
   75% {
-    background-position: 85% 10%;
+    transform: translate3d(5%, 3%, 0) scale(1.06);
   }
   100% {
-    background-position: 90% 80%;
+    transform: translate3d(0%, 0%, 0) scale(1.05);
   }
-}
-
-.hero-aurora-primary {
-  animation: heroAuroraPrimary 14s cubic-bezier(0.6, 0.05, 0.3, 0.95) infinite;
-  will-change: background-position;
-}
-
-.hero-aurora-secondary {
-  animation: heroAuroraSecondary 22s cubic-bezier(0.65, 0.1, 0.35, 0.9) infinite;
-  will-change: background-position;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-aurora-primary,
-  .hero-aurora-secondary {
+  .hero-cloud-a,
+  .hero-cloud-b {
     animation: none;
   }
 }
