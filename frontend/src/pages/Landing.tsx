@@ -10,7 +10,7 @@
  * @module pages/Landing
  */
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   motion,
@@ -308,7 +308,6 @@ function MockScorecard() {
  *
  * Shape per band:
  * - `id`          — stable React key and anchor-friendly slug.
- * - `label`       — small uppercase eyebrow shown above the title.
  * - `title`       — H3 headline for the band.
  * - `description` — supporting paragraph copy.
  * - `bullets`     — 3 short proof-points rendered with a checkmark bullet.
@@ -319,7 +318,6 @@ function MockScorecard() {
 const LANDING_VALUE_PROP_BANDS = [
   {
     id: "context",
-    label: "01",
     title: "Job description intelligence",
     description:
       "Paste a posting URL or full job description and get a structured breakdown fast: company context, must-have skills, culture signals, and how your resume lines up with what they actually asked for.",
@@ -332,7 +330,6 @@ const LANDING_VALUE_PROP_BANDS = [
   },
   {
     id: "frameworks",
-    label: "02",
     title: "Tailored Q&A Frameworks",
     description: "Stage-specific questions with personalized STAR-method answer frameworks built from your resume. Not generic top-10 lists from the internet.",
     bullets: [
@@ -344,7 +341,6 @@ const LANDING_VALUE_PROP_BANDS = [
   },
   {
     id: "rehearsal",
-    label: "03",
     title: "AI Mock Interviews",
     description: "Practice with an AI interviewer persona that adapts to your stage, role, and interviewers. Get scored feedback with an improved answer after every response.",
     bullets: [
@@ -356,7 +352,6 @@ const LANDING_VALUE_PROP_BANDS = [
   },
   {
     id: "progress",
-    label: "04",
     title: "Skills Scorecard & Progress",
     description: "Track your performance across competency dimensions. See what you're strong at and where to drill before the real thing. All tracked across sessions.",
     bullets: [
@@ -371,33 +366,52 @@ const LANDING_VALUE_PROP_BANDS = [
 /* ── Section heading decoration ──────────────────────────────────────── */
 
 /**
- * Double hand-drawn-style squiggle under value-prop H3s — two offset
- * wavy strokes in brand violet (matches the user's reference: organic
- * underline, not a straight rule).
+ * Minimal futuristic accent under value-prop H3s — indigo→violet→fuchsia
+ * gradient rail with a terminal-style corner bracket and a faint upper
+ * "trace" line (reads as signal / intelligence, not hand-drawn squiggle).
  */
-function SectionHeadingSquiggle() {
+function SectionHeadingAccent() {
+  const gradId = `h3-accent-${useId().replace(/:/g, "")}`;
   return (
     <svg
-      viewBox="0 0 260 22"
-      className="mb-4 block h-[18px] w-[min(16.5rem,92%)] text-violet-500 sm:h-5 sm:w-[min(18rem,90%)] dark:text-violet-400"
+      viewBox="0 0 256 14"
+      className="mb-5 block h-3.5 w-[min(15rem,92%)] drop-shadow-[0_0_10px_rgba(139,92,246,0.22)] sm:h-4 sm:w-[min(17rem,90%)] dark:drop-shadow-[0_0_12px_rgba(167,139,250,0.18)]"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
     >
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="rgb(99, 102, 241)" stopOpacity="0.55" />
+          <stop offset="50%" stopColor="rgb(139, 92, 246)" stopOpacity="1" />
+          <stop offset="100%" stopColor="rgb(217, 70, 239)" stopOpacity="0.6" />
+        </linearGradient>
+      </defs>
       <path
-        d="M2 8.5c16-5.5 34 6 52-1.5s36-5 54 2.5 38-7 58 1 36-4 54 0 36-5 52 1"
-        stroke="currentColor"
-        strokeWidth="2.15"
+        d="M2 2v10M2 12h14"
+        stroke={`url(#${gradId})`}
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path
-        d="M4 15c18 6 34-6 52 1.5s32 5 50-1.5 40-4 58 2.5 34 4 52-1 38 2 54-2"
-        stroke="currentColor"
-        strokeWidth="1.85"
+      <line
+        x1="22"
+        y1="12"
+        x2="252"
+        y2="12"
+        stroke={`url(#${gradId})`}
+        strokeWidth="2.25"
         strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={0.92}
+      />
+      <line
+        x1="38"
+        y1="4.5"
+        x2="232"
+        y2="4.5"
+        stroke={`url(#${gradId})`}
+        strokeWidth="1"
+        strokeLinecap="round"
+        opacity={0.38}
       />
     </svg>
   );
@@ -450,13 +464,10 @@ function FeatureSection({
         className={`flex flex-col ${mockupOnRight ? "lg:flex-row-reverse" : "lg:flex-row"} items-center gap-10 lg:gap-16`}
       >
         <motion.div variants={fadeUp} className="flex-1 max-w-lg">
-          <span className="font-display mb-3 inline-block rounded-md border border-indigo-200 bg-indigo-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-indigo-700 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400">
-            {band.label}
-          </span>
           <h3 className="font-display mb-2 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl dark:text-white">
             {band.title}
           </h3>
-          <SectionHeadingSquiggle />
+          <SectionHeadingAccent />
           <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-5">
             {band.description}
           </p>
