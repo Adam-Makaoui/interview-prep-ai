@@ -358,20 +358,16 @@ const LANDING_VALUE_PROP_BANDS = [
 
 /* ── Section heading decoration ──────────────────────────────────────── */
 
-/**
- * Easing + durations shared by both rails so the two lines move in
- * sympathy (fast, confident stretch — no wobble). Decoupled constants
- * so the two rails can land slightly offset for depth.
- */
-const ACCENT_RAIL_EASE = [0.16, 1, 0.3, 1] as const;
-const ACCENT_RAIL_DURATION = 0.78;
+/** Gentle ease-out stretch; duration/delay tuned calmer than the first single-rail pass. */
+const ACCENT_RAIL_EASE = [0.2, 1, 0.36, 1] as const;
+const ACCENT_RAIL_DURATION = 0.78 * 1.25 * 1.15;
+const ACCENT_RAIL_DELAY = 0.06 * 1.25 * 1.15;
 
 /**
- * Futuristic accent under value-prop H3s: a fixed corner bracket plus
- * two gradient rails that span the **same width as the heading** (the
- * parent wraps `<h3>` in `w-fit`). The rails animate `scaleX` from the
- * left (`transformOrigin: "0 50%"`) so they read as "growing" to
- * underline the whole title.
+ * Futuristic accent under value-prop H3s: a fixed corner bracket plus one
+ * gradient rail spanning the **same width as the heading** (the parent
+ * wraps `<h3>` in `w-fit`). The rail animates `scaleX` from the left
+ * (`transformOrigin: "0 50%"`) so it reads as growing to underline the title.
  *
  * Why `inView` is a prop (not `whileInView` inside this component):
  * the rail is driven to `scaleX: 0`, which gives it zero visual width.
@@ -399,28 +395,17 @@ function SectionHeadingAccent({ reducedMotion, inView }: { reducedMotion: boolea
           strokeLinejoin="round"
         />
       </svg>
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5 pb-0.5">
+      <div className="min-w-0 flex-1 pb-0.5">
         <motion.div
           initial={false}
-          animate={{ scaleX: shouldShow ? 1 : 0, opacity: shouldShow ? 0.85 : 0.35 }}
+          animate={{ scaleX: shouldShow ? 1 : 0, opacity: shouldShow ? 0.92 : 0.45 }}
           transition={
             reducedMotion
               ? { duration: 0 }
-              : { duration: ACCENT_RAIL_DURATION * 0.85, ease: ACCENT_RAIL_EASE, delay: 0.06 }
+              : { duration: ACCENT_RAIL_DURATION, ease: ACCENT_RAIL_EASE, delay: ACCENT_RAIL_DELAY }
           }
           style={{ transformOrigin: "0 50%" }}
-          className="h-px w-full rounded-full bg-gradient-to-r from-indigo-500/45 via-violet-500/35 to-fuchsia-500/25"
-        />
-        <motion.div
-          initial={false}
-          animate={{ scaleX: shouldShow ? 1 : 0, opacity: shouldShow ? 1 : 0.5 }}
-          transition={
-            reducedMotion
-              ? { duration: 0 }
-              : { duration: ACCENT_RAIL_DURATION, ease: ACCENT_RAIL_EASE, delay: 0.14 }
-          }
-          style={{ transformOrigin: "0 50%" }}
-          className="h-[3px] w-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500/75 shadow-[0_0_10px_rgba(139,92,246,0.22)] dark:shadow-[0_0_12px_rgba(167,139,250,0.18)]"
+          className="h-[2px] w-full rounded-full bg-gradient-to-r from-indigo-500/90 via-violet-500/80 to-fuchsia-500/55 shadow-[0_0_8px_rgba(139,92,246,0.12)] dark:shadow-[0_0_10px_rgba(167,139,250,0.1)]"
         />
       </div>
     </div>
