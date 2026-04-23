@@ -7,3 +7,7 @@ node_modules/
 dist/
 .DS_Store
 resume_profile.json
+
+# Cursor MCP config is local-only — it embeds API keys (e.g. Firecrawl)
+# and must never be committed. Each dev/machine maintains their own.
+.cursor/mcp.json

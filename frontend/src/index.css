@@ -293,7 +293,12 @@ body {
  * Desktop 560×560, mobile 380×380. Positioned via parent's absolute
  * left-1/2 top-54% translate to sit behind the brand orb and H1.
  */
-.hero-mascot {
+/* Stage = outer positioning shell. Owns width/height and the fixed
+   offset from the top of the hero wrapper. The horizontal centering
+   (left: 50%; transform: translateX(-50%)) is applied via Tailwind
+   utilities at the call site so it doesn't collide with the inner
+   element's transform-animation. */
+.hero-mascot-stage {
   width: 380px;
   height: 380px;
   /* Anchor to a fixed offset from the top of the hero wrapper. The
@@ -301,31 +306,90 @@ body {
      and height = 380px on mobile the iris lands at ~180px from the
      top of the hero wrapper, which is near the mobile H1 baseline. */
   top: -70px;
-  /* Container-level opacity peaks at 0.22 on breath. The brightest
-     primitive inside is the iris fill at 0.55 alpha, so the absolute
-     brightest rendered pixel is 0.55 × 0.22 = 0.121 — a ghost. */
-  opacity: 0.2;
-  animation: heroMascotBreath 10s ease-in-out infinite;
 }
 
 @media (min-width: 640px) {
-  .hero-mascot {
+  .hero-mascot-stage {
     width: 560px;
     height: 560px;
     /* Desktop: iris at 65% of 560 = 364px. With top = -90px, iris
        lands at ~274px from wrapper top — between the brand orb and
-       the H1, so the orb visually "sits on" the scanner eye. */
+       the H1, so the orb visually "sits on" the scanner eye at the
+       orbit's "home" position (0%/100% of the keyframe). */
     top: -90px;
   }
+}
+
+/* Inner = opacity breath + bounded orbit drift. Sized 100% so it
+   fills the stage. Compositor gets both `opacity` and `transform`
+   properties promoted (the will-change on the <svg> inside covers
+   the transform-origin; we set will-change here too to hoist this
+   wrapper onto its own layer). */
+.hero-mascot {
+  width: 100%;
+  height: 100%;
+  /* Container-level opacity peaks at 0.55 on breath. The brightest
+     primitive inside is the pupil fill at 0.80 alpha, so the
+     absolute brightest rendered pixel is 0.80 × 0.55 = 0.44 — a
+     confident "ethereal scanner" read. Raised from the prior 0.32
+     ceiling in response to user feedback that the mascot was
+     disappearing against the dark aurora backdrop. */
+  opacity: 0.36;
+  /* Multi-animation shorthand: breath (opacity) + orbit (transform)
+     run in parallel. Orbit is much longer (45s) so the motion reads
+     as a slow, contemplative drift rather than a nervous loop. */
+  animation:
+    heroMascotBreath 10s ease-in-out infinite,
+    heroMascotOrbit 45s ease-in-out infinite;
+  will-change: opacity, transform;
 }
 
 @keyframes heroMascotBreath {
   0%,
   100% {
-    opacity: 0.14;
+    opacity: 0.3;
   }
   50% {
-    opacity: 0.24;
+    opacity: 0.55;
+  }
+}
+
+/* Orbit drift — a bounded elliptical walk that visits several zones
+   in the upper half of the hero (above the H1 baseline) before
+   returning home. Kept entirely in the UPPER region so the mascot
+   never parks on top of the copy. Values tuned for mobile (380px
+   stage); desktop (560px) inherits the same translate deltas, which
+   read as subtler proportionally — intentional, since the desktop
+   hero has more breathing room and a less prominent mascot is
+   better-balanced at that width.
+
+   Path (approx, centred at the stage home position):
+     0%   center                        (home — iris aligns with orb)
+     20%  drift right + slight down     (scanning right column)
+     40%  drift far right + back up     (top-right corner)
+     60%  drift up-left through centre  (sweeps across the top)
+     80%  drift far left + slight down  (left column)
+     100% back home
+
+   Translate deltas are kept inside [-180px, +180px] × [-40px, +40px]
+   so the SVG never leaves the hero's horizontal safe zone and never
+   dips into the H1 text area. */
+@keyframes heroMascotOrbit {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  20% {
+    transform: translate3d(90px, 20px, 0);
+  }
+  40% {
+    transform: translate3d(170px, -30px, 0);
+  }
+  60% {
+    transform: translate3d(-60px, -40px, 0);
+  }
+  80% {
+    transform: translate3d(-170px, 15px, 0);
   }
 }
 
@@ -419,9 +483,15 @@ body {
     animation: none;
   }
   /* Hold the mascot at its static mid-opacity so it's still present
-     as a ghost watermark when motion is disabled. */
+     as a watermark when motion is disabled. Pinned at 0.42 — roughly
+     the midpoint of the animated 0.30 <-> 0.55 breath envelope — so a
+     reduced-motion viewer sees roughly the same brightness they
+     would see glancing at the animated version at a random moment.
+     Transform pinned to 0,0 (home position) so the mascot doesn't
+     snap-freeze at an off-centre orbit position. */
   .hero-mascot {
-    opacity: 0.14;
+    opacity: 0.42;
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -461,3 +531,44 @@ body {
  * the earlier dense mesh with a drop-shadow bloom, which the user
  * flagged as "distracting". The new mesh (see HeroConstellation.tsx +
  * `.hero-constellation-node` above) is opacity-only and sparse. */
+
+/* ── Testimonials 2D marquee ──────────────────────────────────────────
+ * Continuous horizontal loop used by `TestimonialsMarqueeVariant`. The
+ * component renders the list twice inline; this keyframe slides the
+ * whole track by exactly 50% — because the second half starts where
+ * the first half ends, the visible frame at 100% is pixel-identical
+ * to the frame at 0%, producing a seamless loop with no JS frame
+ * work.
+ *
+ * Duration (60s) is deliberately slow: long enough that a scanning
+ * reader can finish a quote before it slides off, short enough that a
+ * casual visitor sees motion.
+ *
+ * Hover / focus-within pauses via `animation-play-state` so the
+ * compositor keeps the track on the GPU layer — no transform
+ * teardown, no paint flash.
+ */
+@keyframes testimonialsMarquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.testimonials-marquee-track {
+  animation: testimonialsMarquee 60s linear infinite;
+  will-change: transform;
+}
+
+.testimonials-marquee:hover .testimonials-marquee-track,
+.testimonials-marquee:focus-within .testimonials-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .testimonials-marquee-track {
+    animation: none;
+  }
+}

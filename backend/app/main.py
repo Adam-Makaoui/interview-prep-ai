@@ -693,18 +693,48 @@ async def extract_fields(body: ExtractRequest):
 
     This is a lightweight pre-submission call so the user can review and
     edit the auto-filled fields before creating a full session.
+
+    Error contract (422 with structured detail): the frontend reads
+    ``detail.message`` and surfaces it verbatim, so these strings are
+    the UX. ``code`` is for telemetry / future branching.
     """
     import re
     jd = body.job_description
-    if body.job_url and re.match(r"https?://", body.job_url):
+    url_provided = bool(body.job_url and re.match(r"https?://", body.job_url))
+    if url_provided:
         fetched = _fetch_url(body.job_url)
         if fetched:
             jd = fetched
+        elif not jd:
+            # URL was the *only* input and every fetch path returned
+            # empty. That's a fetch problem, not a user problem, so we
+            # give them a clear "try pasting text" hand-off instead of
+            # the old generic 400.
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "fetch_failed",
+                    "message": (
+                        "We couldn't read that URL \u2014 the site may be "
+                        "blocking automated requests. Paste the job "
+                        "description text instead and we'll take it from there."
+                    ),
+                },
+            )
 
     if not jd:
-        raise HTTPException(status_code=400, detail="No job description or URL provided")
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "missing_input",
+                "message": "Paste a job description or a job posting URL to continue.",
+            },
+        )
 
-    extract_cap = 8000
+    # Bumped from 8K to 20K alongside the _fetch_url cap bump. The LLM
+    # extractor's prompt still asks for a ~6K substance chunk back, so
+    # the extra headroom is upstream signal only, not output bloat.
+    extract_cap = 20_000
     jd_for_llm = jd[:extract_cap] if len(jd) > extract_cap else jd
 
     result = _llm_json_extract(
@@ -722,6 +752,26 @@ async def extract_fields(body: ExtractRequest):
         ),
         user=jd_for_llm,
     )
+
+    # "Empty extraction" = we reached the LLM but it returned nothing
+    # useful (no company AND no role). Most common when Firecrawl got
+    # blocked and httpx fallback returned a cookie banner. Distinct
+    # from fetch_failed because it implies the site *did* serve
+    # content, just not job-posting content.
+    company = (result.get("company") or "").strip() if isinstance(result, dict) else ""
+    role = (result.get("role") or "").strip() if isinstance(result, dict) else ""
+    if not company and not role:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "extraction_empty",
+                "message": (
+                    "We loaded the page but couldn't pick out the job "
+                    "details. Try pasting the job description text directly."
+                ),
+            },
+        )
+
     if isinstance(result.get("job_description"), str) and len(jd) > len(result["job_description"]):
         result["job_description"] = jd
     return result
