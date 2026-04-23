@@ -10,9 +10,9 @@
  * @module pages/Landing
  */
 
-import { Fragment, useId, useRef } from "react";
+import { Fragment, useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { motion, useInView, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "../lib/auth";
 import { HeroProductDemo } from "../components/landing/HeroProductDemo";
 import { BrandMark } from "../components/landing/BrandMark";
@@ -359,54 +359,71 @@ const LANDING_VALUE_PROP_BANDS = [
 /* ── Section heading decoration ──────────────────────────────────────── */
 
 /**
- * Minimal futuristic accent under value-prop H3s — indigo→violet→fuchsia
- * gradient rail with a terminal-style corner bracket and a faint upper
- * "trace" line (reads as signal / intelligence, not hand-drawn squiggle).
+ * Easing + durations shared by both rails so the two lines move in
+ * sympathy (fast, confident stretch — no wobble). Decoupled constants
+ * so the two rails can land slightly offset for depth.
  */
-function SectionHeadingAccent() {
-  const gradId = `h3-accent-${useId().replace(/:/g, "")}`;
+const ACCENT_RAIL_EASE = [0.16, 1, 0.3, 1] as const;
+const ACCENT_RAIL_DURATION = 0.78;
+
+/**
+ * Futuristic accent under value-prop H3s: a fixed corner bracket plus
+ * two gradient rails that span the **same width as the heading** (the
+ * parent wraps `<h3>` in `w-fit`). The rails animate `scaleX` from the
+ * left (`transformOrigin: "0 50%"`) so they read as "growing" to
+ * underline the whole title.
+ *
+ * Why `inView` is a prop (not `whileInView` inside this component):
+ * the rail is driven to `scaleX: 0`, which gives it zero visual width.
+ * `whileInView` uses `IntersectionObserver`, which needs a non-empty
+ * bounding box to fire — so a self-observed rail gets stuck at 0. We
+ * instead observe the parent `FeatureSection` (full-size) and pass the
+ * boolean in. Reduced-motion users always see the finished state.
+ */
+function SectionHeadingAccent({ reducedMotion, inView }: { reducedMotion: boolean; inView: boolean }) {
+  const shouldShow = reducedMotion || inView;
+
   return (
-    <svg
-      viewBox="0 0 320 14"
-      className="mb-5 block h-3.5 w-[min(19rem,96%)] drop-shadow-[0_0_10px_rgba(139,92,246,0.22)] sm:h-4 sm:w-[min(22rem,94%)] lg:w-[min(26rem,92%)] dark:drop-shadow-[0_0_12px_rgba(167,139,250,0.18)]"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="rgb(99, 102, 241)" stopOpacity="0.55" />
-          <stop offset="50%" stopColor="rgb(139, 92, 246)" stopOpacity="1" />
-          <stop offset="100%" stopColor="rgb(217, 70, 239)" stopOpacity="0.6" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M2 2v10M2 12h14"
-        stroke={`url(#${gradId})`}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <line
-        x1="22"
-        y1="12"
-        x2="316"
-        y2="12"
-        stroke={`url(#${gradId})`}
-        strokeWidth="2.25"
-        strokeLinecap="round"
-      />
-      <line
-        x1="40"
-        y1="4.5"
-        x2="300"
-        y2="4.5"
-        stroke={`url(#${gradId})`}
-        strokeWidth="1"
-        strokeLinecap="round"
-        opacity={0.38}
-      />
-    </svg>
+    <div className="flex w-full items-end gap-2" aria-hidden>
+      <svg
+        className="h-3.5 w-3.5 shrink-0 text-indigo-500 sm:h-4 sm:w-4 dark:text-indigo-400"
+        viewBox="0 0 16 14"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M2 2v10M2 12h12"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5 pb-0.5">
+        <motion.div
+          initial={false}
+          animate={{ scaleX: shouldShow ? 1 : 0, opacity: shouldShow ? 0.85 : 0.35 }}
+          transition={
+            reducedMotion
+              ? { duration: 0 }
+              : { duration: ACCENT_RAIL_DURATION * 0.85, ease: ACCENT_RAIL_EASE, delay: 0.06 }
+          }
+          style={{ transformOrigin: "0 50%" }}
+          className="h-px w-full rounded-full bg-gradient-to-r from-indigo-500/45 via-violet-500/35 to-fuchsia-500/25"
+        />
+        <motion.div
+          initial={false}
+          animate={{ scaleX: shouldShow ? 1 : 0, opacity: shouldShow ? 1 : 0.5 }}
+          transition={
+            reducedMotion
+              ? { duration: 0 }
+              : { duration: ACCENT_RAIL_DURATION, ease: ACCENT_RAIL_EASE, delay: 0.14 }
+          }
+          style={{ transformOrigin: "0 50%" }}
+          className="h-[3px] w-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500/75 shadow-[0_0_10px_rgba(139,92,246,0.22)] dark:shadow-[0_0_12px_rgba(167,139,250,0.18)]"
+        />
+      </div>
+    </div>
   );
 }
 
@@ -440,6 +457,10 @@ function FeatureSection({
   // Zoom up as the band crosses the viewport center, fade out on exit.
   const scale = useTransform(scrollYProgress, [0, 0.22, 0.78, 1], [0.76, 1.06, 1.06, 0.76]);
   const opacity = useTransform(scrollYProgress, [0, 0.18, 0.82, 1], [0.4, 1, 1, 0.4]);
+  // Drives the H3 underline-stretch. Observed on the full-size section
+  // ref (not on the zero-width rails themselves) so the animation
+  // actually fires — see `SectionHeadingAccent` comment for why.
+  const inView = useInView(ref, { amount: 0.25, margin: "-12% 0px" });
   // Alternate mockup side by index parity (0 = left copy/right mockup, 1 = reversed, …).
   const mockupOnRight = sectionIndex % 2 === 1;
 
@@ -457,10 +478,13 @@ function FeatureSection({
         className={`flex flex-col ${mockupOnRight ? "lg:flex-row-reverse" : "lg:flex-row"} items-center gap-10 lg:gap-16`}
       >
         <motion.div variants={fadeUp} className="flex-1 max-w-lg">
-          <h3 className="font-display mb-2 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl dark:text-white">
-            {band.title}
-          </h3>
-          <SectionHeadingAccent />
+          {/* w-fit + inline-block title so the accent rail matches heading width */}
+          <div className="mb-5 w-fit max-w-full">
+            <h3 className="font-display mb-2 inline-block max-w-full text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl dark:text-white">
+              {band.title}
+            </h3>
+            <SectionHeadingAccent reducedMotion={reducedMotion} inView={inView} />
+          </div>
           <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-5">
             {band.description}
           </p>
