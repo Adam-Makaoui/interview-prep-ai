@@ -1,25 +1,18 @@
 /**
  * @fileoverview Public marketing landing page for InterviewIntel — the unauthenticated entry point and SEO face of the product.
  *
- * Composes: hero + feature value-prop bands (with scroll-driven zoom), demo video embed, testimonial carousel,
+ * Composes: hero + feature value-prop bands (with scroll-driven zoom), demo video embed, testimonial queue,
  * pricing tiers, and CTAs wired to `/login` or `/app` via {@link useAuth}. All motion uses Framer Motion.
  *
- * Heavy decorative visuals (glass panels, animated orbs, 3D carousel) live on THIS route only — keep the
+ * Heavy decorative visuals (glass panels, animated orbs) live on THIS route only — keep the
  * authenticated product shell flatter per CLAUDE.md.
  *
  * @module pages/Landing
  */
 
-import { Fragment, useCallback, useEffect, useId, useRef, useState } from "react";
+import { Fragment, useCallback, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  motion,
-  useAnimationFrame,
-  useMotionValue,
-  useReducedMotion,
-  useScroll,
-  useTransform,
-} from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "../lib/auth";
 import { HeroProductDemo } from "../components/landing/HeroProductDemo";
 import { BrandMark } from "../components/landing/BrandMark";
@@ -374,8 +367,8 @@ function SectionHeadingAccent() {
   const gradId = `h3-accent-${useId().replace(/:/g, "")}`;
   return (
     <svg
-      viewBox="0 0 256 14"
-      className="mb-5 block h-3.5 w-[min(15rem,92%)] drop-shadow-[0_0_10px_rgba(139,92,246,0.22)] sm:h-4 sm:w-[min(17rem,90%)] dark:drop-shadow-[0_0_12px_rgba(167,139,250,0.18)]"
+      viewBox="0 0 320 14"
+      className="mb-5 block h-3.5 w-[min(19rem,96%)] drop-shadow-[0_0_10px_rgba(139,92,246,0.22)] sm:h-4 sm:w-[min(22rem,94%)] lg:w-[min(26rem,92%)] dark:drop-shadow-[0_0_12px_rgba(167,139,250,0.18)]"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
@@ -397,16 +390,16 @@ function SectionHeadingAccent() {
       <line
         x1="22"
         y1="12"
-        x2="252"
+        x2="316"
         y2="12"
         stroke={`url(#${gradId})`}
         strokeWidth="2.25"
         strokeLinecap="round"
       />
       <line
-        x1="38"
+        x1="40"
         y1="4.5"
-        x2="232"
+        x2="300"
         y2="4.5"
         stroke={`url(#${gradId})`}
         strokeWidth="1"
@@ -493,9 +486,8 @@ function FeatureSection({
 /* ── Social proof data ──────────────────────────────────────────────── */
 
 /**
- * Static list of customer quotes shown in the testimonials carousel.
+ * Static list of customer quotes shown in the testimonials queue carousel.
  * Each entry carries a name/role pair, avatar initials + color swatch, and the quote itself.
- * Keep around 5 items — the 3D ring spaces cards evenly using `360 / length`.
  */
 const LANDING_CUSTOMER_TESTIMONIALS = [
   {
@@ -541,7 +533,6 @@ type LandingTestimonial = (typeof LANDING_CUSTOMER_TESTIMONIALS)[number];
 
 /**
  * Presentational card for a single testimonial (quote + avatar + name/role).
- * Shared between the 3D carousel and the reduced-motion grid fallback.
  *
  * @param testimonial - The quote + author metadata to render.
  * @param className   - Extra classes merged onto the card wrapper (e.g. for carousel positioning).
@@ -573,159 +564,112 @@ function TestimonialCard({
   );
 }
 
+/** Shared chrome for testimonial queue prev/next controls (44px+ touch targets). */
+const TESTIMONIAL_NAV_BTN_CLASS =
+  "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-300/90 bg-white/90 text-gray-800 shadow-sm transition hover:border-violet-400/70 hover:bg-white hover:text-violet-700 active:scale-[0.97] dark:border-white/15 dark:bg-gray-950/80 dark:text-gray-100 dark:hover:border-violet-500/45 dark:hover:bg-gray-950 dark:hover:text-violet-200";
+
 /**
- * Continuous 3D ring of testimonials powered by Framer Motion.
+ * Testimonials as a finite queue: three cards on `lg+`, one card on smaller viewports.
+ * Prev/next shift the window one step (modulo list length) with a short fade/slide — no 3D ring,
+ * works cleanly on touch and keyboard.
  *
- * Cards are positioned around a horizontal ring by compounding `rotateY(i * step) translateZ(radius)`.
- * A {@link useMotionValue} holds the ring's current rotation, and {@link useAnimationFrame} advances it
- * at ~6°/s (full turn ≈ 60s). Hover pauses rotation using a depth counter so nested
- * `pointerenter`/`leave` events from child elements don't desync the paused state.
- *
- * Accessibility: when `reducedMotion` is true we render a static 3-column grid instead of the ring.
- *
- * @param reducedMotion - When true, replaces the ring with a static grid and skips animation frames.
+ * @param reducedMotion - When true, renders a static multi-column grid of all quotes (no motion).
  */
-function TestimonialsCarousel3D({ reducedMotion }: { reducedMotion: boolean }) {
-  /** Number of cards on the ring — drives even 360° spacing. */
-  const cardCount = LANDING_CUSTOMER_TESTIMONIALS.length;
-  /** Angular spacing (degrees) between neighbouring cards around the ring. */
-  const anglePerCardDeg = 360 / cardCount;
-  /** Responsive ring radius in px — tighter on small screens so cards don't overflow horizontally. */
-  const [radiusPx, setRadiusPx] = useState(520);
-  /**
-   * True on viewports < 640px. We swap the 3D ring for a horizontal scroll-snap track below this breakpoint
-   * because the ring becomes illegible — cards overlap, touch can't spin it, and rotation consumes battery.
-   */
-  const [isMobile, setIsMobile] = useState(false);
-  /** Drives the ring's Y rotation; advanced every frame when not paused. */
-  const rotateY = useMotionValue(0);
-  /** True while the pointer is over any card — frame loop skips updates until it goes false. */
-  const pausedRef = useRef(false);
-  /** Counts nested pointerenter vs pointerleave so child elements don't prematurely un-pause. */
-  const cardHoverDepthRef = useRef(0);
-  /** Mirrors the `reducedMotion` prop inside the animation frame closure without re-binding it. */
-  const reducedRef = useRef(reducedMotion);
-  reducedRef.current = reducedMotion;
+function TestimonialsQueueCarousel({ reducedMotion }: { reducedMotion: boolean }) {
+  const items = LANDING_CUSTOMER_TESTIMONIALS;
+  const n = items.length;
+  const [index, setIndex] = useState(0);
 
-  useEffect(() => {
-    if (reducedMotion) return;
-    const syncRadius = () => {
-      const w = window.innerWidth;
-      setIsMobile(w < 640);
-      if (w < 480) setRadiusPx(200);
-      else if (w < 640) setRadiusPx(260);
-      else if (w < 900) setRadiusPx(360);
-      else if (w < 1100) setRadiusPx(440);
-      else setRadiusPx(520);
-    };
-    syncRadius();
-    window.addEventListener("resize", syncRadius);
-    return () => window.removeEventListener("resize", syncRadius);
-  }, [reducedMotion]);
+  const goPrev = useCallback(() => {
+    setIndex((i) => (i - 1 + n) % n);
+  }, [n]);
 
-  const onCardPointerEnter = useCallback(() => {
-    cardHoverDepthRef.current += 1;
-    pausedRef.current = true;
-  }, []);
+  const goNext = useCallback(() => {
+    setIndex((i) => (i + 1) % n);
+  }, [n]);
 
-  const onCardPointerLeave = useCallback(() => {
-    cardHoverDepthRef.current = Math.max(0, cardHoverDepthRef.current - 1);
-    pausedRef.current = cardHoverDepthRef.current > 0;
-  }, []);
-
-  /**
-   * Animation frame callback — rotates the ring counter-clockwise (negative rotateY delta) at
-   * ~9°/second while not paused, completing a full revolution in ~40 s (33% faster than the
-   * original 60 s cadence).
-   *
-   * NOTE: Framer's `useAnimationFrame` delivers `delta` in **milliseconds**, not seconds, so we
-   * compute `degPerMs = 360 / (40 * 1000)`.
-   */
-  const onFrame = useCallback(
-    (_t: number, delta: number) => {
-      if (reducedRef.current || pausedRef.current) return;
-      const degPerMs = 360 / (40 * 1000);
-      rotateY.set((rotateY.get() - degPerMs * delta) % 360);
-    },
-    [rotateY],
-  );
-
-  useAnimationFrame(onFrame);
-
-  // Fallback for users who prefer reduced motion: static 3-column grid.
   if (reducedMotion) {
     return (
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {LANDING_CUSTOMER_TESTIMONIALS.map((testimonial) => (
-          <motion.div key={testimonial.name} variants={fadeUp}>
-            <TestimonialCard testimonial={testimonial} />
-          </motion.div>
-        ))}
-      </div>
-    );
-  }
-
-  // Mobile fallback: horizontal scroll-snap track. 3D rings don't translate to small touch surfaces
-  // (cards overlap, no hover, touch can't spin), so we swap to a swipeable carousel instead.
-  if (isMobile) {
-    return (
-      <div
-        className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        role="region"
-        aria-label="Customer testimonials"
-      >
-        {LANDING_CUSTOMER_TESTIMONIALS.map((testimonial) => (
-          <div
-            key={testimonial.name}
-            className="w-[85vw] max-w-[22rem] shrink-0 snap-center"
-          >
-            <TestimonialCard testimonial={testimonial} />
-          </div>
-        ))}
+      <div className="mx-auto max-w-6xl px-4" role="region" aria-label="Customer testimonials">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((t) => (
+            <TestimonialCard key={t.name} testimonial={t} />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="pointer-events-none mx-auto w-full max-w-none px-2 sm:px-4"
-      role="region"
-      aria-label="Customer testimonials"
-    >
-      <div
-        className="relative mx-auto h-[min(520px,64vh)] overflow-visible"
-        style={{ perspective: "3200px" }}
-      >
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          {/* Shallow tilt keeps the ring readable; strong perspective flattens side angles. */}
-          <div className="[transform-style:preserve-3d]" style={{ transform: "rotateX(-4deg)" }}>
-            <motion.div className="h-0 w-0 [transform-style:preserve-3d]" style={{ rotateY }}>
-              {LANDING_CUSTOMER_TESTIMONIALS.map((testimonial, cardIndex) => (
-                <div
-                  key={testimonial.name}
-                  className="pointer-events-auto absolute left-0 top-0 w-[min(18rem,calc(100vw-2.5rem))] [backface-visibility:hidden] [transform-style:preserve-3d]"
-                  style={{
-                    transform: `rotateY(${cardIndex * anglePerCardDeg}deg) translateZ(${radiusPx}px) translate(-50%, -50%)`,
-                  }}
-                  onPointerEnter={onCardPointerEnter}
-                  onPointerLeave={onCardPointerLeave}
-                >
-                  <TestimonialCard testimonial={testimonial} />
-                </div>
-              ))}
-            </motion.div>
+    <div className="mx-auto max-w-6xl px-4" role="region" aria-label="Customer testimonials">
+      <div className="flex flex-col items-stretch gap-6 lg:flex-row lg:items-start lg:gap-5">
+        <button
+          type="button"
+          className={`${TESTIMONIAL_NAV_BTN_CLASS} order-2 mx-auto lg:order-none lg:mt-28`}
+          onClick={goPrev}
+          aria-label="Previous testimonials"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <div className="order-1 min-w-0 flex-1 lg:order-none" aria-live="polite" aria-atomic="true">
+          <div className="lg:hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={items[index].name}
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -18 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+              >
+                <TestimonialCard testimonial={items[index]} />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          <div className="hidden lg:block">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={index}
+                className="grid grid-cols-3 gap-5"
+                initial={{ opacity: 0, x: 26 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -22 }}
+                transition={{ duration: 0.24, ease: "easeOut" }}
+              >
+                {[0, 1, 2].map((slot) => (
+                  <TestimonialCard
+                    key={`${index}-${slot}-${items[(index + slot) % n].name}`}
+                    testimonial={items[(index + slot) % n]}
+                  />
+                ))}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
+
+        <button
+          type="button"
+          className={`${TESTIMONIAL_NAV_BTN_CLASS} order-3 mx-auto lg:order-none lg:mt-28`}
+          onClick={goNext}
+          aria-label="Next testimonials"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
     </div>
   );
 }
 
 /**
- * Full-bleed Railway-inspired "loved by our users" band — heading + CTA link + the 3D carousel.
+ * Full-bleed "loved by our users" band — heading + CTA link + testimonial queue carousel.
  * Uses a distinct background hue to visually separate social proof from the surrounding sections.
  *
- * @param reduceMotion - Forwarded from {@link useReducedMotion}; disables entrance replay and ring rotation.
+ * @param reduceMotion - Forwarded from {@link useReducedMotion}; disables entrance replay and carousel transitions.
  * @param ctaHref      - Destination for the inline "Start your first free session" link (auth-aware).
  */
 function TestimonialsSection({ reduceMotion, ctaHref }: { reduceMotion: boolean; ctaHref: string }) {
@@ -770,7 +714,7 @@ function TestimonialsSection({ reduceMotion, ctaHref }: { reduceMotion: boolean;
         variants={fadeUp}
         className="w-full"
       >
-        <TestimonialsCarousel3D reducedMotion={reduceMotion} />
+        <TestimonialsQueueCarousel reducedMotion={reduceMotion} />
       </motion.div>
     </section>
   );
