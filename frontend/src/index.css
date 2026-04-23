@@ -531,3 +531,44 @@ body {
  * the earlier dense mesh with a drop-shadow bloom, which the user
  * flagged as "distracting". The new mesh (see HeroConstellation.tsx +
  * `.hero-constellation-node` above) is opacity-only and sparse. */
+
+/* ── Testimonials 2D marquee ──────────────────────────────────────────
+ * Continuous horizontal loop used by `TestimonialsMarqueeVariant`. The
+ * component renders the list twice inline; this keyframe slides the
+ * whole track by exactly 50% — because the second half starts where
+ * the first half ends, the visible frame at 100% is pixel-identical
+ * to the frame at 0%, producing a seamless loop with no JS frame
+ * work.
+ *
+ * Duration (60s) is deliberately slow: long enough that a scanning
+ * reader can finish a quote before it slides off, short enough that a
+ * casual visitor sees motion.
+ *
+ * Hover / focus-within pauses via `animation-play-state` so the
+ * compositor keeps the track on the GPU layer — no transform
+ * teardown, no paint flash.
+ */
+@keyframes testimonialsMarquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.testimonials-marquee-track {
+  animation: testimonialsMarquee 60s linear infinite;
+  will-change: transform;
+}
+
+.testimonials-marquee:hover .testimonials-marquee-track,
+.testimonials-marquee:focus-within .testimonials-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .testimonials-marquee-track {
+    animation: none;
+  }
+}

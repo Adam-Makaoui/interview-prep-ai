@@ -10,9 +10,9 @@
  * @module pages/Landing
  */
 
-import { Fragment, useCallback, useId, useRef, useState } from "react";
+import { Fragment, useId, useRef } from "react";
 import { Link } from "react-router-dom";
-import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { useAuth } from "../lib/auth";
 import { HeroProductDemo } from "../components/landing/HeroProductDemo";
 import { BrandMark } from "../components/landing/BrandMark";
@@ -483,187 +483,14 @@ function FeatureSection({
   );
 }
 
-/* ── Social proof data ──────────────────────────────────────────────── */
+/* ── Social proof ───────────────────────────────────────────────────── */
 
-/**
- * Static list of customer quotes shown in the testimonials queue carousel.
- * Each entry carries a name/role pair, avatar initials + color swatch, and the quote itself.
- */
-const LANDING_CUSTOMER_TESTIMONIALS = [
-  {
-    name: "Sarah K.",
-    role: "Senior SE at Salesforce",
-    initials: "SK",
-    color: "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30",
-    quote:
-      "I used this for my Stripe final round. The job description analysis caught gaps I would have never addressed. Got the offer.",
-  },
-  {
-    name: "Marcus T.",
-    role: "Solutions Architect",
-    initials: "MT",
-    color: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30",
-    quote: "The role-play felt surprisingly real. The feedback after each answer was more useful than any mock interview I've done with friends.",
-  },
-  {
-    name: "Priya R.",
-    role: "Pre-Sales Engineer at AWS",
-    initials: "PR",
-    color: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30",
-    quote: "Went from generic prep to role-specific, interviewer-aware prep. The STAR frameworks saved me hours of writing.",
-  },
-  {
-    name: "Jordan L.",
-    role: "Staff Engineer at Datadog",
-    initials: "JL",
-    color: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30",
-    quote: "I ran three back-to-back loop preps in one weekend. The scorecard showed exactly where I was slipping — nailed every behavioral the following Monday.",
-  },
-  {
-    name: "Elena V.",
-    role: "Engineering Manager at Figma",
-    initials: "EV",
-    color: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30",
-    quote: "I was skeptical until I saw the gap analysis on my first job posting. It flagged two skills I'd completely overlooked. Prep time cut in half.",
-  },
-];
-
-/** Element type of {@link LANDING_CUSTOMER_TESTIMONIALS}. */
-type LandingTestimonial = (typeof LANDING_CUSTOMER_TESTIMONIALS)[number];
-
-/**
- * Presentational card for a single testimonial (quote + avatar + name/role).
- *
- * @param testimonial - The quote + author metadata to render.
- * @param className   - Extra classes merged onto the card wrapper (e.g. for carousel positioning).
- */
-function TestimonialCard({
-  testimonial,
-  className = "",
-}: {
-  testimonial: LandingTestimonial;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`rounded-xl border border-white/55 bg-white/70 p-5 shadow-lg shadow-violet-200/20 backdrop-blur-xl dark:border-white/10 dark:bg-gray-950/50 dark:shadow-black/25 ${className}`}
-    >
-      <p className="mb-4 text-sm italic leading-relaxed text-gray-700 dark:text-gray-300">&quot;{testimonial.quote}&quot;</p>
-      <div className="flex items-center gap-3">
-        <div
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${testimonial.color}`}
-        >
-          {testimonial.initials}
-        </div>
-        <div>
-          <p className="text-sm font-medium text-gray-900 dark:text-white">{testimonial.name}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-500">{testimonial.role}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Shared chrome for testimonial queue prev/next controls (44px+ touch targets). */
-const TESTIMONIAL_NAV_BTN_CLASS =
-  "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-300/90 bg-white/90 text-gray-800 shadow-sm transition hover:border-violet-400/70 hover:bg-white hover:text-violet-700 active:scale-[0.97] dark:border-white/15 dark:bg-gray-950/80 dark:text-gray-100 dark:hover:border-violet-500/45 dark:hover:bg-gray-950 dark:hover:text-violet-200";
-
-/**
- * Testimonials as a finite queue: three cards on `lg+`, one card on smaller viewports.
- * Prev/next shift the window one step (modulo list length) with a short fade/slide — no 3D ring,
- * works cleanly on touch and keyboard.
- *
- * @param reducedMotion - When true, renders a static multi-column grid of all quotes (no motion).
- */
-function TestimonialsQueueCarousel({ reducedMotion }: { reducedMotion: boolean }) {
-  const items = LANDING_CUSTOMER_TESTIMONIALS;
-  const n = items.length;
-  const [index, setIndex] = useState(0);
-
-  const goPrev = useCallback(() => {
-    setIndex((i) => (i - 1 + n) % n);
-  }, [n]);
-
-  const goNext = useCallback(() => {
-    setIndex((i) => (i + 1) % n);
-  }, [n]);
-
-  if (reducedMotion) {
-    return (
-      <div className="mx-auto max-w-6xl px-4" role="region" aria-label="Customer testimonials">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((t) => (
-            <TestimonialCard key={t.name} testimonial={t} />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-6xl px-4" role="region" aria-label="Customer testimonials">
-      <div className="flex flex-col items-stretch gap-6 lg:flex-row lg:items-start lg:gap-5">
-        <button
-          type="button"
-          className={`${TESTIMONIAL_NAV_BTN_CLASS} order-2 mx-auto lg:order-none lg:mt-28`}
-          onClick={goPrev}
-          aria-label="Previous testimonials"
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-
-        <div className="order-1 min-w-0 flex-1 lg:order-none" aria-live="polite" aria-atomic="true">
-          <div className="lg:hidden">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={items[index].name}
-                initial={{ opacity: 0, x: 24 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -18 }}
-                transition={{ duration: 0.22, ease: "easeOut" }}
-              >
-                <TestimonialCard testimonial={items[index]} />
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          <div className="hidden lg:block">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={index}
-                className="grid grid-cols-3 gap-5"
-                initial={{ opacity: 0, x: 26 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -22 }}
-                transition={{ duration: 0.24, ease: "easeOut" }}
-              >
-                {[0, 1, 2].map((slot) => (
-                  <TestimonialCard
-                    key={`${index}-${slot}-${items[(index + slot) % n].name}`}
-                    testimonial={items[(index + slot) % n]}
-                  />
-                ))}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className={`${TESTIMONIAL_NAV_BTN_CLASS} order-3 mx-auto lg:order-none lg:mt-28`}
-          onClick={goNext}
-          aria-label="Next testimonials"
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
-}
+// Data, card, and the three variants (2D marquee / 3D ring / buttons)
+// all live in TestimonialsCarousel.tsx. Keeping Landing.tsx focused on
+// layout + section composition and letting the testimonial component
+// own its own motion model means we can swap/tune variants without
+// editing this file, and the dev-only variant tabs stay encapsulated.
+import { TestimonialsCarousel } from "../components/landing/TestimonialsCarousel";
 
 /**
  * Full-bleed "loved by our users" band — heading + CTA link + testimonial queue carousel.
@@ -714,7 +541,7 @@ function TestimonialsSection({ reduceMotion, ctaHref }: { reduceMotion: boolean;
         variants={fadeUp}
         className="w-full"
       >
-        <TestimonialsQueueCarousel reducedMotion={reduceMotion} />
+        <TestimonialsCarousel reducedMotion={reduceMotion} />
       </motion.div>
     </section>
   );
