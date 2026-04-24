@@ -1,0 +1,30 @@
+# Optional: GitHub → repo → Settings → Secrets → New repository secret:
+#   SLACK_WEBHOOK_URL = Incoming Webhook URL (Slack API app → Incoming Webhooks).
+# Pushes to main/dev post a short summary so you can follow work from a channel.
+
+name: Slack — push summary
+
+on:
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL not set — skipping (add repo secret to enable)."
+            exit 0
+          fi
+          BODY=$(jq -n \
+            --arg repo "${{ github.repository }}" \
+            --arg ref "${{ github.ref_name }}" \
+            --arg url "${{ github.event.head_commit.url }}" \
+            --arg actor "${{ github.actor }}" \
+            '{text: ("*" + $repo + "* — `" + $ref + "`\n" + $url + "\npushed by `" + $actor + "`")}')
+          curl -fsS -X POST -H 'Content-type: application/json' -d "$BODY" "$SLACK_WEBHOOK_URL"
