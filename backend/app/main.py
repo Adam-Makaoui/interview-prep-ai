@@ -7,7 +7,8 @@ import queue as queue_mod
 import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Iterable, Optional
+from urllib.parse import urlparse, urlunparse
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -113,11 +114,56 @@ async def lifespan(app):
 
 app = FastAPI(title="InterviewIntel Agent", lifespan=lifespan)
 
+
+def _origin_with_host(scheme: str, host: str, port: int | None) -> str:
+    netloc = host
+    if port and not (scheme == "http" and port == 80) and not (scheme == "https" and port == 443):
+        netloc = f"{host}:{port}"
+    return urlunparse((scheme, netloc, "", "", "", ""))
+
+
+def _apex_www_peers(origin: str) -> list[str]:
+    """Allow both apex and www when FRONTEND_URL lists only one (common CORS pitfall).
+
+    Skips localhost and multi-label hosts (e.g. dev.interviewintel.ai, *.vercel.app)
+    so we do not invent bogus www.* subdomains.
+    """
+    o = origin.strip().rstrip("/")
+    if not o:
+        return []
+    parsed = urlparse(o)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        return [o]
+    host = parsed.hostname.lower()
+    if host in ("localhost", "127.0.0.1") or host.endswith(".localhost"):
+        return [o]
+    labels = host.split(".")
+    peers: set[str] = {o}
+    port = parsed.port
+
+    if host.startswith("www."):
+        apex = host[4:]
+        if apex:
+            peers.add(_origin_with_host(parsed.scheme, apex, port))
+    elif len(labels) == 2:
+        peers.add(_origin_with_host(parsed.scheme, f"www.{host}", port))
+    return sorted(peers)
+
+
+def _cors_allowlist(origins: Iterable[str]) -> list[str]:
+    out: set[str] = set()
+    for raw in origins:
+        for peer in _apex_www_peers(raw):
+            out.add(peer)
+    return sorted(out)
+
+
 # FRONTEND_URL may be a single origin or a comma-separated list (prod + staging).
 _primary_origins = [
-    o.strip() for o in settings.frontend_url.split(",") if o.strip()
+    o.strip().rstrip("/") for o in settings.frontend_url.split(",") if o.strip()
 ]
-_allowed_origins = sorted({*_primary_origins, "http://localhost:5173"})
+_allowed_origins = _cors_allowlist([*_primary_origins, "http://localhost:5173"])
+logger.info("CORS allow_origins: %s", _allowed_origins)
 
 app.add_middleware(
     CORSMiddleware,
