@@ -11,6 +11,29 @@ function apiBase(): string {
 
 const BASE = apiBase();
 
+/** Supported resume file extensions accepted by backend parser. */
+const RESUME_UPLOAD_EXTENSIONS = [".pdf", ".docx", ".txt"] as const;
+/** Keep uploads small to avoid proxy/network hard-failures on multipart posts. */
+const RESUME_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Formats bytes for human-friendly error messages.
+ * Example: 5242880 -> "5.0 MB"
+ */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * Checks whether the filename has a backend-supported extension.
+ */
+function hasSupportedResumeExtension(filename: string): boolean {
+  const lower = filename.toLowerCase();
+  return RESUME_UPLOAD_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
 async function authHeaders(): Promise<Record<string, string>> {
   if (!supabase) return {};
   const { data } = await supabase.auth.getSession();
@@ -167,24 +190,56 @@ export interface ExtractedFields {
 }
 
 /**
- * Uploads a resume file (PDF or DOCX) and returns extracted plain text.
+ * Uploads a resume file (PDF, DOCX, or TXT) and returns extracted plain text.
  *
- * @param file - Resume file to parse (PDF or DOCX)
+ * @param file - Resume file to parse (PDF, DOCX, or TXT)
  * @returns Extracted text content from the resume
  * @throws Error when upload fails or parsing returns an error
  */
 export async function parseResumeFile(file: File): Promise<string> {
+  if (!hasSupportedResumeExtension(file.name || "")) {
+    throw new Error("Unsupported file type. Upload a PDF, DOCX, or TXT file.");
+  }
+  if (file.size <= 0) {
+    throw new Error("This file is empty. Please choose a valid resume file.");
+  }
+  if (file.size > RESUME_UPLOAD_MAX_BYTES) {
+    throw new Error(
+      `File is too large (${formatBytes(file.size)}). Please upload a file up to ${formatBytes(RESUME_UPLOAD_MAX_BYTES)}.`,
+    );
+  }
+
   const formData = new FormData();
   formData.append("file", file);
-  const res = await apiFetch(`${BASE}/parse-resume`, {
-    method: "POST",
-    body: formData,
-  });
-  if (!res.ok) {
-    const detail = await res.json().catch(() => null);
-    throw new Error(detail?.detail || `Failed: ${res.status}`);
+  let res: Response;
+  try {
+    res = await apiFetch(`${BASE}/parse-resume`, {
+      method: "POST",
+      body: formData,
+    });
+  } catch (err) {
+    // Browser "Failed to fetch" usually means CORS/network/proxy rejection.
+    if (err instanceof TypeError) {
+      throw new Error(
+        "Could not reach the resume upload service. Check your connection and try a smaller PDF/DOCX/TXT file.",
+      );
+    }
+    throw err;
   }
-  const data = await res.json();
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const detail = body?.detail;
+    const message =
+      (detail && typeof detail === "object" && typeof detail.message === "string" && detail.message) ||
+      (typeof detail === "string" && detail) ||
+      `Failed: ${res.status}`;
+    throw new Error(message);
+  }
+  const data = await res.json().catch(() => null);
+  if (!data || typeof data.text !== "string") {
+    throw new Error("Resume upload succeeded but the server returned an invalid response.");
+  }
   return data.text;
 }
 
