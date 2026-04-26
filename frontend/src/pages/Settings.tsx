@@ -3,9 +3,10 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { useAuth } from "../lib/auth";
 import {
+  createCheckoutSession,
+  createCustomerPortalSession,
   getProfile,
   getSavedResumes,
   parseResumeFile,
@@ -16,11 +17,18 @@ import {
 } from "../lib/api";
 import { useTheme } from "../lib/theme";
 
-const MAX_RESUME_SLOTS = 3;
+const MAX_RESUME_SLOTS = 2;
 const MAX_RESUME_CHARS = 80_000;
 
 function newSlotId(): string {
   return crypto.randomUUID();
+}
+
+function normalizeResumeDraft(data: SavedResumesData): SavedResumesData {
+  const items = data.items.slice(0, MAX_RESUME_SLOTS);
+  const fallback = items[0]?.id ?? data.default_id;
+  const default_id = items.some((item) => item.id === data.default_id) ? data.default_id : fallback;
+  return { ...data, default_id, items };
 }
 
 function AiModelSection({
@@ -103,10 +111,7 @@ function AiModelSection({
         ))}
         {saving && <p className="text-xs text-muted-foreground">Saving…</p>}
         {err && <p className="text-xs text-destructive">{err}</p>}
-        <p className="pt-1 text-xs text-muted-foreground">
-          Preference is stored on your account. Later, Pro and other paid tiers can unlock higher-quality models as
-          part of your subscription.
-        </p>
+        <p className="pt-1 text-xs text-muted-foreground">Saved to your account. Pro unlocks premium models.</p>
       </CardContent>
     </Card>
   );
@@ -132,7 +137,7 @@ function ResumeSettingsSection() {
         if (!data) {
           setErr("Could not load saved resumes. You may need to sign in again.");
         }
-        setDraft(data);
+        setDraft(data ? normalizeResumeDraft(data) : data);
         setLoading(false);
       }
     })();
@@ -146,8 +151,8 @@ function ResumeSettingsSection() {
     setSaving(true);
     setErr("");
     try {
-      const next = await putSavedResumes(draft);
-      setDraft(next);
+      const next = await putSavedResumes(normalizeResumeDraft(draft));
+      setDraft(normalizeResumeDraft(next));
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -233,13 +238,12 @@ function ResumeSettingsSection() {
 
   return (
     <>
-      <Card className="shadow-sm">
+      <Card className="border-border/70 bg-card/95 shadow-sm">
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1.5">
             <CardTitle>Saved resumes</CardTitle>
             <CardDescription>
-              Add, label, and edit up to {MAX_RESUME_SLOTS} profiles here—this is the home for your resumes. New Session
-              only picks which profile to use for that interview; manage content here or import a PDF/DOCX.
+              Save up to {MAX_RESUME_SLOTS} resumes. Pick one as your default.
             </CardDescription>
           </div>
           <Button variant="link" asChild className="h-auto shrink-0 p-0 text-primary sm:self-center">
@@ -258,9 +262,9 @@ function ResumeSettingsSection() {
                 {draft.items.map((slot) => (
                   <div
                     key={slot.id}
-                    className="rounded-lg border border-gray-200 dark:border-gray-700/80 bg-gray-50/80 dark:bg-gray-950/40 p-4 space-y-3"
+                    className="space-y-3 rounded-xl border border-border/80 bg-muted/30 p-4"
                   >
-                    <div className="flex flex-wrap items-center gap-2 justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex min-w-0 flex-1 items-center gap-2">
                         <Input
                           type="text"
@@ -275,8 +279,8 @@ function ResumeSettingsSection() {
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-1">
-                        <Button variant="link" size="sm" className="h-auto min-h-0 px-2 py-0 text-xs" asChild>
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" size="xs" asChild>
                           <label className="cursor-pointer">
                             <input
                               type="file"
@@ -294,18 +298,17 @@ function ResumeSettingsSection() {
                         </Button>
                         <Button
                           type="button"
-                          variant="link"
-                          size="sm"
-                          className="h-auto min-h-0 px-2 py-0 text-xs"
+                          variant="outline"
+                          size="xs"
                           onClick={() => openEditor(slot.id)}
                         >
-                          Full editor
+                          Edit
                         </Button>
                         <Button
                           type="button"
-                          variant="link"
-                          size="sm"
-                          className="h-auto min-h-0 px-2 py-0 text-xs text-muted-foreground"
+                          variant="ghost"
+                          size="xs"
+                          className="text-muted-foreground"
                           onClick={() => setPreviewId(slot.id)}
                         >
                           Preview
@@ -313,19 +316,19 @@ function ResumeSettingsSection() {
                         {slot.id !== draft.default_id && (
                           <Button
                             type="button"
-                            variant="link"
-                            size="sm"
-                            className="h-auto min-h-0 px-2 py-0 text-xs text-muted-foreground"
+                            variant="ghost"
+                            size="xs"
+                            className="text-muted-foreground"
                             onClick={() => setDefault(slot.id)}
                           >
-                            Set as default
+                            Make default
                           </Button>
                         )}
                         <Button
                           type="button"
-                          variant="link"
-                          size="sm"
-                          className="h-auto min-h-0 px-2 py-0 text-xs text-destructive disabled:opacity-40"
+                          variant="ghost"
+                          size="xs"
+                          className="text-destructive disabled:opacity-40"
                           onClick={() => removeSlot(slot.id)}
                           disabled={draft.items.length <= 1}
                         >
@@ -333,14 +336,12 @@ function ResumeSettingsSection() {
                         </Button>
                       </div>
                     </div>
-                    <textarea
-                      value={slot.text}
-                      onChange={(e) => updateText(slot.id, e.target.value)}
-                      rows={8}
-                      placeholder="Paste resume text for this profile…"
-                      className="min-h-[180px] w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 font-mono text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
-                    />
-                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                    <div className="rounded-lg border border-border bg-background/70 p-3">
+                      <p className="line-clamp-3 whitespace-pre-wrap font-mono text-xs leading-5 text-muted-foreground">
+                        {slot.text.trim() || "No resume text yet. Import a file or open Edit."}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
                       {slot.text.length.toLocaleString()} / {MAX_RESUME_CHARS.toLocaleString()} characters
                     </p>
                   </div>
@@ -466,45 +467,62 @@ export default function Settings() {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingError, setBillingError] = useState("");
 
   useEffect(() => {
     getProfile().then(setProfile);
   }, []);
 
   const plan = profile?.plan ?? "free";
+  const proPriceLabel = "$19/month";
+
+  const redirectToBilling = async (kind: "checkout" | "portal") => {
+    setBillingLoading(true);
+    setBillingError("");
+    try {
+      const url = kind === "checkout" ? await createCheckoutSession() : await createCustomerPortalSession();
+      window.location.assign(url);
+    } catch (e) {
+      setBillingError(e instanceof Error ? e.message : "Could not open billing");
+      setBillingLoading(false);
+    }
+  };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 px-4 py-10">
-      <div>
+    <div className="mx-auto max-w-4xl space-y-6 px-4 py-10">
+      <div className="rounded-2xl border border-border/70 bg-card/80 p-6 shadow-sm">
         <h1 className="text-2xl font-bold text-foreground">Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your subscription, get support, and customize your experience.
+          Account, billing, resumes, and preferences.
         </p>
       </div>
 
-      <Separator />
-
-      {user && <ResumeSettingsSection />}
-
-      {user && profile?.authenticated && profile.llm_model_choices && profile.llm_model_choices.length > 0 && (
-        <AiModelSection profile={profile} onUpdate={setProfile} />
-      )}
-
       {/* Subscription */}
-      <Card className="shadow-sm">
+      <Card className="border-border/70 bg-card/95 shadow-sm">
         <CardHeader>
           <CardTitle>Subscription</CardTitle>
         </CardHeader>
         <CardContent>
           {plan === "pro" ? (
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-medium text-foreground">Pro Plan</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">$29/month</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">{proPriceLabel}</p>
+                {profile?.stripe_subscription_status && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Stripe status: {profile.stripe_subscription_status}
+                  </p>
+                )}
               </div>
-              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-500/30 dark:text-emerald-400">
-                Active
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-500/30 dark:text-emerald-400">
+                  Active
+                </span>
+                <Button type="button" variant="outline" disabled={billingLoading} onClick={() => redirectToBilling("portal")}>
+                  {billingLoading ? "Opening..." : "Manage billing"}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -517,52 +535,28 @@ export default function Settings() {
                 <p className="mt-1 text-sm text-muted-foreground">
                   Unlock unlimited daily sessions, priority generation, advanced analytics, and premium AI models.
                 </p>
-                <Button type="button" disabled className="mt-3 opacity-60">
-                  Coming soon
+                <Button type="button" disabled={billingLoading} className="mt-3" onClick={() => redirectToBilling("checkout")}>
+                  {billingLoading ? "Starting checkout..." : `Upgrade to Pro — ${proPriceLabel}`}
                 </Button>
               </div>
             </div>
           )}
+          {billingError && (
+            <p className="mt-4 text-sm text-red-600 dark:text-red-400">
+              {billingError}
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      {/* Support */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Support</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Need help or have feedback? Reach out and we&apos;ll get back to you within 24 hours.
-          </p>
-          <Button asChild>
-            <a href="mailto:adam.makaoui@outlook.com?subject=InterviewIntel%20support">
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
-                />
-              </svg>
-              Contact Support
-            </a>
-          </Button>
-          <p className="pt-2 text-xs text-muted-foreground">
-            Built by{" "}
-            <a
-              href="https://www.linkedin.com/in/adammakaoui"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline-offset-4 hover:underline"
-            >
-              Adam Makaoui
-            </a>
-          </p>
-        </CardContent>
-      </Card>
+      {user && <ResumeSettingsSection />}
+
+      {user && profile?.authenticated && profile.llm_model_choices && profile.llm_model_choices.length > 0 && (
+        <AiModelSection profile={profile} onUpdate={setProfile} />
+      )}
 
       {/* Appearance */}
-      <Card className="shadow-sm">
+      <Card className="border-border/70 bg-card/95 shadow-sm">
         <CardHeader>
           <CardTitle>Appearance</CardTitle>
         </CardHeader>
@@ -591,6 +585,41 @@ export default function Settings() {
               />
             </button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Support */}
+      <Card className="border-border/70 bg-card/95 shadow-sm">
+        <CardHeader>
+          <CardTitle>Support</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Questions or feedback? Send a note anytime.
+          </p>
+          <Button asChild>
+            <a href="mailto:adam.makaoui@outlook.com?subject=InterviewIntel%20support">
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+                />
+              </svg>
+              Contact Support
+            </a>
+          </Button>
+          <p className="pt-2 text-xs text-muted-foreground">
+            Built by{" "}
+            <a
+              href="https://www.linkedin.com/in/adammakaoui"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Adam Makaoui
+            </a>
+          </p>
         </CardContent>
       </Card>
 

@@ -61,6 +61,10 @@ This project uses **service-specific env files** instead of a single root `.env`
 | `FRONTEND_URL` | Yes | CORS allowlist for browser requests |
 | `SUPABASE_URL` | Optional (currently unused in backend logic) | Reserved for future backend Supabase API usage |
 | `SUPABASE_ANON_KEY` | Optional (currently unused in backend logic) | Reserved for future backend Supabase API usage |
+| `STRIPE_SECRET_KEY` | Paid launch | Creates Checkout and Customer Portal sessions |
+| `STRIPE_WEBHOOK_SECRET` | Paid launch | Verifies Stripe webhook signatures |
+| `STRIPE_PRICE_PRO_MONTHLY` | Paid launch | Pro monthly price id used for entitlement checks |
+| `STRIPE_CUSTOMER_PORTAL_RETURN_URL` | Optional | Overrides the default `/app/settings` portal return URL |
 
 Notes:
 - Leave `DATABASE_URL` blank locally if you want pure in-memory mode with no Postgres attempt.
@@ -76,7 +80,8 @@ Notes:
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Preferred | Browser-safe key used by `@supabase/supabase-js` |
 | `VITE_SUPABASE_ANON_KEY` | Backward-compatible fallback | Legacy env name still supported by code |
 | `VITE_API_ORIGIN` | Production (Vercel) | Railway public origin only; enables cross-origin API calls (see `frontend/src/lib/api.ts`) |
-| `VITE_STRIPE_CHECKOUT_URL` | Optional | Upgrade modal checkout link |
+| `VITE_STRIPE_CHECKOUT_URL` | Optional fallback | Static Payment Link fallback if backend Checkout is unavailable |
+| `VITE_DEMO_VIDEO_ID` | Launch | YouTube video id for the landing demo embed |
 
 ### Production deployment mapping
 
@@ -86,12 +91,14 @@ Notes:
 - `DATABASE_URL` — from Supabase: Project Settings > Database > Connection string (URI)
 - `SUPABASE_JWT_SECRET` — from Supabase: Project Settings > API > JWT Secret
 - `FRONTEND_URL` = comma-separated list of production + staging origins (e.g. `https://interviewintel.ai,https://staging.interviewintel.ai`)
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO_MONTHLY` (before paid launch)
 
 **Vercel (frontend service):**
 - `VITE_SUPABASE_URL` — from Supabase: Project Settings > API > Project URL
 - `VITE_SUPABASE_PUBLISHABLE_KEY` (or `VITE_SUPABASE_ANON_KEY`)
 - `VITE_API_ORIGIN` — Railway public URL, **no** trailing slash, **no** `/api` suffix
-- `VITE_STRIPE_CHECKOUT_URL` (when billing is enabled)
+- `VITE_DEMO_VIDEO_ID` (when the YouTube walkthrough is uploaded)
+- `VITE_STRIPE_CHECKOUT_URL` (optional Payment Link fallback; backend Checkout is preferred)
 
 ---
 
@@ -437,6 +444,9 @@ Do these **in order**. If something fails, fix it before moving on.
    | `DATABASE_URL` | Supabase: Project Settings > Database > Connection string (URI). URL-encode `$` and `!` in passwords. |
    | `SUPABASE_JWT_SECRET` | Supabase: Project Settings > API > JWT Secret (long secret, not the anon key) |
    | `FRONTEND_URL` | Production + staging origins, comma-separated (e.g. `https://interviewintel.ai,https://staging.interviewintel.ai`). Placeholder OK until Step 3 completes. |
+   | `STRIPE_SECRET_KEY` | Paid launch only; Stripe secret key for Checkout and Customer Portal. |
+   | `STRIPE_WEBHOOK_SECRET` | Paid launch only; webhook endpoint signing secret. |
+   | `STRIPE_PRICE_PRO_MONTHLY` | Paid launch only; Pro monthly price id. |
 
 5. Do **not** add `LANGGRAPH_MEMORY_FALLBACK` in production.
 6. Deploy. Verify: `https://<name>.up.railway.app/api/health` returns `{"status":"ok"}`.
@@ -453,6 +463,7 @@ Do these **in order**. If something fails, fix it before moving on.
    | `VITE_SUPABASE_URL` | Supabase: Project Settings > API > Project URL |
    | `VITE_SUPABASE_ANON_KEY` | Supabase: Project Settings > API > anon/public key (`eyJ...`) |
    | `VITE_API_ORIGIN` | Railway public URL, no trailing slash, no `/api` suffix |
+   | `VITE_DEMO_VIDEO_ID` | YouTube id for the one-minute how-it-works video |
 
 5. Deploy.
 

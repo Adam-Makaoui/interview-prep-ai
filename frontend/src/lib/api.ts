@@ -379,8 +379,8 @@ export async function createSessionStream(
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     const detail = body?.detail || `Failed: ${res.status}`;
-    const err = new Error(detail);
-    (err as any).status = res.status;
+    const err = new Error(detail) as Error & { status?: number };
+    err.status = res.status;
     throw err;
   }
 
@@ -600,10 +600,41 @@ export interface UserProfile {
   authenticated: boolean;
   daily_sessions_used: number;
   daily_limit: number | null;
+  stripe_subscription_status?: string;
+  stripe_price_id?: string;
+  plan_updated_at?: string | null;
   /** Stored preference; may be empty until user picks one explicitly */
   llm_model?: string;
   llm_model_effective?: string;
   llm_model_choices?: LlmModelChoice[];
+}
+
+interface BillingRedirectResponse {
+  url: string;
+}
+
+async function createBillingRedirect(endpoint: "checkout" | "portal"): Promise<string> {
+  const res = await apiFetch(`${BASE}/billing/${endpoint}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => null);
+    throw new Error(detail?.detail || `Failed: ${res.status}`);
+  }
+  const data = (await res.json()) as BillingRedirectResponse;
+  if (!data.url) throw new Error("Billing redirect URL was not returned");
+  return data.url;
+}
+
+/** Create a Stripe Checkout Session and return the redirect URL. */
+export function createCheckoutSession(): Promise<string> {
+  return createBillingRedirect("checkout");
+}
+
+/** Create a Stripe Customer Portal Session and return the redirect URL. */
+export function createCustomerPortalSession(): Promise<string> {
+  return createBillingRedirect("portal");
 }
 
 /**
@@ -639,6 +670,9 @@ export async function getProfile(): Promise<UserProfile> {
       authenticated: false,
       daily_sessions_used: 0,
       daily_limit: 2,
+      stripe_subscription_status: "",
+      stripe_price_id: "",
+      plan_updated_at: null,
       llm_model: "",
       llm_model_effective: undefined,
       llm_model_choices: [],

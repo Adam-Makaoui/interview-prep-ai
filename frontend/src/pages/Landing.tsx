@@ -32,9 +32,9 @@ import { HeroConstellation } from "../components/landing/HeroConstellation";
 
 /**
  * YouTube video ID powering the "See it in action" embed via `youtube-nocookie.com/embed/<id>`.
- * Swap the placeholder for the real ID before launch — marketing-only, not read by the backend.
+ * Set `VITE_DEMO_VIDEO_ID` before launch — marketing-only, not read by the backend.
  */
-const DEMO_VIDEO_ID = "YOUR_VIDEO_ID";
+const DEMO_VIDEO_ID = import.meta.env.VITE_DEMO_VIDEO_ID || "";
 
 /**
  * Decorative 1px gradient hairline rendered between vertical sections to create Railway-style rhythm.
@@ -592,13 +592,24 @@ function VideoSection({ reduceMotion }: { reduceMotion: boolean }) {
       {/* Glass panel wrapping the 16:9 iframe — overflow-hidden clips iframe corners to match border-radius. */}
       <div className={glassSurface}>
         <div className="aspect-video w-full overflow-hidden rounded-lg">
-          <iframe
-            src={`https://www.youtube-nocookie.com/embed/${DEMO_VIDEO_ID}`}
-            title="InterviewIntel demo video"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            className="h-full w-full border-0"
-          />
+          {DEMO_VIDEO_ID ? (
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${DEMO_VIDEO_ID}`}
+              title="InterviewIntel demo video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="h-full w-full border-0"
+            />
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center bg-gray-950 px-6 text-center">
+              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-indigo-300">Demo video</p>
+              <p className="mt-3 max-w-xl text-2xl font-bold text-white">One-minute product walkthrough is queued for launch.</p>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-300">
+                Record the scripted flow in <code>docs/demo-video-script.md</code>, upload it to YouTube,
+                then set <code>VITE_DEMO_VIDEO_ID</code> in Vercel.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </motion.section>

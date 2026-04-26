@@ -21,6 +21,12 @@ class Settings(BaseSettings):
 
     firecrawl_api_key: str | None = None
 
+    # Stripe billing (Pro subscription)
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_pro_monthly: str = ""
+    stripe_customer_portal_return_url: str = ""
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
     @property

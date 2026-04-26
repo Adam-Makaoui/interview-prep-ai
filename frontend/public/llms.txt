@@ -1,0 +1,16 @@
+# InterviewIntel
+
+InterviewIntel is an AI-powered interview preparation web app for candidates preparing for technical, product, sales engineering, and adjacent roles.
+
+## Useful pages
+
+- Home: https://interviewintel.ai/
+- Login: https://interviewintel.ai/login
+
+## Product summary
+
+Users paste a job posting or URL, attach a resume, generate role-specific interview analysis, receive tailored answer frameworks, and practice in role-play mode with scored feedback.
+
+## Launch status
+
+The product is in soft-launch readiness. Billing, demo video, and GTM assets are tracked in the repository `GO_LIVE_GTM.md`.

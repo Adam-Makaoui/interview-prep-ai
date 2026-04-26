@@ -1,4 +1,4 @@
-"""Normalized multi-slot resume storage (max 3 labeled resumes per user)."""
+"""Normalized multi-slot resume storage (max 2 labeled resumes per user)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import uuid
 from typing import Any
 
 VERSION = 1
-MAX_SLOTS = 3
+MAX_SLOTS = 2
 MAX_TEXT_LEN = 80_000
 MAX_LABEL_LEN = 120
 

@@ -1,12 +1,35 @@
+import { useState } from "react";
+import { createCheckoutSession } from "../lib/api";
+
 interface UpgradeModalProps {
   open: boolean;
   onClose: () => void;
 }
 
 const STRIPE_CHECKOUT_URL = import.meta.env.VITE_STRIPE_CHECKOUT_URL || "";
+const PRO_PRICE_LABEL = "$19";
 
 export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   if (!open) return null;
+
+  const startCheckout = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const url = await createCheckoutSession();
+      window.location.assign(url);
+    } catch (e) {
+      if (STRIPE_CHECKOUT_URL) {
+        window.location.assign(STRIPE_CHECKOUT_URL);
+        return;
+      }
+      setError(e instanceof Error ? e.message : "Could not start checkout");
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm px-4">
@@ -35,22 +58,23 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
 
         <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/50 p-4 mb-6">
           <div className="flex items-baseline justify-center gap-1">
-            <span className="text-3xl font-bold text-gray-900 dark:text-white">$29</span>
+            <span className="text-3xl font-bold text-gray-900 dark:text-white">{PRO_PRICE_LABEL}</span>
             <span className="text-gray-500 dark:text-gray-400 text-sm">/month</span>
           </div>
           <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Cancel anytime</p>
         </div>
 
-        {STRIPE_CHECKOUT_URL ? (
-          <a
-            href={STRIPE_CHECKOUT_URL}
-            className="inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-sm text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
-          >
-            Upgrade Now
-          </a>
-        ) : (
-          <p className="text-gray-500 dark:text-gray-400 text-xs">
-            Payments coming soon. Come back tomorrow for 2 more free sessions.
+        <button
+          type="button"
+          onClick={startCheckout}
+          disabled={loading}
+          className="inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-sm text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
+        >
+          {loading ? "Starting checkout..." : "Upgrade Now"}
+        </button>
+        {error && (
+          <p className="mt-3 text-xs text-red-600 dark:text-red-400">
+            {error}
           </p>
         )}
       </div>

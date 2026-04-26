@@ -39,6 +39,32 @@ const NODE_LABELS: Record<string, string> = {
 
 type JdMode = "text" | "url";
 
+function StepHeading({
+  step,
+  title,
+  optional = false,
+}: {
+  step: string;
+  title: string;
+  optional?: boolean;
+}) {
+  return (
+    <div className="mb-5 flex items-center gap-3">
+      <span className="flex size-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-sm shadow-indigo-500/20">
+        {step}
+      </span>
+      <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-700 dark:text-indigo-300">
+        {title}
+      </h2>
+      {optional && (
+        <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+          Optional
+        </span>
+      )}
+    </div>
+  );
+}
+
 /**
  * Form for creating prep sessions. Key handlers: handleAutoFill (extracts fields from job description),
  * handleLookup (web search for interviewer title), handleResumeFile (PDF/DOCX upload),
@@ -219,7 +245,7 @@ export default function NewSession() {
       );
     } catch (err) {
       if (!navigated) {
-        const status = (err as any)?.status;
+        const status = err instanceof Error && "status" in err ? (err as { status?: number }).status : undefined;
         const msg = err instanceof Error ? err.message : "Something went wrong";
         if (status === 402 || msg.includes("402") || msg.toLowerCase().includes("daily limit")) {
           setShowUpgrade(true);
@@ -264,11 +290,7 @@ export default function NewSession() {
 
   /** Section card wrapping related form fields. */
   const sectionCard =
-    "rounded-xl border border-gray-200/80 bg-white/60 p-5 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40";
-
-  /** Section title inside each card. */
-  const sectionTitle =
-    "text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-4";
+    "rounded-2xl border border-border/80 bg-card/90 p-6 shadow-sm backdrop-blur-sm dark:bg-gray-900/45 sm:p-7";
 
   const allNodes = form.mode === "prep"
     ? ["parse", "analyze", "generate", "draft"]
@@ -347,11 +369,11 @@ export default function NewSession() {
           })}
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* ── Job Posting ─────────────────────────────────────── */}
-          <div className={sectionCard}>
-            <h2 className={sectionTitle}>Job Posting</h2>
-            <div className="flex items-center gap-1 mb-2">
+          <div className={`${sectionCard} order-1`}>
+            <StepHeading step="1" title="Job posting" />
+            <div className="mb-3 flex items-center gap-1">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Description
               </label>
@@ -403,7 +425,7 @@ export default function NewSession() {
                 type="button"
                 onClick={handleAutoFill}
                 disabled={extracting}
-                className="mt-2 inline-flex items-center gap-2 rounded-lg bg-gray-100 border border-gray-300 dark:bg-gray-800 dark:border-gray-700 px-4 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-indigo-800 dark:hover:text-indigo-200 disabled:opacity-50 transition-colors"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-colors hover:bg-indigo-500 disabled:opacity-50"
               >
                 {extracting ? (
                   <>
@@ -421,93 +443,94 @@ export default function NewSession() {
           </div>
 
           {/* ── Role Details ────────────────────────────────────── */}
-          <div className={sectionCard}>
-            <h2 className={sectionTitle}>Role Details</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Company
-              </label>
-              <input
-                value={form.company}
-                onChange={set("company")}
-                placeholder="e.g. Google"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Role
-              </label>
-              <input
-                value={form.role}
-                onChange={set("role")}
-                placeholder="e.g. Senior Solutions Engineer"
-                className={inputClass}
-              />
-            </div>
-          </div>
+          <div className={`${sectionCard} order-2`}>
+            <StepHeading step="2" title="Role details" />
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Company
+                  </label>
+                  <input
+                    value={form.company}
+                    onChange={set("company")}
+                    placeholder="e.g. Google"
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Role
+                  </label>
+                  <input
+                    value={form.role}
+                    onChange={set("role")}
+                    placeholder="e.g. Senior Solutions Engineer"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Hiring pipeline group{" "}
-              <span className="text-gray-400 dark:text-gray-600 font-normal">(optional)</span>
-            </label>
-            <input
-              value={form.pipeline_group}
-              onChange={set("pipeline_group")}
-              placeholder="Defaults to company — use same label for all rounds with one employer"
-              className={inputClass}
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-600 mt-1">
-              Sessions with the same group appear together on the dashboard (e.g. every round at Acme).
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Interview Stage
-              </label>
-              <select
-                value={form.stage}
-                onChange={set("stage")}
-                className={inputClass}
-              >
-                {STAGES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-              {form.stage === "other" && (
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Interview stage
+                  </label>
+                  <select
+                    value={form.stage}
+                    onChange={set("stage")}
+                    className={inputClass}
+                  >
+                    {STAGES.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                  {form.stage === "other" && (
                 <input
                   value={customStage}
                   onChange={(e) => setCustomStage(e.target.value)}
                   placeholder="e.g. Case Study, System Design Review"
                   className={`${inputClass} mt-2`}
                 />
-              )}
+                  )}
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Mode
+                  </label>
+                  <select
+                    value={form.mode}
+                    onChange={set("mode")}
+                    className={inputClass}
+                  >
+                    <option value="prep">Just Prep Me</option>
+                    <option value="roleplay">Let Me Practice (Role-Play)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Hiring pipeline group <span className="font-normal text-muted-foreground">(optional)</span>
+                </label>
+                <input
+                  value={form.pipeline_group}
+                  onChange={set("pipeline_group")}
+                  placeholder="Defaults to company"
+                  className={inputClass}
+                />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Use one group name for multiple rounds with the same employer.
+                </p>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Mode
-              </label>
-              <select
-                value={form.mode}
-                onChange={set("mode")}
-                className={inputClass}
-              >
-                <option value="prep">Just Prep Me</option>
-                <option value="roleplay">Let Me Practice (Role-Play)</option>
-              </select>
-            </div>
-          </div>
           </div>
 
           {/* ── Interviewers ───────────────────────────────────── */}
-          <div className={sectionCard}>
-            <h2 className={sectionTitle}>Interviewers <span className="font-normal normal-case tracking-normal text-gray-400 dark:text-gray-600">— optional</span></h2>
+          <div className={`${sectionCard} order-4`}>
+            <StepHeading step="4" title="Interviewers" optional />
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
                 Interviewers
@@ -597,8 +620,8 @@ export default function NewSession() {
           </div>
 
           {/* ── Resume / Background ────────────────────────────── */}
-          <div className={sectionCard}>
-            <h2 className={sectionTitle}>Resume <span className="font-normal normal-case tracking-normal text-gray-400 dark:text-gray-600">— optional</span></h2>
+          <div className={`${sectionCard} order-3`}>
+            <StepHeading step="3" title="Resume" optional />
             <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
                 Resume / Background
@@ -742,18 +765,26 @@ export default function NewSession() {
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/50 dark:border-red-700 px-4 py-3 text-red-800 dark:text-red-200 text-sm">
+            <div className="order-5 rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/50 dark:border-red-700 px-4 py-3 text-red-800 dark:text-red-200 text-sm">
               {error}
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-indigo-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:shadow-indigo-500/35 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-          >
-            Start Prep Session
-          </button>
+          <div className="order-6 rounded-2xl border border-indigo-200/70 bg-indigo-50/80 p-4 shadow-sm dark:border-indigo-500/20 dark:bg-indigo-500/10">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Ready to generate your prep?</p>
+                <p className="mt-1 text-xs text-muted-foreground">We’ll build questions, frameworks, and role-play context from this setup.</p>
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="min-h-11 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:shadow-indigo-500/35 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+              >
+                Start Prep Session
+              </button>
+            </div>
+          </div>
         </form>
       )}
       <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />

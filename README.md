@@ -26,6 +26,14 @@ An AI-powered interview preparation agent that analyzes job postings, generates 
 └──────────────────┘       └─────────────────────────────────────────┘
 ```
 
+## Launch Operations
+
+- Go-live/GTM tracker: [`GO_LIVE_GTM.md`](GO_LIVE_GTM.md)
+- Stripe launch runbook: [`docs/stripe-launch-runbook.md`](docs/stripe-launch-runbook.md)
+- One-minute demo script: [`docs/demo-video-script.md`](docs/demo-video-script.md)
+- Soft-launch checklist: [`docs/soft-launch-checklist.md`](docs/soft-launch-checklist.md)
+- Production smoke script: `python scripts/prod_smoke.py --api https://your-railway-service.up.railway.app`
+
 ### Tech Stack
 
 - **Agent Framework**: LangGraph (state machine) + LangChain (tools, LLM interface)
