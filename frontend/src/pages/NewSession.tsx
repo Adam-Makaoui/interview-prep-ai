@@ -151,7 +151,7 @@ export default function NewSession() {
     }
   };
 
-  /** Parses uploaded PDF/DOCX and populates resume field. */
+  /** Parses uploaded PDF/DOCX/TXT and populates resume field. */
   const handleResumeFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -629,7 +629,7 @@ export default function NewSession() {
                   )}
                   <input
                     type="file"
-                    accept=".pdf,.docx,.txt"
+                    accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
                     onChange={handleResumeFile}
                     className="hidden"
                     disabled={uploadingResume}

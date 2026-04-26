@@ -280,7 +280,7 @@ function ResumeSettingsSection() {
                           <label className="cursor-pointer">
                             <input
                               type="file"
-                              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                              accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
                               className="sr-only"
                               disabled={uploadingSlotId !== null}
                               onChange={(e) => {
