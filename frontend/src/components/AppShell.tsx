@@ -35,6 +35,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    to: "/app/resumes",
+    label: "Resumes",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 3.75h6.75L18 7.5v12.75H7.5A1.5 1.5 0 016 18.75V5.25a1.5 1.5 0 011.5-1.5z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 3.75V7.5H18M9 12h6M9 15h6M9 18h3" />
+      </svg>
+    ),
+  },
+  {
     to: "/app/progress",
     label: "My Progress",
     icon: (

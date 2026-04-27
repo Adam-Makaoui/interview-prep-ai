@@ -33,7 +33,8 @@ Auth, hosting, and billing details live in deployment config and `ARCHITECTURE.m
 - New session — job description / URL, resume, interviewers, prep vs role-play mode
 - Prep detail — analysis, Q&A, role-play chat per session
 - Progress — competency trends and score history
-- Settings — account, **light/dark theme** (`theme.tsx` + `.dark` on `<html>`), subscription surface, **saved resumes** (up to two labeled profiles; one default), **preferred LLM** (catalog: e.g. `gpt-5.4-nano`, `gpt-4o-mini` free; `gpt-5.4-mini` Pro), support contact; UI built with shadcn primitives under `src/components/ui`
+- Resumes — standalone library for **saved resumes** (up to two labeled profiles; one default), file upload, text editing, and default selection independent of session creation
+- Settings — account, **light/dark theme** (`theme.tsx` + `.dark` on `<html>`), subscription surface, resume management link, **preferred LLM** (catalog: e.g. `gpt-5.4-nano`, `gpt-4o-mini` free; `gpt-5.4-mini` Pro), support contact; UI built with shadcn primitives under `src/components/ui`
 
 ## Product usage model
 

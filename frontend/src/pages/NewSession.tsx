@@ -58,7 +58,7 @@ function SectionHeading({
 }) {
   return (
     <div className="mb-6 flex items-baseline justify-between gap-3 border-b border-border/60 pb-3">
-      <h2 className="text-xl font-semibold tracking-tight text-foreground">
+      <h2 className="text-xl font-semibold tracking-tight text-indigo-600 dark:text-indigo-400">
         {title}
       </h2>
       {optional && (

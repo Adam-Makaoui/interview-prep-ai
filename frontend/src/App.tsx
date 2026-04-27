@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import NewSession from "./pages/NewSession";
 import PrepDetail from "./pages/PrepDetail";
 import Progress from "./pages/Progress";
+import Resumes from "./pages/Resumes";
 import Settings from "./pages/Settings";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -89,6 +90,16 @@ function AnimatedRoutes() {
             <RouteFade>
               <ProtectedRoute>
                 <Progress />
+              </ProtectedRoute>
+            </RouteFade>
+          }
+        />
+        <Route
+          path="/app/resumes"
+          element={
+            <RouteFade>
+              <ProtectedRoute>
+                <Resumes />
               </ProtectedRoute>
             </RouteFade>
           }
