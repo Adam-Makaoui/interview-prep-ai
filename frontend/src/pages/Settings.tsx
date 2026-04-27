@@ -7,6 +7,7 @@ import { useAuth } from "../lib/auth";
 import {
   createCheckoutSession,
   createCustomerPortalSession,
+  getResume,
   getProfile,
   getSavedResumes,
   parseResumeFile,
@@ -22,6 +23,20 @@ const MAX_RESUME_CHARS = 80_000;
 
 function newSlotId(): string {
   return crypto.randomUUID();
+}
+
+function emptyResumeDraft(): SavedResumesData {
+  const id = newSlotId();
+  return {
+    default_id: id,
+    items: [{ id, label: "Default", text: "" }],
+  };
+}
+
+function resumeDraftFromText(text: string): SavedResumesData {
+  const draft = emptyResumeDraft();
+  draft.items[0].text = text;
+  return draft;
 }
 
 function normalizeResumeDraft(data: SavedResumesData): SavedResumesData {
@@ -133,13 +148,17 @@ function ResumeSettingsSection() {
       setLoading(true);
       setErr("");
       const data = await getSavedResumes();
-      if (!cancelled) {
-        if (!data) {
-          setErr("Could not load saved resumes. You may need to sign in again.");
-        }
-        setDraft(data ? normalizeResumeDraft(data) : data);
+      if (cancelled) return;
+      if (data) {
+        setDraft(normalizeResumeDraft(data));
         setLoading(false);
+        return;
       }
+
+      const legacyResume = await getResume();
+      if (cancelled) return;
+      setDraft(normalizeResumeDraft(legacyResume ? resumeDraftFromText(legacyResume) : emptyResumeDraft()));
+      setLoading(false);
     })();
     return () => {
       cancelled = true;
@@ -252,12 +271,9 @@ function ResumeSettingsSection() {
         </CardHeader>
         <CardContent className="space-y-4">
           {loading && <p className="text-sm text-gray-500 dark:text-gray-400">Loading resumes…</p>}
-          {!loading && err && !draft && (
-            <p className="text-sm text-amber-700 dark:text-amber-400">{err}</p>
-          )}
           {!loading && draft && (
             <>
-              {err && <p className="text-sm text-red-600 dark:text-red-400">{err}</p>}
+              {err && <p className="text-sm text-amber-700 dark:text-amber-400">{err}</p>}
               <div className="space-y-4">
                 {draft.items.map((slot) => (
                   <div
@@ -507,11 +523,13 @@ export default function Settings() {
           {plan === "pro" ? (
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-medium text-foreground">Pro Plan</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">{proPriceLabel}</p>
+                <p className="font-medium text-foreground">Pro plan</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {proPriceLabel} · Unlimited prep sessions
+                </p>
                 {profile?.stripe_subscription_status && (
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Stripe status: {profile.stripe_subscription_status}
+                    Subscription status: {profile.stripe_subscription_status}
                   </p>
                 )}
               </div>
@@ -527,13 +545,13 @@ export default function Settings() {
           ) : (
             <div className="space-y-4">
               <div>
-                <p className="font-medium text-foreground">Free Plan</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">{profile?.daily_limit ?? 2} sessions per day</p>
+                <p className="font-medium text-foreground">Free plan</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">{profile?.daily_limit ?? 2} prep sessions per day</p>
               </div>
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                <p className="text-sm font-medium text-foreground">Upgrade to Pro for unlimited sessions</p>
+                <p className="text-sm font-medium text-foreground">Upgrade to Pro for unlimited prep sessions</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Unlock unlimited daily sessions, priority generation, advanced analytics, and premium AI models.
+                  Each session can include prep materials and a role-play practice interview. Pro adds priority generation, deeper history, and premium AI models.
                 </p>
                 <Button type="button" disabled={billingLoading} className="mt-3" onClick={() => redirectToBilling("checkout")}>
                   {billingLoading ? "Starting checkout..." : `Upgrade to Pro — ${proPriceLabel}`}

@@ -44,7 +44,7 @@ function CompetencyBars({ data }: { data: Record<string, number> }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-          Competency Averages
+          Skill breakdown
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -79,7 +79,7 @@ function ScoreTrend({ data }: { data: { date: string; score: number }[] }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-xs font-semibold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
-          Score Trend
+          Score over time
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -129,7 +129,9 @@ export default function Progress() {
             </svg>
           </div>
           <p className="text-foreground text-lg font-medium mb-2">No scored sessions yet</p>
-          <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">Complete a role-play session to see your performance tracked here over time.</p>
+          <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
+            Finish a mock interview to see strengths, weak spots, and score trends.
+          </p>
           <Button asChild>
             <Link to="/app/new">Start a session</Link>
           </Button>
@@ -142,11 +144,11 @@ export default function Progress() {
     <PageContainer size="lg" className="space-y-6">
       <PageHeader
         title="My Progress"
-        description="Cross-session performance across all your interviews"
+        description="Track how your practice interviews improve over time."
       />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Sessions Scored" value={data.sessions_completed} accent="text-indigo-600 dark:text-indigo-400" />
-        <StatCard label="Questions Practiced" value={data.total_questions} accent="text-cyan-600 dark:text-cyan-400" />
+        <StatCard label="Scored sessions" value={data.sessions_completed} accent="text-indigo-600 dark:text-indigo-400" />
+        <StatCard label="Questions answered" value={data.total_questions} accent="text-cyan-600 dark:text-cyan-400" />
         <StatCard label="Strongest" value={data.strongest ? fmtLabel(data.strongest) : "\u2014"} accent="text-emerald-600 dark:text-emerald-400" />
         <StatCard label="Needs Work" value={data.weakest ? fmtLabel(data.weakest) : "\u2014"} accent="text-amber-600 dark:text-amber-400" />
       </div>

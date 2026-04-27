@@ -506,7 +506,7 @@ import { TestimonialsCarousel } from "../components/landing/TestimonialsCarousel
  * Uses a distinct background hue to visually separate social proof from the surrounding sections.
  *
  * @param reduceMotion - Forwarded from {@link useReducedMotion}; disables entrance replay and carousel transitions.
- * @param ctaHref      - Destination for the inline "Start your first free session" link (auth-aware).
+ * @param ctaHref      - Destination for the inline "Start your first free prep session" link (auth-aware).
  */
 function TestimonialsSection({ reduceMotion, ctaHref }: { reduceMotion: boolean; ctaHref: string }) {
   return (
@@ -536,7 +536,7 @@ function TestimonialsSection({ reduceMotion, ctaHref }: { reduceMotion: boolean;
             to={ctaHref}
             className="inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400"
           >
-            Start your first free session
+            Start your first free prep session
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
@@ -625,9 +625,9 @@ function VideoSection({ reduceMotion }: { reduceMotion: boolean }) {
  * badge that pushes its content down.
  *
  * Tier progression (kept consistent — Free limited, Pro mid-tier, Plus unlimited):
- * - Free : 2 sessions/day, 1 active posting.
- * - Pro  : Unlimited sessions, up to 3 active postings + tracking + priority support.
- * - Plus : Unlimited sessions AND postings + long history + export.
+ * - Free : 2 prep sessions/day, 1 active posting.
+ * - Pro  : Unlimited prep sessions, up to 3 active postings + tracking + priority support.
+ * - Plus : Unlimited prep sessions AND postings + long history + export.
  *
  * @param ctaHref      - Target route for all three CTAs (auth-aware: `/login` or `/app`).
  * @param reduceMotion - When true, disables scroll zoom and entrance replay.
@@ -671,7 +671,7 @@ function PricingSection({ ctaHref, reduceMotion }: { ctaHref: string; reduceMoti
               <svg className="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              2 sessions per day
+              2 prep sessions per day
             </li>
             <li className="flex items-center gap-2">
               <svg className="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -715,7 +715,7 @@ function PricingSection({ ctaHref, reduceMotion }: { ctaHref: string; reduceMoti
               <svg className="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              Unlimited sessions
+              Unlimited prep sessions
             </li>
             <li className="flex items-center gap-2">
               <svg className="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -763,7 +763,7 @@ function PricingSection({ ctaHref, reduceMotion }: { ctaHref: string; reduceMoti
               <svg className="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              Unlimited sessions
+              Unlimited prep sessions
             </li>
             <li className="flex items-center gap-2">
               <svg className="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -820,7 +820,7 @@ export default function Landing() {
   /** Where every "start" CTA on the page routes — sign-in wall for guests, dashboard for logged-in users. */
   const ctaHref = user ? "/app" : "/login";
   /** Button label that mirrors {@link ctaHref} (kept in sync so the hero CTA reads naturally in both states). */
-  const ctaLabel = user ? "Go to Dashboard" : "Start Free Session";
+  const ctaLabel = user ? "Go to Dashboard" : "Start Free Prep";
   /** `true` when the OS/browser reports `prefers-reduced-motion: reduce` — propagated to every animated child. */
   const reduceMotion = useReducedMotion();
 
@@ -872,7 +872,7 @@ export default function Landing() {
                     bottleneck. Both labels share identical styling so the
                     button height never jumps across breakpoints. */}
                 <span className="sm:hidden">Start free</span>
-                <span className="hidden sm:inline">Start Free Session</span>
+                <span className="hidden sm:inline">Start Free Prep</span>
               </Link>
             </div>
           )}
@@ -1016,7 +1016,7 @@ export default function Landing() {
             Walk in with a prep system, not a guess
           </h2>
           <p className="text-gray-600 dark:text-gray-400 text-sm mb-6 max-w-md mx-auto">
-            Your first two sessions are free each day. No credit card. Point it at a posting and get structured prep in
+            Your first two prep sessions are free each day. No credit card. Point it at a posting and get structured prep in
             minutes.
           </p>
           <Link

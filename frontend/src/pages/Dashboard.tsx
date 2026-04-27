@@ -23,6 +23,17 @@ const STATUS_DOT: Record<string, string> = {
   analyzing: "bg-indigo-400",
 };
 
+function statusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    complete: "Complete",
+    awaiting_answer: "Waiting for your answer",
+    reviewing_feedback: "Review feedback",
+    processing: "Processing",
+    analyzing: "Analyzing",
+  };
+  return labels[status] || status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // HeroIllustration component for the dashboard page.
 function HeroIllustration() {
   return (
@@ -89,7 +100,7 @@ function SessionCard({
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status] || "bg-gray-500"}`}
                 />
-                {s.status.replace(/_/g, " ")}
+                {statusLabel(s.status)}
               </span>
             </div>
           </div>
@@ -207,8 +218,8 @@ export default function Dashboard() {
         title="Your prep hub"
         description={
           sessions.length === 0
-            ? "Start a session to get job description analysis, Q&A frameworks, and mock interview scoring."
-            : `${sessions.length} session${sessions.length > 1 ? "s" : ""} · grouped by hiring pipeline`
+            ? "Start a session to get role-specific questions, answer ideas, and mock interview feedback."
+            : `${sessions.length} session${sessions.length > 1 ? "s" : ""} · organized by company or interview loop`
         }
         action={
           sessions.length > 0 ? (

@@ -35,6 +35,13 @@ Auth, hosting, and billing details live in deployment config and `ARCHITECTURE.m
 - Progress — competency trends and score history
 - Settings — account, **light/dark theme** (`theme.tsx` + `.dark` on `<html>`), subscription surface, **saved resumes** (up to two labeled profiles; one default), **preferred LLM** (catalog: e.g. `gpt-5.4-nano`, `gpt-4o-mini` free; `gpt-5.4-mini` Pro), support contact; UI built with shadcn primitives under `src/components/ui`
 
+## Product usage model
+
+- **Free plan:** 2 prep sessions per day. The backend enforces this when a user creates a new session.
+- **Prep session:** one generated workspace for a specific role, company, and interview stage. It can include job analysis, likely questions, answer frameworks, and role-play practice.
+- **Mock interview:** the role-play mode inside a prep session. It uses the generated question set, and the UI prompts a checkpoint every 5 answered questions.
+- **Pro plan:** unlimited prep sessions. Do not describe free mock interviews as separately unlimited unless a separate role-play question cap is added.
+
 ## Data models (high level)
 
 - **Sessions** — id, checkpoints (LangGraph), metadata (status, question counts, scores)

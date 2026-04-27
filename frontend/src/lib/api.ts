@@ -521,7 +521,7 @@ export async function saveResume(resume: string): Promise<void> {
   });
 }
 
-/** Up to three labeled resumes; `default_id` must match one of `items`. */
+/** Up to two labeled resumes; `default_id` must match one of `items`. */
 export interface ResumeSlot {
   id: string;
   label: string;
@@ -544,7 +544,7 @@ export async function getSavedResumes(): Promise<SavedResumesData | null> {
 }
 
 /**
- * Replaces saved resumes (max three items).
+ * Replaces saved resumes (max two items).
  */
 export async function putSavedResumes(
   body: SavedResumesData,

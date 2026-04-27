@@ -51,8 +51,8 @@ export default function UpgradeModal({ open, onClose }: UpgradeModalProps) {
 
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Upgrade to Pro</h2>
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-6 leading-relaxed">
-          You&apos;ve reached today&apos;s free limit (2 sessions/day).
-          Upgrade for unlimited interview prep sessions,
+          You&apos;ve reached today&apos;s free limit (2 prep sessions/day).
+          Upgrade for unlimited prep sessions,
           full scorecard history, and priority access to new features.
         </p>
 

@@ -40,27 +40,31 @@ const NODE_LABELS: Record<string, string> = {
 type JdMode = "text" | "url";
 
 function StepHeading({
-  step,
   title,
+  eyebrow,
   optional = false,
 }: {
-  step: string;
   title: string;
+  eyebrow?: string;
   optional?: boolean;
 }) {
   return (
-    <div className="mb-5 flex items-center gap-3">
-      <span className="flex size-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-sm shadow-indigo-500/20">
-        {step}
-      </span>
-      <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-700 dark:text-indigo-300">
+    <div className="mb-5 border-l-2 border-indigo-500 pl-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {eyebrow && (
+          <span className="rounded-full border border-indigo-500/25 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-700 dark:text-indigo-300">
+            {eyebrow}
+          </span>
+        )}
+        {optional && (
+          <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            Optional
+          </span>
+        )}
+      </div>
+      <h2 className="mt-2 text-lg font-semibold tracking-tight text-foreground">
         {title}
       </h2>
-      {optional && (
-        <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-          Optional
-        </span>
-      )}
     </div>
   );
 }
@@ -297,7 +301,7 @@ export default function NewSession() {
     : ["parse", "analyze", "generate", "roleplay_ask"];
 
   return (
-    <PageContainer size="sm">
+    <PageContainer size="md">
       <Link
         to="/app"
         className="group mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-indigo-600 dark:hover:text-indigo-400"
@@ -372,7 +376,7 @@ export default function NewSession() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* ── Job Posting ─────────────────────────────────────── */}
           <div className={`${sectionCard} order-1`}>
-            <StepHeading step="1" title="Job posting" />
+            <StepHeading eyebrow="Input" title="Job posting" />
             <div className="mb-3 flex items-center gap-1">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Description
@@ -444,9 +448,12 @@ export default function NewSession() {
 
           {/* ── Role Details ────────────────────────────────────── */}
           <div className={`${sectionCard} order-2`}>
-            <StepHeading step="2" title="Role details" />
+            <StepHeading eyebrow="Context" title="Role details" />
+            <p className="-mt-2 mb-5 text-sm text-muted-foreground">
+              We use this to tune questions, examples, and scoring.
+            </p>
             <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Company
@@ -471,7 +478,7 @@ export default function NewSession() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Interview stage
@@ -488,12 +495,12 @@ export default function NewSession() {
                     ))}
                   </select>
                   {form.stage === "other" && (
-                <input
-                  value={customStage}
-                  onChange={(e) => setCustomStage(e.target.value)}
-                  placeholder="e.g. Case Study, System Design Review"
-                  className={`${inputClass} mt-2`}
-                />
+                    <input
+                      value={customStage}
+                      onChange={(e) => setCustomStage(e.target.value)}
+                      placeholder="e.g. Case Study, System Design Review"
+                      className={`${inputClass} mt-2`}
+                    />
                   )}
                 </div>
                 <div>
@@ -511,26 +518,34 @@ export default function NewSession() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Hiring pipeline group <span className="font-normal text-muted-foreground">(optional)</span>
-                </label>
-                <input
-                  value={form.pipeline_group}
-                  onChange={set("pipeline_group")}
-                  placeholder="Defaults to company"
-                  className={inputClass}
-                />
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Use one group name for multiple rounds with the same employer.
-                </p>
-              </div>
+              <details className="group rounded-xl border border-border bg-muted/30 p-4">
+                <summary className="cursor-pointer list-none text-sm font-medium text-gray-700 outline-none transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+                  <span className="inline-flex items-center gap-2">
+                    Hiring pipeline group
+                    <span className="text-xs font-normal text-muted-foreground">Optional</span>
+                    <svg className="size-4 text-muted-foreground transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
+                </summary>
+                <div className="mt-3 space-y-2">
+                  <input
+                    value={form.pipeline_group}
+                    onChange={set("pipeline_group")}
+                    placeholder="Defaults to company"
+                    className={inputClass}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Use one group name for multiple rounds with the same employer.
+                  </p>
+                </div>
+              </details>
             </div>
           </div>
 
           {/* ── Interviewers ───────────────────────────────────── */}
           <div className={`${sectionCard} order-4`}>
-            <StepHeading step="4" title="Interviewers" optional />
+            <StepHeading eyebrow="People" title="Interviewers" optional />
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
                 Interviewers
@@ -621,7 +636,7 @@ export default function NewSession() {
 
           {/* ── Resume / Background ────────────────────────────── */}
           <div className={`${sectionCard} order-3`}>
-            <StepHeading step="3" title="Resume" optional />
+            <StepHeading eyebrow="Background" title="Resume" optional />
             <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
                 Resume / Background
