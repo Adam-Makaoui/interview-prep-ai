@@ -39,32 +39,33 @@ const NODE_LABELS: Record<string, string> = {
 
 type JdMode = "text" | "url";
 
-function StepHeading({
+/**
+ * SectionHeading — Apple-grade section title for the New Session form.
+ *
+ * Design intent:
+ * - Type carries the hierarchy (no eyebrow pills, no colored rails, no badges).
+ * - A single hairline divider grounds the title inside its card, mirroring
+ *   macOS Settings / Apple form patterns.
+ * - "Optional" is a quiet inline caption rather than a chip — it should read
+ *   like a footnote, not compete with the title.
+ */
+function SectionHeading({
   title,
-  eyebrow,
   optional = false,
 }: {
   title: string;
-  eyebrow?: string;
   optional?: boolean;
 }) {
   return (
-    <div className="mb-5 border-l-2 border-indigo-500 pl-3">
-      <div className="flex flex-wrap items-center gap-2">
-        {eyebrow && (
-          <span className="rounded-full border border-indigo-500/25 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-700 dark:text-indigo-300">
-            {eyebrow}
-          </span>
-        )}
-        {optional && (
-          <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-            Optional
-          </span>
-        )}
-      </div>
-      <h2 className="mt-2 text-lg font-semibold tracking-tight text-foreground">
+    <div className="mb-6 flex items-baseline justify-between gap-3 border-b border-border/60 pb-3">
+      <h2 className="text-xl font-semibold tracking-tight text-foreground">
         {title}
       </h2>
+      {optional && (
+        <span className="text-xs font-medium text-muted-foreground">
+          Optional
+        </span>
+      )}
     </div>
   );
 }
@@ -376,7 +377,7 @@ export default function NewSession() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* ── Job Posting ─────────────────────────────────────── */}
           <div className={`${sectionCard} order-1`}>
-            <StepHeading eyebrow="Input" title="Job posting" />
+            <SectionHeading title="Job posting" />
             <div className="mb-3 flex items-center gap-1">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Description
@@ -448,10 +449,7 @@ export default function NewSession() {
 
           {/* ── Role Details ────────────────────────────────────── */}
           <div className={`${sectionCard} order-2`}>
-            <StepHeading eyebrow="Context" title="Role details" />
-            <p className="-mt-2 mb-5 text-sm text-muted-foreground">
-              We use this to tune questions, examples, and scoring.
-            </p>
+            <SectionHeading title="Role details" />
             <div className="space-y-6">
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <div>
@@ -545,7 +543,7 @@ export default function NewSession() {
 
           {/* ── Interviewers ───────────────────────────────────── */}
           <div className={`${sectionCard} order-4`}>
-            <StepHeading eyebrow="People" title="Interviewers" optional />
+            <SectionHeading title="Interviewers" optional />
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
                 Interviewers
@@ -636,7 +634,7 @@ export default function NewSession() {
 
           {/* ── Resume / Background ────────────────────────────── */}
           <div className={`${sectionCard} order-3`}>
-            <StepHeading eyebrow="Background" title="Resume" optional />
+            <SectionHeading title="Resume" optional />
             <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
                 Resume / Background
