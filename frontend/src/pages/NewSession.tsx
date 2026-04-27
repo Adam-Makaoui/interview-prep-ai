@@ -40,14 +40,15 @@ const NODE_LABELS: Record<string, string> = {
 type JdMode = "text" | "url";
 
 /**
- * SectionHeading — Apple-grade section title for the New Session form.
+ * SectionHeading — popped indigo section banner for the New Session form.
  *
  * Design intent:
- * - Type carries the hierarchy (no eyebrow pills, no colored rails, no badges).
- * - A single hairline divider grounds the title inside its card, mirroring
- *   macOS Settings / Apple form patterns.
- * - "Optional" is a quiet inline caption rather than a chip — it should read
- *   like a footnote, not compete with the title.
+ * - The whole header pops as a filled indigo block (banner), not just colored text,
+ *   so each section reads as a distinct, scannable group.
+ * - Title sits in white inside the banner; "Optional" is a quiet translucent caption
+ *   on the right, no extra chip.
+ * - Banner replaces the previous hairline divider; the section card already provides
+ *   the surrounding chrome.
  */
 function SectionHeading({
   title,
@@ -57,12 +58,12 @@ function SectionHeading({
   optional?: boolean;
 }) {
   return (
-    <div className="mb-6 flex items-baseline justify-between gap-3 border-b border-border/60 pb-3">
-      <h2 className="text-xl font-semibold tracking-tight text-indigo-600 dark:text-indigo-400">
+    <div className="mb-6 flex items-center justify-between gap-3 rounded-lg bg-indigo-600 px-4 py-2.5 shadow-sm shadow-indigo-500/15 dark:bg-indigo-600 dark:shadow-indigo-900/30">
+      <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-white">
         {title}
       </h2>
       {optional && (
-        <span className="text-xs font-medium text-muted-foreground">
+        <span className="text-xs font-medium uppercase tracking-wider text-white/70">
           Optional
         </span>
       )}
@@ -544,24 +545,12 @@ export default function NewSession() {
           {/* ── Interviewers ───────────────────────────────────── */}
           <div className={`${sectionCard} order-4`}>
             <SectionHeading title="Interviewers" optional />
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
-                Interviewers
-              </label>
-              <button
-                type="button"
-                onClick={addInterviewer}
-                className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
-              >
-                + Add Interviewer
-              </button>
-            </div>
-            {interviewers.length === 0 ? (
-              <p className="text-xs text-gray-500 dark:text-gray-600">
-                Add interviewer names and titles for more tailored prep.
-              </p>
-            ) : (
-              <div className="space-y-2">
+            <p className="mb-4 text-xs text-gray-500 dark:text-gray-500">
+              Add interviewer names and titles for more tailored prep — we&apos;ll
+              shape questions around their seniority and focus areas.
+            </p>
+            {interviewers.length > 0 && (
+              <div className="mb-4 space-y-2">
                 {interviewers.map((person, i) => {
                   const parsed = parseNameTitle(person.name);
                   return (
@@ -630,6 +619,27 @@ export default function NewSession() {
                 })}
               </div>
             )}
+            <button
+              type="button"
+              onClick={addInterviewer}
+              className="group inline-flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-indigo-400/60 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 shadow-sm shadow-indigo-500/10 transition-all hover:border-indigo-500 hover:bg-indigo-100 hover:shadow-indigo-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-indigo-500/40 dark:bg-indigo-900/20 dark:text-indigo-300 dark:hover:border-indigo-400 dark:hover:bg-indigo-900/30 sm:w-auto sm:px-5"
+              aria-label={interviewers.length === 0 ? "Add an interviewer" : "Add another interviewer"}
+            >
+              <svg
+                className="h-4 w-4 transition-transform group-hover:rotate-90"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              {interviewers.length === 0 ? "Add interviewer" : "Add another interviewer"}
+            </button>
           </div>
 
           {/* ── Resume / Background ────────────────────────────── */}
