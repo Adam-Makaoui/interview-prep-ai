@@ -15,10 +15,10 @@ React SPA for InterviewIntel: Vite dev server, React Router, Supabase auth, and 
 From this directory:
 
 ```bash
-npm install --legacy-peer-deps
+npm install
 ```
 
-`--legacy-peer-deps` is required today because `@tailwindcss/vite@4` peer-lists Vite ≤7 while this app uses **Vite 8**; the stack still builds and runs.
+`package-lock.json` pins compatible versions so CI uses `npm ci` without overrides. **`@tailwindcss/vite` major lines up with `vite`** — `@tailwindcss/vite@4.2.1` only declared peer support through Vite 7; **`4.2.4+` includes Vite 8.** If `npm ci` fails with `ERESOLVE` against `vite`, bump `@tailwindcss/vite` and `tailwindcss` together and regenerate the lockfile.
 
 ## Scripts
 
