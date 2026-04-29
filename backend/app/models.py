@@ -4,6 +4,8 @@ These models define the contract between the React frontend and the FastAPI
 backend. SessionCreate is intentionally permissive (most fields optional)
 so the LLM-powered parse node can fill in gaps from the job description.
 """
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
 from app.resume_store import MAX_SLOTS, MAX_TEXT_LEN
@@ -64,6 +66,10 @@ class SavedResumesResponse(BaseModel):
 
 class LlmModelUpdate(BaseModel):
     llm_model: str = Field(min_length=1, max_length=80)
+
+
+class ThemeUpdate(BaseModel):
+    theme: Literal["dark", "light"]
 
 
 class SessionOut(BaseModel):

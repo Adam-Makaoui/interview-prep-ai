@@ -14,15 +14,16 @@ export type Theme = "dark" | "light";
 type ThemeContextValue = {
   theme: Theme;
   setTheme: (t: Theme) => void;
+  setServerTheme: (t: Theme) => void;
   toggleTheme: () => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-// Must mirror the inline boot script in frontend/index.html exactly —
-// if these diverge, React's first render will flip the class set by
-// the boot script and the page will flash the wrong theme.
-//   1. Explicit user choice in localStorage wins.
+// Must mirror the inline boot script in frontend/index.html exactly for the
+// pre-auth paint. After auth loads, a DB-backed profile theme may replace this
+// local fallback and refresh localStorage so the next boot does not flash.
+//   1. Explicit local/server-cached choice in localStorage wins.
 //   2. OS preference via `prefers-color-scheme: dark` is honored on
 //      first visit (iOS Dark Mode, macOS/Windows system theme).
 //   3. Fallback → "dark" (our brand default) when the media query is
@@ -88,6 +89,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setTheme = useCallback((t: Theme) => persistAndSet(t), [persistAndSet]);
+  const setServerTheme = useCallback((t: Theme) => persistAndSet(t), [persistAndSet]);
   const toggleTheme = useCallback(() => {
     setThemeState((current) => {
       const next: Theme = current === "dark" ? "light" : "dark";
@@ -101,7 +103,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, setServerTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

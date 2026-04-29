@@ -417,7 +417,27 @@ The frontends are already split by branch on Vercel. The backend and database ar
 - `https://interviewintel.ai` → same test → confirm API requests still target prod Railway URL.
 - Break something intentionally on `dev` (throw in a route), confirm prod stays green.
 
-**Level 2 (parked)** — separate Supabase project for `dev`. Do this *before* the first destructive migration; not sooner, because the shared DB makes the dev and prod apps trivially comparable until then.
+### Dev Supabase environment (Level 2 data split)
+
+**Why**: DB-backed profile preferences, saved resumes, usage counters, and Stripe
+entitlement tests all write to `profiles`. If `dev` and `main` share Supabase,
+those writes are expected to follow the same signed-in user across both
+frontends. That is correct account behavior, but it is not isolated staging.
+
+**When**: required before validating persisted preference changes, destructive
+migrations, bulk writes, or billing entitlement changes against staging users.
+
+**One-time setup (user-driven in Supabase/Vercel/Railway UI):**
+
+1. Create or clone a separate Supabase project for `dev`.
+2. Copy schema and seed only non-sensitive test data.
+3. In Railway `dev`, point `DATABASE_URL` and `SUPABASE_JWT_SECRET` at the dev
+   Supabase project.
+4. In Vercel Preview + Development, point `VITE_SUPABASE_URL` and
+   `VITE_SUPABASE_PUBLISHABLE_KEY` / `VITE_SUPABASE_ANON_KEY` at the dev
+   Supabase project.
+5. Keep production Vercel + production Railway scoped to the production
+   Supabase project only.
 
 ---
 

@@ -54,6 +54,17 @@ def test_profile_me_anonymous_fallback():
     body = response.json()
     assert body["authenticated"] is False
     assert body["plan"] == "free"
+    assert body["theme"] == ""
+
+
+def test_profile_theme_requires_auth():
+    response = client.put("/api/profile/theme", json={"theme": "light"})
+    assert response.status_code == 401
+
+
+def test_profile_theme_rejects_invalid_value():
+    response = client.put("/api/profile/theme", json={"theme": "system"})
+    assert response.status_code == 422
 
 
 def test_billing_checkout_requires_auth():

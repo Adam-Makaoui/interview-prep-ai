@@ -26,6 +26,7 @@ from app.models import (
     PutResumesRequest,
     SavedResumesResponse,
     LlmModelUpdate,
+    ThemeUpdate,
 )
 from app.resume_store import (
     MAX_TEXT_LEN,
@@ -100,6 +101,9 @@ def _ensure_tables():
             """)
             cur.execute("""
                 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS llm_model TEXT NOT NULL DEFAULT ''
+            """)
+            cur.execute("""
+                ALTER TABLE profiles ADD COLUMN IF NOT EXISTS theme TEXT NOT NULL DEFAULT ''
             """)
             cur.execute("""
                 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT NOT NULL DEFAULT ''
@@ -486,6 +490,7 @@ def _get_profile(user_id: str) -> dict | None:
                 plan,
                 session_count,
                 COALESCE(llm_model, ''),
+                COALESCE(theme, ''),
                 COALESCE(stripe_customer_id, ''),
                 COALESCE(stripe_subscription_id, ''),
                 COALESCE(stripe_subscription_status, ''),
@@ -502,11 +507,12 @@ def _get_profile(user_id: str) -> dict | None:
             "plan": row[0],
             "session_count": row[1],
             "llm_model": row[2] or "",
-            "stripe_customer_id": row[3] or "",
-            "stripe_subscription_id": row[4] or "",
-            "stripe_subscription_status": row[5] or "",
-            "stripe_price_id": row[6] or "",
-            "plan_updated_at": row[7].isoformat() if hasattr(row[7], "isoformat") else row[7],
+            "theme": row[3] or "",
+            "stripe_customer_id": row[4] or "",
+            "stripe_subscription_id": row[5] or "",
+            "stripe_subscription_status": row[6] or "",
+            "stripe_price_id": row[7] or "",
+            "plan_updated_at": row[8].isoformat() if hasattr(row[8], "isoformat") else row[8],
         }
     return None
 
@@ -1554,10 +1560,32 @@ async def get_me(request: Request):
         "authenticated": False,
         "daily_sessions_used": 0,
         "daily_limit": FREE_DAILY_LIMIT,
+        "theme": "",
         "llm_model": "",
         "llm_model_effective": settings.openai_model,
         "llm_model_choices": model_choices_for_api("free"),
     }
+
+
+@app.put("/api/profile/theme")
+async def put_theme(request: Request, body: ThemeUpdate):
+    """Persist the signed-in user's light/dark appearance preference."""
+    user_id = _get_current_user(request)
+    if not user_id or user_id == "anonymous":
+        raise HTTPException(status_code=401, detail="Authentication required")
+    profile = _get_profile(user_id)
+    if not profile:
+        raise HTTPException(status_code=400, detail="Profile not found")
+    conn = _db()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Profile storage unavailable")
+    _ensure_profile(user_id)
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE profiles SET theme = %s, updated_at = now() WHERE id = %s",
+            (body.theme, user_id),
+        )
+    return {"theme": body.theme}
 
 
 @app.put("/api/profile/llm-model")

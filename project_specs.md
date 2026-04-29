@@ -34,7 +34,7 @@ Auth, hosting, and billing details live in deployment config and `ARCHITECTURE.m
 - Prep detail — analysis, Q&A, role-play chat per session
 - Progress — competency trends and score history
 - Resumes — standalone library for **saved resumes** (up to two labeled profiles; one default), file upload, text editing, and default selection independent of session creation
-- Settings — account, **light/dark theme** (`theme.tsx` + `.dark` on `<html>`), subscription surface, resume management link, **preferred LLM** (catalog: e.g. `gpt-5.4-nano`, `gpt-4o-mini` free; `gpt-5.4-mini` Pro), support contact; UI built with shadcn primitives under `src/components/ui`
+- Settings — account, **light/dark theme** (stored on `profiles.theme`, with `theme.tsx` + `.dark` on `<html>` for fast boot fallback), subscription surface, resume management link, **preferred LLM** (catalog: e.g. `gpt-5.4-nano`, `gpt-4o-mini` free; `gpt-5.4-mini` Pro), support contact; UI built with shadcn primitives under `src/components/ui`
 
 ## Product usage model
 
@@ -46,7 +46,7 @@ Auth, hosting, and billing details live in deployment config and `ARCHITECTURE.m
 ## Data models (high level)
 
 - **Sessions** — id, checkpoints (LangGraph), metadata (status, question counts, scores)
-- **User profile** — `profiles.resume` (legacy default text, kept in sync), `profiles.saved_resumes`, `profiles.llm_model` (API model id), usage counters, plan tier
+- **User profile** — `profiles.resume` (legacy default text, kept in sync), `profiles.saved_resumes`, `profiles.theme` (light/dark account preference), `profiles.llm_model` (API model id), usage counters, plan tier
 - **Progress** — aggregated scores across sessions (`final_scores`, trend data)
 
 Exact shapes: backend Pydantic models and frontend `lib/api.ts` types.

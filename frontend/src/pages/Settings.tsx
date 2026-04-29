@@ -8,6 +8,7 @@ import {
   createCustomerPortalSession,
   getProfile,
   putLlmModel,
+  putTheme,
   type UserProfile,
 } from "../lib/api";
 import { useTheme } from "../lib/theme";
@@ -131,6 +132,8 @@ export default function Settings() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingError, setBillingError] = useState("");
+  const [themeSaving, setThemeSaving] = useState(false);
+  const [themeError, setThemeError] = useState("");
 
   useEffect(() => {
     getProfile().then(setProfile);
@@ -148,6 +151,31 @@ export default function Settings() {
     } catch (e) {
       setBillingError(e instanceof Error ? e.message : "Could not open billing");
       setBillingLoading(false);
+    }
+  };
+
+  const saveThemePreference = async () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setThemeError("");
+
+    if (!user || !profile?.authenticated) {
+      setTheme(nextTheme);
+      return;
+    }
+
+    setThemeSaving(true);
+    try {
+      const partial = await putTheme(nextTheme);
+      const savedTheme =
+        partial.theme === "dark" || partial.theme === "light"
+          ? partial.theme
+          : nextTheme;
+      setTheme(savedTheme);
+      setProfile({ ...profile, theme: savedTheme });
+    } catch (e) {
+      setThemeError(e instanceof Error ? e.message : "Could not save theme");
+    } finally {
+      setThemeSaving(false);
     }
   };
 
@@ -238,11 +266,12 @@ export default function Settings() {
               type="button"
               role="switch"
               aria-checked={theme === "light"}
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={() => void saveThemePreference()}
+              disabled={themeSaving}
               aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
               className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                 theme === "light" ? "bg-primary" : "bg-muted"
-              }`}
+              } ${themeSaving ? "cursor-wait opacity-70" : ""}`}
             >
               <span
                 className={`inline-block size-5 rounded-full bg-background shadow-sm transition-transform ${
@@ -251,6 +280,14 @@ export default function Settings() {
               />
             </button>
           </div>
+          {themeError && (
+            <p className="mt-3 text-xs text-destructive">{themeError}</p>
+          )}
+          {user && profile?.authenticated && !themeError && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Saved to your account for this environment.
+            </p>
+          )}
         </CardContent>
       </Card>
 

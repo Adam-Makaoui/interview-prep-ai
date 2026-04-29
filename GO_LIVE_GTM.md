@@ -14,6 +14,7 @@ This file is the repo source of truth for launch readiness. The matching Notion 
 |---|---|---|---|
 | Launch tracker | Ready | Soft launch | Repo tracker created; Notion Roadmap mirror and issue-intake page created. |
 | Production env reset verification | Blocked in live smoke | Soft launch | `scripts/prod_smoke.py` passes health/frontend but live Railway CORS preflight rejects `https://www.interviewintel.ai`; fix Railway deploy/env before launch. |
+| Dev/prod environment isolation | Blocked on dashboard setup | Soft launch | DB-backed preferences require dev not to share production storage during staging validation. Split Railway dev first; use a dev Supabase project before testing persistent profile changes heavily. |
 | Stripe billing | Implemented; needs Stripe dashboard secrets | Broader GTM | Checkout, webhook, plan entitlement, portal/cancel behavior are wired in code. |
 | One-minute demo video | Scripted; needs recording/upload | Soft launch | Landing is guarded until `VITE_DEMO_VIDEO_ID` is set. |
 | GTM hygiene | Implemented; Search Console token pending | Soft launch | 1200x630 OG PNG, sitemap, robots, canonical, JSON-LD, favicon set, analytics script. |

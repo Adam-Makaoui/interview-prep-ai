@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import type { Theme } from "./theme";
 
 /** Production: set VITE_API_ORIGIN to Railway public URL (no trailing slash), e.g. https://xxx.up.railway.app */
 function apiBase(): string {
@@ -603,6 +604,8 @@ export interface UserProfile {
   stripe_subscription_status?: string;
   stripe_price_id?: string;
   plan_updated_at?: string | null;
+  /** Stored appearance preference; empty means fall back to local/OS preference */
+  theme?: Theme | "";
   /** Stored preference; may be empty until user picks one explicitly */
   llm_model?: string;
   llm_model_effective?: string;
@@ -635,6 +638,29 @@ export function createCheckoutSession(): Promise<string> {
 /** Create a Stripe Customer Portal Session and return the redirect URL. */
 export function createCustomerPortalSession(): Promise<string> {
   return createBillingRedirect("portal");
+}
+
+/**
+ * Persist the signed-in user's light/dark appearance preference.
+ */
+export async function putTheme(theme: Theme): Promise<Pick<UserProfile, "theme">> {
+  const res = await apiFetch(`${BASE}/profile/theme`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ theme }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    let msg = t || `Failed: ${res.status}`;
+    try {
+      const j = JSON.parse(t) as { detail?: unknown };
+      if (typeof j.detail === "string") msg = j.detail;
+    } catch {
+      /* keep msg */
+    }
+    throw new Error(msg);
+  }
+  return res.json() as Promise<Pick<UserProfile, "theme">>;
 }
 
 /**
@@ -673,6 +699,7 @@ export async function getProfile(): Promise<UserProfile> {
       stripe_subscription_status: "",
       stripe_price_id: "",
       plan_updated_at: null,
+      theme: "",
       llm_model: "",
       llm_model_effective: undefined,
       llm_model_choices: [],
