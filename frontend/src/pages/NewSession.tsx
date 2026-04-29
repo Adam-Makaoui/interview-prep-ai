@@ -40,13 +40,13 @@ const NODE_LABELS: Record<string, string> = {
 type JdMode = "text" | "url";
 
 /**
- * SectionHeading — popped indigo section banner for the New Session form.
+ * SectionHeading — soft lavender section banner for the New Session form.
  *
  * Design intent:
- * - The whole header pops as a filled indigo block (banner), not just colored text,
- *   so each section reads as a distinct, scannable group.
- * - Title sits in white inside the banner; "Optional" is a quiet translucent caption
- *   on the right, no extra chip.
+ * - The whole header still pops as a section block, but uses a softer lavender
+ *   surface so it does not compete with the saturated purple selected toggles.
+ * - Title sits in dark/light lavender contrast; "Optional" stays quiet on the
+ *   right, no extra chip.
  * - Banner replaces the previous hairline divider; the section card already provides
  *   the surrounding chrome.
  */
@@ -58,12 +58,12 @@ function SectionHeading({
   optional?: boolean;
 }) {
   return (
-    <div className="mb-6 flex items-center justify-between gap-3 rounded-lg bg-indigo-600 px-4 py-2.5 shadow-sm shadow-indigo-500/15 dark:bg-indigo-600 dark:shadow-indigo-900/30">
-      <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-white">
+    <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-violet-200/80 bg-violet-100/85 px-4 py-2.5 shadow-sm shadow-violet-500/10 dark:border-violet-400/20 dark:bg-violet-500/15 dark:shadow-violet-950/20">
+      <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-violet-950 dark:text-violet-100">
         {title}
       </h2>
       {optional && (
-        <span className="text-xs font-medium uppercase tracking-wider text-white/70">
+        <span className="text-xs font-medium uppercase tracking-wider text-violet-700/70 dark:text-violet-200/65">
           Optional
         </span>
       )}
