@@ -23,6 +23,7 @@ from app.agent.nodes import (
     check_continue,
 )
 from app.config import settings
+from app.db_diagnostics import database_host_for_logs
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,10 @@ def _make_checkpointer():
 
             conn = psycopg.connect(settings.database_url)
             cp = PostgresSaver(conn)
-            logger.info("Using PostgresSaver (Postgres)")
+            logger.info(
+                "Using PostgresSaver (Postgres); checkpoint DB host: %s",
+                database_host_for_logs(settings.database_url),
+            )
             return cp
         except Exception as e:
             # If the PostgresSaver fails, fall back to the MemorySaver.

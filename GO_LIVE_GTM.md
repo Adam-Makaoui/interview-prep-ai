@@ -13,12 +13,13 @@ This file is the repo source of truth for launch readiness. The matching Notion 
 | Area | Status | Launch Gate | Notes |
 |---|---|---|---|
 | Launch tracker | Ready | Soft launch | Repo tracker created; Notion Roadmap mirror and issue-intake page created. |
-| Production env reset verification | Blocked in live smoke | Soft launch | `scripts/prod_smoke.py` passes health/frontend but live Railway CORS preflight rejects `https://www.interviewintel.ai`; fix Railway deploy/env before launch. |
-| Dev/prod environment isolation | Blocked on dashboard setup | Soft launch | DB-backed preferences require dev not to share production storage during staging validation. Split Railway dev first; use a dev Supabase project before testing persistent profile changes heavily. |
-| Stripe billing | Implemented; needs Stripe dashboard secrets | Broader GTM | Checkout, webhook, plan entitlement, portal/cancel behavior are wired in code. |
+| Production env reset verification | Blocked in live smoke | Soft launch | `scripts/prod_smoke.py` passes health/frontend; ensure `FRONTEND_URL` covers apex and `www` (see [`docs/troubleshooting-403-landing.md`](docs/troubleshooting-403-landing.md)) so CORS preflight passes for both hostnames. |
+| Dev/prod environment isolation | Blocked on Supabase auth + dashboard setup | Soft launch | Operator checklist: [`docs/environment-isolation.md`](docs/environment-isolation.md). Railway has only `production` today; Vercel vars must be split per environment (not “All”). |
+| Stripe billing | Implemented; needs Stripe dashboard secrets | Broader GTM | Checkout, webhook, plan entitlement, portal/cancel behavior are wired in code. Needs separate Stripe test webhook for dev and live webhook for prod. |
 | One-minute demo video | Scripted; needs recording/upload | Soft launch | Landing is guarded until `VITE_DEMO_VIDEO_ID` is set. |
 | GTM hygiene | Implemented; Search Console token pending | Soft launch | 1200x630 OG PNG, sitemap, robots, canonical, JSON-LD, favicon set, analytics script. |
 | QA/CI/observability | Implemented | Soft launch | CI workflow, backend smoke tests, production smoke script, launch monitoring checklist. |
+| Intermittent 403 on `/` or assets | Investigate with Network tab | Soft launch | [`docs/troubleshooting-403-landing.md`](docs/troubleshooting-403-landing.md) (Vercel deployment protection vs subresources). |
 | Soft launch execution | Ready when external gates pass | Broader GTM | Notion issue intake and launch checklist are ready. |
 
 ## Notion Mirror

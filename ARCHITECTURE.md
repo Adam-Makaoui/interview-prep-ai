@@ -439,6 +439,8 @@ migrations, bulk writes, or billing entitlement changes against staging users.
 5. Keep production Vercel + production Railway scoped to the production
    Supabase project only.
 
+Condensed operator checklist: [`docs/environment-isolation.md`](docs/environment-isolation.md).
+
 ---
 
 ## Go-Live Checklist

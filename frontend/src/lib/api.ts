@@ -302,6 +302,8 @@ export async function lookupInterviewer(
 
 /**
  * Fetches all sessions from the backend.
+ * Requires a Supabase session access token when the API has `SUPABASE_JWT_SECRET` set
+ * (same as other authenticated calls via `apiFetch`).
  *
  * @returns Array of all sessions
  * @throws Error when the request fails

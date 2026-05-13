@@ -20,6 +20,10 @@ Reference for contributors and AI assistants. Keep this aligned with the repo as
 
 Auth, hosting, and billing details live in deployment config and `ARCHITECTURE.md` / env examples.
 
+**Environments:** Production and staging/preview must use separate Supabase projects and matching Railway/Vercel variables so JWT `sub`, `sessions.user_id`, and LangGraph checkpoints stay aligned. See [`docs/environment-isolation.md`](docs/environment-isolation.md).
+
+**Session creation:** When `SUPABASE_JWT_SECRET` is configured, creating or listing sessions requires a valid Bearer token so rows are never stored with a null `user_id` (which would disappear from the dashboard after login).
+
 ## Pages and flows
 
 **Public**
@@ -54,8 +58,8 @@ Exact shapes: backend Pydantic models and frontend `lib/api.ts` types.
 ## Third-party services
 
 - OpenAI (LLM) — `OPENAI_MODEL` for the agent graph; optional `OPENAI_EXTRACT_MODEL` for cheaper field extraction (see `backend/.env.example`)
-- Supabase (Postgres checkpointer in production; optional auth patterns)
-- Stripe / monetization (planned or partial; see app for current gates)
+- Supabase (Postgres checkpointer and Auth; production and dev should use separate projects before persisted staging tests)
+- Stripe / monetization (Checkout, Customer Portal, and webhook-backed plan entitlements; test mode for dev, live mode for production)
 
 ## LLM evaluation (cost vs quality)
 

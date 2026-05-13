@@ -15,9 +15,18 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.resume_store import MAX_SLOTS, normalize_document
+from app.db_diagnostics import database_host_for_logs
 
 
 client = TestClient(app)
+
+
+def test_database_host_for_logs_never_includes_credentials():
+    url = "postgresql://user:secret@db.example.test:5432/postgres"
+    assert database_host_for_logs(url) == "db.example.test:5432"
+    assert "secret" not in database_host_for_logs(url)
+    assert database_host_for_logs("") == "(no DATABASE_URL)"
+    assert database_host_for_logs("   ") == "(no DATABASE_URL)"
 
 
 def test_health_returns_ok():
@@ -69,6 +78,21 @@ def test_profile_theme_rejects_invalid_value():
 
 def test_billing_checkout_requires_auth():
     response = client.post("/api/billing/checkout")
+    assert response.status_code == 401
+
+
+def test_list_sessions_requires_auth_when_jwt_configured():
+    response = client.get("/api/sessions")
+    assert response.status_code == 401
+
+
+def test_create_session_requires_auth_when_jwt_configured():
+    response = client.post("/api/sessions", json={})
+    assert response.status_code == 401
+
+
+def test_create_session_stream_requires_auth_when_jwt_configured():
+    response = client.post("/api/sessions/stream", json={})
     assert response.status_code == 401
 
 

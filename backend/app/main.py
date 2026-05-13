@@ -17,6 +17,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.config import settings
+from app.db_diagnostics import database_host_for_logs
 from app.models import (
     SessionCreate,
     AnswerSubmit,
@@ -206,7 +207,10 @@ def _db():
         import psycopg
         _pg_conn = psycopg.connect(settings.database_url)
         _pg_conn.autocommit = True
-        logger.info("Session metadata DB connected (Postgres)")
+        logger.info(
+            "Session metadata DB connected (Postgres); DB host: %s",
+            database_host_for_logs(settings.database_url),
+        )
         return _pg_conn
     return None
 
@@ -216,6 +220,11 @@ RESUME_PATH = Path(__file__).parent.parent / "resume_profile.json"
 
 
 def _save_session_meta(sid: str, meta: dict, user_id: str | None = None):
+    """Persist session list metadata. On conflict, refresh row fields and set user_id when newly provided.
+
+    Rows with null user_id never match dashboard `WHERE user_id = sub` after login; callers that
+    require auth should pass a real user id from `_require_user`.
+    """
     conn = _db()
     if conn:
         with conn.cursor() as cur:
@@ -224,7 +233,8 @@ def _save_session_meta(sid: str, meta: dict, user_id: str | None = None):
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                    ON CONFLICT (session_id) DO UPDATE SET
                      company = EXCLUDED.company, role = EXCLUDED.role,
-                     mode = EXCLUDED.mode, pipeline_group = EXCLUDED.pipeline_group""",
+                     mode = EXCLUDED.mode, pipeline_group = EXCLUDED.pipeline_group,
+                     user_id = COALESCE(EXCLUDED.user_id, sessions.user_id)""",
                 (
                     sid,
                     user_id,
@@ -990,7 +1000,7 @@ def _check_free_limit(user_id: str | None):
 
 @app.post("/api/sessions/stream")
 async def create_session_stream(request: Request, body: SessionCreate):
-    user_id = _get_current_user(request)
+    user_id = _require_user(request)
     _check_free_limit(user_id)
 
     session_id = str(uuid.uuid4())[:8]
@@ -1079,7 +1089,8 @@ async def create_session_stream(request: Request, body: SessionCreate):
 
 @app.get("/api/sessions")
 async def list_sessions(request: Request):
-    user_id = _get_current_user(request)
+    """List sessions for the authenticated user (JWT sub). Requires auth when Supabase JWT is configured."""
+    user_id = _require_user(request)
     conn = _db()
     if conn:
         with conn.cursor() as cur:
@@ -1122,7 +1133,7 @@ async def list_sessions(request: Request):
 
 @app.post("/api/sessions")
 async def create_session(request: Request, body: SessionCreate):
-    user_id = _get_current_user(request)
+    user_id = _require_user(request)
     _check_free_limit(user_id)
 
     session_id = str(uuid.uuid4())[:8]
