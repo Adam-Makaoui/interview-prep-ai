@@ -35,6 +35,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    to: "/app/resumes",
+    label: "Resumes",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 3.75h6.75L18 7.5v12.75H7.5A1.5 1.5 0 016 18.75V5.25a1.5 1.5 0 011.5-1.5z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 3.75V7.5H18M9 12h6M9 15h6M9 18h3" />
+      </svg>
+    ),
+  },
+  {
     to: "/app/progress",
     label: "My Progress",
     icon: (
@@ -147,7 +157,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         {user && practiceQuestions !== null && (
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700/40 dark:bg-gray-800/40">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500 dark:text-gray-400">Answers logged</span>
+              <span className="text-gray-500 dark:text-gray-400">Practice reps</span>
               <span className="font-medium text-gray-800 dark:text-gray-200">{practiceQuestions}</span>
             </div>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
@@ -159,7 +169,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               />
             </div>
             <p className="mt-1 text-[10px] leading-snug text-gray-400 dark:text-gray-500">
-              Totals sync from the database after each role-play score (see My Progress).
+              Answered practice questions from your mock interviews.
             </p>
           </div>
         )}

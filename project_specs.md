@@ -20,6 +20,10 @@ Reference for contributors and AI assistants. Keep this aligned with the repo as
 
 Auth, hosting, and billing details live in deployment config and `ARCHITECTURE.md` / env examples.
 
+**Environments:** Production and staging/preview must use separate Supabase projects and matching Railway/Vercel variables so JWT `sub`, `sessions.user_id`, and LangGraph checkpoints stay aligned. See [`docs/environment-isolation.md`](docs/environment-isolation.md).
+
+**Session creation:** When `SUPABASE_JWT_SECRET` is configured, creating or listing sessions requires a valid Bearer token so rows are never stored with a null `user_id` (which would disappear from the dashboard after login).
+
 ## Pages and flows
 
 **Public**
@@ -33,12 +37,20 @@ Auth, hosting, and billing details live in deployment config and `ARCHITECTURE.m
 - New session — job description / URL, resume, interviewers, prep vs role-play mode
 - Prep detail — analysis, Q&A, role-play chat per session
 - Progress — competency trends and score history
-- Settings — account, **light/dark theme** (`theme.tsx` + `.dark` on `<html>`), subscription surface, **saved resumes** (up to three labeled profiles; one default), **preferred LLM** (catalog: e.g. `gpt-5.4-nano`, `gpt-4o-mini` free; `gpt-5.4-mini` Pro), support contact; UI built with shadcn primitives under `src/components/ui`
+- Resumes — standalone library for **saved resumes** (up to two labeled profiles; one default), file upload, text editing, and default selection independent of session creation
+- Settings — account, **light/dark theme** (stored on `profiles.theme`, with `theme.tsx` + `.dark` on `<html>` for fast boot fallback), subscription surface, resume management link, **preferred LLM** (catalog: e.g. `gpt-5.4-nano`, `gpt-4o-mini` free; `gpt-5.4-mini` Pro), support contact; UI built with shadcn primitives under `src/components/ui`
+
+## Product usage model
+
+- **Free plan:** 2 prep sessions per day. The backend enforces this when a user creates a new session.
+- **Prep session:** one generated workspace for a specific role, company, and interview stage. It can include job analysis, likely questions, answer frameworks, and role-play practice.
+- **Mock interview:** the role-play mode inside a prep session. It uses the generated question set, and the UI prompts a checkpoint every 5 answered questions.
+- **Pro plan:** unlimited prep sessions. Do not describe free mock interviews as separately unlimited unless a separate role-play question cap is added.
 
 ## Data models (high level)
 
 - **Sessions** — id, checkpoints (LangGraph), metadata (status, question counts, scores)
-- **User profile** — `profiles.resume` (legacy default text, kept in sync), `profiles.saved_resumes`, `profiles.llm_model` (API model id), usage counters, plan tier
+- **User profile** — `profiles.resume` (legacy default text, kept in sync), `profiles.saved_resumes`, `profiles.theme` (light/dark account preference), `profiles.llm_model` (API model id), usage counters, plan tier
 - **Progress** — aggregated scores across sessions (`final_scores`, trend data)
 
 Exact shapes: backend Pydantic models and frontend `lib/api.ts` types.
@@ -46,8 +58,8 @@ Exact shapes: backend Pydantic models and frontend `lib/api.ts` types.
 ## Third-party services
 
 - OpenAI (LLM) — `OPENAI_MODEL` for the agent graph; optional `OPENAI_EXTRACT_MODEL` for cheaper field extraction (see `backend/.env.example`)
-- Supabase (Postgres checkpointer in production; optional auth patterns)
-- Stripe / monetization (planned or partial; see app for current gates)
+- Supabase (Postgres checkpointer and Auth; production and dev should use separate projects before persisted staging tests)
+- Stripe / monetization (Checkout, Customer Portal, and webhook-backed plan entitlements; test mode for dev, live mode for production)
 
 ## LLM evaluation (cost vs quality)
 

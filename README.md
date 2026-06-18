@@ -26,6 +26,15 @@ An AI-powered interview preparation agent that analyzes job postings, generates 
 └──────────────────┘       └─────────────────────────────────────────┘
 ```
 
+## Launch Operations
+
+- Roadmap (source of truth): [`ROADMAP.md`](ROADMAP.md)
+- Go-live/GTM tracker: [`GO_LIVE_GTM.md`](GO_LIVE_GTM.md)
+- Stripe launch runbook: [`docs/stripe-launch-runbook.md`](docs/stripe-launch-runbook.md)
+- One-minute demo script: [`docs/demo-video-script.md`](docs/demo-video-script.md)
+- Soft-launch checklist: [`docs/soft-launch-checklist.md`](docs/soft-launch-checklist.md)
+- Production smoke script: `python scripts/prod_smoke.py --api https://your-railway-service.up.railway.app`
+
 ### Tech Stack
 
 - **Agent Framework**: LangGraph (state machine) + LangChain (tools, LLM interface)
@@ -135,56 +144,6 @@ cd frontend && npm run dev
 
 ## Roadmap
 
-Detailed roadmap lives in Notion. Recently shipped and upcoming priorities:
+The roadmap is consolidated in **[`ROADMAP.md`](ROADMAP.md)** — the single source of truth for shipped, in-progress, and planned work. Notion mirrors it for owners/dates/status only.
 
-### Shipped
-
-- **App Shell + Sidebar** — persistent navigation with plan usage indicator (Phase 1a)
-- **Session Deletion** — delete sessions from dashboard and detail views (Phase 1b)
-- **Progress Tracking** — final_scores JSONB column, aggregation API, and My Progress page with competency bars and score trend charts (Phase 2)
-- **Daily Free Tier** — 2 free sessions/day with upgrade prompt (monetization foundation)
-- **Landing Page Redesign** — hero with gradient glow, how-it-works steps with Framer Motion, sample session mockups, social proof testimonials, pricing comparison, and footer with scroll-driven background gradient
-- **Dark-first UI + theme toggle** — default dark surfaces; light mode via Settings (class on `<html>`, persisted in `localStorage`). Marketing landing keeps richer motion; authenticated app uses flatter, shadcn-based controls.
-- **shadcn/ui (product shell)** — shared primitives (`Button`, `Card`, `Input`, `DropdownMenu`, `Separator`, etc.) in `src/components/ui`; `@/*` import alias in `tsconfig` and Vite
-- **Auto-Expanding Textarea** — role-play input replaced with auto-growing textarea (up to 6 lines) with Shift+Enter for newlines
-- **Voice Input** — Web Speech API microphone button in role-play chat for speech-to-text transcription
-- **Demo Session** — static DummyCompany session for new users to explore the app before creating their own prep
-- **Analysis Tab Redesign** — company overview with industry/products/problem, competitor logos via favicon API, numbered interview tips with accent borders
-- **Settings Page** — subscription UI, contact support, appearance (light/dark), saved resumes, AI model picker
-- **Live Progress Updates** — running_scores persisted after each Q&A round so My Progress updates mid-session
-- **Session List Optimization** — cached metadata columns (status, question_count) eliminate N checkpoint loads on list endpoint
-- **Settings: AI model** — choose among GPT-5.4 nano, GPT-4o mini (both free), or GPT-5.4 mini (Pro); preference on profile drives LangGraph nodes; extract-fields still uses server `OPENAI_EXTRACT_MODEL` / default
-- **Custom Domain (`interviewintel.ai`)** — apex + `www` bound to production, `dev.interviewintel.ai` bound to the `dev` branch in Vercel; old `interviewprep-ai-psi.vercel.app` permanently redirects (308) to production
-- **Google OAuth** — Supabase Google provider enabled end-to-end; frontend exposes "Continue with Google" on the login screen with `prompt=select_account`
-- **Resend SMTP for Supabase** — custom SMTP configured with SPF/DKIM/DMARC on `interviewintel.ai`; magic-link deliverability to Gmail and outlook is now reliable
-- **Multi-origin CORS** — backend now splits `FRONTEND_URL` as a comma-separated list so prod, dev, and `localhost` can all hit the same API during the cutover window
-- **Branch-based environments** — `main` → production, `dev` → staging preview; documented `dev → main` merge flow
-- **Magic-link error clarity** — login error mapper now branches on Supabase's structured error codes (`over_email_send_rate_limit`, `validation_failed`, `unexpected_failure`, …) and logs raw `code`/`status`/`message` for debugging instead of silently collapsing every failure into "we couldn't deliver the login email"
-- **Product-shell polish** — new `PageContainer` + `PageHeader` primitives; Dashboard, Progress, NewSession, and PrepDetail now share a consistent max-width, vertical rhythm, and heading style; stat panels + chart panels migrated to shadcn `Card`
-- **Animated hero (product-demo card stack)** — replaces the aborted "intelligence grid"; 12s loop through paste-URL → intelligence extracted → mock interview → scorecard, discrete timeline-based animation so no per-frame JS cost; reduced-motion users see the final composition statically
-- **Screen-Studio hero polish** — eye-logo in nav + floating orb above the H1, tighter Screen-Studio vertical rhythm so the card stack peeks above the fold, slow CSS-only orb drift for ambient "cloud" motion (zero main-thread cost), founder About section between testimonials and pricing
-- **Hero aurora "alive" background** — hero-scoped CSS aurora layer (stacked radial gradients, 200%-size `background-position` pan over 24s + 48s hue-breathe), boosted orb drift deltas so clouds visibly move. Pure CSS, composited on GPU, scoped to the hero `<section>` (zero cost below the fold), `prefers-reduced-motion` honored
-- **Glowing constellation + measurable H1 + screen.studio footer** — knowledge-graph SVG behind the hero now actually visible (wrapper opacity 0.08→0.55, node alpha 0.55→0.95, r=2→3, edge stroke 0.6→1; drop-shadow bloom pulse animates opacity + filter together); H1 rewritten from "Your interview prep mastermind" to the more tangible "From job posting to interview-ready in minutes"; nav CTAs separated (gap-4/5 + px-1 on Sign in); wordmark gets `tracking-normal` + `font-extrabold` on "Intel"; footer replaced with a screen.studio-style stacked layout (brand + links + © 2026 Adam Makaoui)
-
-### Backlog
-- **Landing polish v2 — FAQ section** — deferred intentionally. No customer has asked for one, the hero already carries four sections of above-the-fold content, and adding FAQs before real user questions arrive would be writing answers to guesses. Revisit once soft launch generates a dozen repeat questions in Reddit/email — then the FAQ writes itself.
-- **YouTube demo video + embed upgrade** — record with [Screen.studio](https://screen.studio), upload as unlisted, swap the `DEMO_VIDEO_ID` placeholder in `Landing.tsx`, replace the iframe with `lite-youtube-embed` for lazy loading
-- **"How it works" inline clips** — per-band Screen.studio loops (JD intelligence, STAR frameworks, mock interviews, scorecard) — one short muted MP4 per value-prop band, replacing the static mockups
-- **Auto-redirect signed-in users `/` → `/app`** — was bundled in the reverted commit; re-apply as its own small change once hero direction is settled
-- **Session-length documentation** — add short ARCHITECTURE.md section explaining Supabase defaults (1h JWT access token + 7d rolling refresh token) — no config change, just codify the decision
-- **Monetization: model tiers** — enforce Pro-only models server-side (done for mini), bundle stronger defaults + limits with Stripe checkout; reflect in pricing copy
-- **Railway dev environment** — split Railway backend so the `dev` branch deploys to a separate service and `dev.interviewintel.ai` frontends can exercise backend changes without risking production (Level 1 isolation; DB still shared)
-- **Testimonials swap** — drop the 3D rotating ring entirely; replace with a horizontal auto-scrolling strip (Vercel/Stripe pattern) — pauses on hover, infinite loop, zero interaction required, mobile works out of the box
-- **GTM hygiene** — generate full favicon set (16/32/180/512 + ICO multi-res) from the new eye badge; composite OG image (1200×630) with the eye + wordmark; `sitemap.xml` + `robots.txt`, Schema.org `SoftwareApplication` + `Organization` JSON-LD, Google Search Console verification
-- **Founder About copy + headshot** — replace the placeholder 3-sentence bio in `AboutFounder.tsx` with the real story, swap the "AM" gradient avatar for a real headshot at `/public/brand/founder-headshot.jpg`
-- **AI SEO** — `/llms.txt` + `/llms-full.txt`, long-form "How it works", "Pricing explainer", and 3–5 use-case pages so AI search engines have substantive content to cite
-- **Soft launch** — Reddit posts (r/cscareerquestions, r/interviewprep), X thread strategy, Show HN copy + demo video, Product Hunt when we have notify-me signups
-- **UI Polish** — loading skeletons, error states with retry, transitions
-- **LangSmith Observability** — tracing all LLM calls (free tier: 5k traces/month, zero code changes)
-- **Stripe checkout** — wire Pro plan billing to the existing pricing UI
-- **Chrome Extension** — side panel that detects JDs on LinkedIn/Greenhouse and triggers prep
-- **Parked: hero motion intensifiers** — escalate the native CSS aurora only if A/B shows engagement gain. Three escalation tiers, none required for launch:
-  - _Tier 1: looping video background_ — produce a 6-10s 1080p MP4 in After Effects / Screen.studio (abstract violet cloud loop, ~1–2 MB via `ffmpeg -crf 28 -movflags +faststart`), drop as `<video autoplay muted loop playsinline poster=…>` inside the hero `<section>`, gate with `prefers-reduced-motion` to the static poster. Risk: +2-5 MB per visit, Safari low-power autoplay failures.
-  - _Tier 2: Lottie aurora_ — source a cloud/aurora animation on LottieFiles or author in After Effects + [Bodymovin](https://github.com/airbnb/lottie-web), install `lottie-react` (~60 KB gzipped), render via `<Lottie animationData={aurora} loop autoplay />`. Risk: bundle growth, CPU cost on low-end mobile (Lottie renders on main thread unless `renderer: "canvas"`).
-  - _Tier 3: Canvas/WebGL flow field_ — install `ogl` (~10 KB) or vanilla `three` (~120 KB), port a Shadertoy fragment shader (e.g. `curl-noise`) into a full-viewport `<canvas>`, animate via `requestAnimationFrame`. Risk: highest perf cost, must gate on `navigator.hardwareConcurrency >= 4` + `prefers-reduced-motion` with a CSS fallback.
-- **Parked** — Level 2 backend isolation (separate Supabase project for `dev`) until first schema migration; weekly blog content engine until organic traffic exists; Meta/Google ads until organic CAC is known
+Recently shipped highlights: app shell + sidebar, progress tracking, daily free tier, landing redesign with animated hero/aurora, dark-first shadcn UI, settings (subscription/appearance/model picker), custom domain, Google OAuth, Resend SMTP, and branch-based environments. Full history and the backlog live in [`ROADMAP.md`](ROADMAP.md).

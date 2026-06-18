@@ -40,6 +40,38 @@ const NODE_LABELS: Record<string, string> = {
 type JdMode = "text" | "url";
 
 /**
+ * SectionHeading — soft lavender section banner for the New Session form.
+ *
+ * Design intent:
+ * - The whole header still pops as a section block, but uses a softer lavender
+ *   surface so it does not compete with the saturated purple selected toggles.
+ * - Title sits in dark/light lavender contrast; "Optional" stays quiet on the
+ *   right, no extra chip.
+ * - Banner replaces the previous hairline divider; the section card already provides
+ *   the surrounding chrome.
+ */
+function SectionHeading({
+  title,
+  optional = false,
+}: {
+  title: string;
+  optional?: boolean;
+}) {
+  return (
+    <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-violet-200/80 bg-violet-100/85 px-4 py-2.5 shadow-sm shadow-violet-500/10 dark:border-violet-400/20 dark:bg-violet-500/15 dark:shadow-violet-950/20">
+      <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-violet-950 dark:text-violet-100">
+        {title}
+      </h2>
+      {optional && (
+        <span className="text-xs font-medium uppercase tracking-wider text-violet-700/70 dark:text-violet-200/65">
+          Optional
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
  * Form for creating prep sessions. Key handlers: handleAutoFill (extracts fields from job description),
  * handleLookup (web search for interviewer title), handleResumeFile (PDF/DOCX upload),
  * handleSubmit (creates session via SSE stream, navigates early on generate complete).
@@ -219,7 +251,7 @@ export default function NewSession() {
       );
     } catch (err) {
       if (!navigated) {
-        const status = (err as any)?.status;
+        const status = err instanceof Error && "status" in err ? (err as { status?: number }).status : undefined;
         const msg = err instanceof Error ? err.message : "Something went wrong";
         if (status === 402 || msg.includes("402") || msg.toLowerCase().includes("daily limit")) {
           setShowUpgrade(true);
@@ -264,18 +296,14 @@ export default function NewSession() {
 
   /** Section card wrapping related form fields. */
   const sectionCard =
-    "rounded-xl border border-gray-200/80 bg-white/60 p-5 shadow-sm backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/40";
-
-  /** Section title inside each card. */
-  const sectionTitle =
-    "text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-4";
+    "rounded-2xl border border-border/80 bg-card/90 p-6 shadow-sm backdrop-blur-sm dark:bg-gray-900/45 sm:p-7";
 
   const allNodes = form.mode === "prep"
     ? ["parse", "analyze", "generate", "draft"]
     : ["parse", "analyze", "generate", "roleplay_ask"];
 
   return (
-    <PageContainer size="sm">
+    <PageContainer size="md">
       <Link
         to="/app"
         className="group mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-indigo-600 dark:hover:text-indigo-400"
@@ -347,11 +375,11 @@ export default function NewSession() {
           })}
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* ── Job Posting ─────────────────────────────────────── */}
-          <div className={sectionCard}>
-            <h2 className={sectionTitle}>Job Posting</h2>
-            <div className="flex items-center gap-1 mb-2">
+          <div className={`${sectionCard} order-1`}>
+            <SectionHeading title="Job posting" />
+            <div className="mb-3 flex items-center gap-1">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Description
               </label>
@@ -403,7 +431,7 @@ export default function NewSession() {
                 type="button"
                 onClick={handleAutoFill}
                 disabled={extracting}
-                className="mt-2 inline-flex items-center gap-2 rounded-lg bg-gray-100 border border-gray-300 dark:bg-gray-800 dark:border-gray-700 px-4 py-2 text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-indigo-800 dark:hover:text-indigo-200 disabled:opacity-50 transition-colors"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-colors hover:bg-indigo-500 disabled:opacity-50"
               >
                 {extracting ? (
                   <>
@@ -421,111 +449,108 @@ export default function NewSession() {
           </div>
 
           {/* ── Role Details ────────────────────────────────────── */}
-          <div className={sectionCard}>
-            <h2 className={sectionTitle}>Role Details</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Company
-              </label>
-              <input
-                value={form.company}
-                onChange={set("company")}
-                placeholder="e.g. Google"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Role
-              </label>
-              <input
-                value={form.role}
-                onChange={set("role")}
-                placeholder="e.g. Senior Solutions Engineer"
-                className={inputClass}
-              />
-            </div>
-          </div>
+          <div className={`${sectionCard} order-2`}>
+            <SectionHeading title="Role details" />
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Company
+                  </label>
+                  <input
+                    value={form.company}
+                    onChange={set("company")}
+                    placeholder="e.g. Google"
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Role
+                  </label>
+                  <input
+                    value={form.role}
+                    onChange={set("role")}
+                    placeholder="e.g. Senior Solutions Engineer"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Hiring pipeline group{" "}
-              <span className="text-gray-400 dark:text-gray-600 font-normal">(optional)</span>
-            </label>
-            <input
-              value={form.pipeline_group}
-              onChange={set("pipeline_group")}
-              placeholder="Defaults to company — use same label for all rounds with one employer"
-              className={inputClass}
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-600 mt-1">
-              Sessions with the same group appear together on the dashboard (e.g. every round at Acme).
-            </p>
-          </div>
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Interview stage
+                  </label>
+                  <select
+                    value={form.stage}
+                    onChange={set("stage")}
+                    className={inputClass}
+                  >
+                    {STAGES.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                  {form.stage === "other" && (
+                    <input
+                      value={customStage}
+                      onChange={(e) => setCustomStage(e.target.value)}
+                      placeholder="e.g. Case Study, System Design Review"
+                      className={`${inputClass} mt-2`}
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Mode
+                  </label>
+                  <select
+                    value={form.mode}
+                    onChange={set("mode")}
+                    className={inputClass}
+                  >
+                    <option value="prep">Just Prep Me</option>
+                    <option value="roleplay">Let Me Practice (Role-Play)</option>
+                  </select>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Interview Stage
-              </label>
-              <select
-                value={form.stage}
-                onChange={set("stage")}
-                className={inputClass}
-              >
-                {STAGES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-              {form.stage === "other" && (
-                <input
-                  value={customStage}
-                  onChange={(e) => setCustomStage(e.target.value)}
-                  placeholder="e.g. Case Study, System Design Review"
-                  className={`${inputClass} mt-2`}
-                />
-              )}
+              <details className="group rounded-xl border border-border bg-muted/30 p-4">
+                <summary className="cursor-pointer list-none text-sm font-medium text-gray-700 outline-none transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+                  <span className="inline-flex items-center gap-2">
+                    Hiring pipeline group
+                    <span className="text-xs font-normal text-muted-foreground">Optional</span>
+                    <svg className="size-4 text-muted-foreground transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
+                </summary>
+                <div className="mt-3 space-y-2">
+                  <input
+                    value={form.pipeline_group}
+                    onChange={set("pipeline_group")}
+                    placeholder="Defaults to company"
+                    className={inputClass}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Use one group name for multiple rounds with the same employer.
+                  </p>
+                </div>
+              </details>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Mode
-              </label>
-              <select
-                value={form.mode}
-                onChange={set("mode")}
-                className={inputClass}
-              >
-                <option value="prep">Just Prep Me</option>
-                <option value="roleplay">Let Me Practice (Role-Play)</option>
-              </select>
-            </div>
-          </div>
           </div>
 
           {/* ── Interviewers ───────────────────────────────────── */}
-          <div className={sectionCard}>
-            <h2 className={sectionTitle}>Interviewers <span className="font-normal normal-case tracking-normal text-gray-400 dark:text-gray-600">— optional</span></h2>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
-                Interviewers
-              </label>
-              <button
-                type="button"
-                onClick={addInterviewer}
-                className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
-              >
-                + Add Interviewer
-              </button>
-            </div>
-            {interviewers.length === 0 ? (
-              <p className="text-xs text-gray-500 dark:text-gray-600">
-                Add interviewer names and titles for more tailored prep.
-              </p>
-            ) : (
-              <div className="space-y-2">
+          <div className={`${sectionCard} order-4`}>
+            <SectionHeading title="Interviewers" optional />
+            <p className="mb-4 text-xs text-gray-500 dark:text-gray-500">
+              Add interviewer names and titles for more tailored prep — we&apos;ll
+              shape questions around their seniority and focus areas.
+            </p>
+            {interviewers.length > 0 && (
+              <div className="mb-4 space-y-2">
                 {interviewers.map((person, i) => {
                   const parsed = parseNameTitle(person.name);
                   return (
@@ -594,11 +619,32 @@ export default function NewSession() {
                 })}
               </div>
             )}
+            <button
+              type="button"
+              onClick={addInterviewer}
+              className="group inline-flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-indigo-400/60 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 shadow-sm shadow-indigo-500/10 transition-all hover:border-indigo-500 hover:bg-indigo-100 hover:shadow-indigo-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-indigo-500/40 dark:bg-indigo-900/20 dark:text-indigo-300 dark:hover:border-indigo-400 dark:hover:bg-indigo-900/30 sm:w-auto sm:px-5"
+              aria-label={interviewers.length === 0 ? "Add an interviewer" : "Add another interviewer"}
+            >
+              <svg
+                className="h-4 w-4 transition-transform group-hover:rotate-90"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              {interviewers.length === 0 ? "Add interviewer" : "Add another interviewer"}
+            </button>
           </div>
 
           {/* ── Resume / Background ────────────────────────────── */}
-          <div className={sectionCard}>
-            <h2 className={sectionTitle}>Resume <span className="font-normal normal-case tracking-normal text-gray-400 dark:text-gray-600">— optional</span></h2>
+          <div className={`${sectionCard} order-3`}>
+            <SectionHeading title="Resume" optional />
             <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
                 Resume / Background
@@ -742,18 +788,26 @@ export default function NewSession() {
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/50 dark:border-red-700 px-4 py-3 text-red-800 dark:text-red-200 text-sm">
+            <div className="order-5 rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/50 dark:border-red-700 px-4 py-3 text-red-800 dark:text-red-200 text-sm">
               {error}
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-indigo-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:shadow-indigo-500/35 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-          >
-            Start Prep Session
-          </button>
+          <div className="order-6 rounded-2xl border border-indigo-200/70 bg-indigo-50/80 p-4 shadow-sm dark:border-indigo-500/20 dark:bg-indigo-500/10">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Ready to generate your prep?</p>
+                <p className="mt-1 text-xs text-muted-foreground">We’ll build questions, frameworks, and role-play context from this setup.</p>
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="min-h-11 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:shadow-indigo-500/35 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+              >
+                Start Prep Session
+              </button>
+            </div>
+          </div>
         </form>
       )}
       <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />

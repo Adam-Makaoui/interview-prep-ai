@@ -28,16 +28,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+    let active = true;
+
+    // A slow or unreachable Supabase Auth (e.g. a hanging token refresh against
+    // a paused/misconfigured project) must not trap the whole app on the loading
+    // spinner. Clear loading after a bounded wait so public routes still render;
+    // getSession()/onAuthStateChange will hydrate the real session if/when it lands.
+    const SESSION_BOOT_TIMEOUT_MS = 8000;
+    const fallback = setTimeout(() => {
+      if (active) setLoading(false);
+    }, SESSION_BOOT_TIMEOUT_MS);
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (active) setSession(data.session);
+      })
+      .catch((err) => {
+        // Network/refresh failure (e.g. unreachable project, stale refresh
+        // token): log for debugging, stay logged-out rather than hang forever.
+        console.error("[auth] getSession failed; continuing logged-out:", err);
+      })
+      .finally(() => {
+        if (!active) return;
+        clearTimeout(fallback);
+        setLoading(false);
+      });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
+      if (active) setSession(s);
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      active = false;
+      clearTimeout(fallback);
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

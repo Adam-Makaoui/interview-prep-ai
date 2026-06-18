@@ -23,6 +23,17 @@ const STATUS_DOT: Record<string, string> = {
   analyzing: "bg-indigo-400",
 };
 
+function statusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    complete: "Complete",
+    awaiting_answer: "Waiting for your answer",
+    reviewing_feedback: "Review feedback",
+    processing: "Processing",
+    analyzing: "Analyzing",
+  };
+  return labels[status] || status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // HeroIllustration component for the dashboard page.
 function HeroIllustration() {
   return (
@@ -89,7 +100,7 @@ function SessionCard({
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status] || "bg-gray-500"}`}
                 />
-                {s.status.replace(/_/g, " ")}
+                {statusLabel(s.status)}
               </span>
             </div>
           </div>
@@ -207,8 +218,8 @@ export default function Dashboard() {
         title="Your prep hub"
         description={
           sessions.length === 0
-            ? "Start a session to get job description analysis, Q&A frameworks, and mock interview scoring."
-            : `${sessions.length} session${sessions.length > 1 ? "s" : ""} · grouped by hiring pipeline`
+            ? "Start a session to get role-specific questions, answer ideas, and mock interview feedback."
+            : `${sessions.length} session${sessions.length > 1 ? "s" : ""} · organized by company or interview loop`
         }
         action={
           sessions.length > 0 ? (
@@ -220,18 +231,22 @@ export default function Dashboard() {
       />
 
       {sessions.length === 0 ? (
-        <div className="text-center py-20 rounded-2xl border border-dashed border-border bg-muted/40">
+        <div className="relative overflow-hidden rounded-3xl border border-dashed border-indigo-300/70 bg-indigo-50/60 px-6 py-20 text-center shadow-sm dark:border-indigo-500/25 dark:bg-indigo-500/10">
+          <div className="pointer-events-none absolute inset-x-16 top-0 h-24 rounded-full bg-indigo-400/10 blur-3xl dark:bg-indigo-400/20" />
           <HeroIllustration />
-          <p className="text-foreground text-lg font-medium mb-2">
+          <p className="relative text-2xl font-semibold tracking-tight text-foreground mb-2">
             Prep smarter for your next interview
           </p>
-          <p className="text-muted-foreground text-sm mb-5 max-w-md mx-auto">
+          <p className="relative text-muted-foreground text-sm mb-7 max-w-md mx-auto">
             Paste a job description, get role-specific questions and answer frameworks, then
             practice with scored role-play.
           </p>
-          <Button asChild>
-            <Link to="/app/new">Create your first session</Link>
+          <Button asChild size="lg" className="relative min-h-12 px-6 text-base shadow-lg shadow-indigo-500/20">
+            <Link to="/app/new">Create your first prep session</Link>
           </Button>
+          <p className="relative mt-3 text-xs text-muted-foreground">
+            Paste a role. Get questions. Practice with feedback.
+          </p>
         </div>
       ) : (
         <div className="space-y-8">

@@ -1,3 +1,16 @@
+"""InterviewIntel FastAPI application -- HTTP surface for the LangGraph agent.
+
+This module is the backend entry point and owns four concerns:
+  1. HTTP routes (`@app.*`) for sessions, resumes, profiles, billing, and health.
+  2. Persistence helpers over Supabase/Postgres (`sessions` + `profiles` tables)
+     with an in-memory fallback when `DATABASE_URL` is unset (local dev).
+  3. Auth: Supabase JWT decoding (`_get_current_user` / `_require_user`).
+  4. CORS allow-listing with apex/www expansion of `FRONTEND_URL`.
+
+The agent state machine itself lives in `app.agent.graph`/`app.agent.nodes`;
+this file reads/writes its checkpoints and shapes them into API JSON via
+`_format_session`. See `docs/CODEBASE_MAP.md` for a function-level index.
+"""
 import uuid
 import json
 import logging
@@ -7,7 +20,7 @@ import queue as queue_mod
 import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 from urllib.parse import urlparse, urlunparse
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Request
@@ -17,6 +30,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.config import settings
+from app.db_diagnostics import database_host_for_logs
 from app.models import (
     SessionCreate,
     AnswerSubmit,
@@ -26,6 +40,7 @@ from app.models import (
     PutResumesRequest,
     SavedResumesResponse,
     LlmModelUpdate,
+    ThemeUpdate,
 )
 from app.resume_store import (
     MAX_TEXT_LEN,
@@ -100,6 +115,24 @@ def _ensure_tables():
             """)
             cur.execute("""
                 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS llm_model TEXT NOT NULL DEFAULT ''
+            """)
+            cur.execute("""
+                ALTER TABLE profiles ADD COLUMN IF NOT EXISTS theme TEXT NOT NULL DEFAULT ''
+            """)
+            cur.execute("""
+                ALTER TABLE profiles ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT NOT NULL DEFAULT ''
+            """)
+            cur.execute("""
+                ALTER TABLE profiles ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT NOT NULL DEFAULT ''
+            """)
+            cur.execute("""
+                ALTER TABLE profiles ADD COLUMN IF NOT EXISTS stripe_subscription_status TEXT NOT NULL DEFAULT ''
+            """)
+            cur.execute("""
+                ALTER TABLE profiles ADD COLUMN IF NOT EXISTS stripe_price_id TEXT NOT NULL DEFAULT ''
+            """)
+            cur.execute("""
+                ALTER TABLE profiles ADD COLUMN IF NOT EXISTS plan_updated_at TIMESTAMPTZ
             """)
         logger.info("Application tables ensured (sessions, profiles)")
     finally:
@@ -187,7 +220,10 @@ def _db():
         import psycopg
         _pg_conn = psycopg.connect(settings.database_url)
         _pg_conn.autocommit = True
-        logger.info("Session metadata DB connected (Postgres)")
+        logger.info(
+            "Session metadata DB connected (Postgres); DB host: %s",
+            database_host_for_logs(settings.database_url),
+        )
         return _pg_conn
     return None
 
@@ -197,6 +233,11 @@ RESUME_PATH = Path(__file__).parent.parent / "resume_profile.json"
 
 
 def _save_session_meta(sid: str, meta: dict, user_id: str | None = None):
+    """Persist session list metadata. On conflict, refresh row fields and set user_id when newly provided.
+
+    Rows with null user_id never match dashboard `WHERE user_id = sub` after login; callers that
+    require auth should pass a real user id from `_require_user`.
+    """
     conn = _db()
     if conn:
         with conn.cursor() as cur:
@@ -205,7 +246,8 @@ def _save_session_meta(sid: str, meta: dict, user_id: str | None = None):
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                    ON CONFLICT (session_id) DO UPDATE SET
                      company = EXCLUDED.company, role = EXCLUDED.role,
-                     mode = EXCLUDED.mode, pipeline_group = EXCLUDED.pipeline_group""",
+                     mode = EXCLUDED.mode, pipeline_group = EXCLUDED.pipeline_group,
+                     user_id = COALESCE(EXCLUDED.user_id, sessions.user_id)""",
                 (
                     sid,
                     user_id,
@@ -339,6 +381,7 @@ def _update_cached_status(sid: str, state: dict):
 
 
 def _update_session_meta(sid: str, **fields):
+    """Patch arbitrary columns on a session row (Postgres) or the in-memory index."""
     conn = _db()
     if conn and fields:
         sets = ", ".join(f"{k} = %s" for k in fields)
@@ -350,6 +393,7 @@ def _update_session_meta(sid: str, **fields):
 
 
 def _read_resume_file_raw() -> dict:
+    """Load the local resume_profile.json (legacy/local-dev resume store); {} if absent/invalid."""
     if not RESUME_PATH.exists():
         return {}
     try:
@@ -466,13 +510,141 @@ def _get_profile(user_id: str) -> dict | None:
     _ensure_profile(user_id)
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT plan, session_count, COALESCE(llm_model, '') FROM profiles WHERE id = %s",
+            """
+            SELECT
+                plan,
+                session_count,
+                COALESCE(llm_model, ''),
+                COALESCE(theme, ''),
+                COALESCE(stripe_customer_id, ''),
+                COALESCE(stripe_subscription_id, ''),
+                COALESCE(stripe_subscription_status, ''),
+                COALESCE(stripe_price_id, ''),
+                plan_updated_at
+            FROM profiles
+            WHERE id = %s
+            """,
             (user_id,),
         )
         row = cur.fetchone()
     if row:
-        return {"plan": row[0], "session_count": row[1], "llm_model": row[2] or ""}
+        return {
+            "plan": row[0],
+            "session_count": row[1],
+            "llm_model": row[2] or "",
+            "theme": row[3] or "",
+            "stripe_customer_id": row[4] or "",
+            "stripe_subscription_id": row[5] or "",
+            "stripe_subscription_status": row[6] or "",
+            "stripe_price_id": row[7] or "",
+            "plan_updated_at": row[8].isoformat() if hasattr(row[8], "isoformat") else row[8],
+        }
     return None
+
+
+def _primary_frontend_origin() -> str:
+    """Return the first configured frontend origin for Stripe redirects."""
+    if _primary_origins:
+        return _primary_origins[0]
+    return "http://localhost:5173"
+
+
+def _stripe_api():
+    """Load Stripe lazily so local/free deployments can boot without billing configured."""
+    if not settings.stripe_secret_key:
+        raise HTTPException(status_code=503, detail="Stripe is not configured")
+    import stripe
+
+    stripe.api_key = settings.stripe_secret_key
+    return stripe
+
+
+def _get_user_id_by_stripe_customer(customer_id: str) -> str | None:
+    """Map a Stripe customer id back to the Supabase user id stored in profiles."""
+    if not customer_id:
+        return None
+    conn = _db()
+    if not conn:
+        return None
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM profiles WHERE stripe_customer_id = %s", (customer_id,))
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
+def _update_billing_profile(
+    user_id: str,
+    *,
+    plan: str,
+    customer_id: str = "",
+    subscription_id: str = "",
+    subscription_status: str = "",
+    price_id: str = "",
+) -> None:
+    """Persist Stripe subscription state and derived plan entitlement."""
+    conn = _db()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Profile storage unavailable")
+    _ensure_profile(user_id)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE profiles
+            SET
+                plan = %s,
+                stripe_customer_id = COALESCE(NULLIF(%s, ''), stripe_customer_id),
+                stripe_subscription_id = COALESCE(NULLIF(%s, ''), stripe_subscription_id),
+                stripe_subscription_status = %s,
+                stripe_price_id = %s,
+                plan_updated_at = now(),
+                updated_at = now()
+            WHERE id = %s
+            """,
+            (
+                plan,
+                customer_id,
+                subscription_id,
+                subscription_status,
+                price_id,
+                user_id,
+            ),
+        )
+
+
+def _subscription_price_id(subscription: Any) -> str:
+    """Extract the first price id from a Stripe subscription payload."""
+    items = (subscription.get("items") or {}).get("data") or []
+    if not items:
+        return ""
+    price = items[0].get("price") or {}
+    return str(price.get("id") or "")
+
+
+def _sync_subscription_to_profile(subscription: Any, fallback_user_id: str | None = None) -> None:
+    """Derive app plan from Stripe subscription status + configured Pro price."""
+    customer_id = str(subscription.get("customer") or "")
+    subscription_id = str(subscription.get("id") or "")
+    subscription_status = str(subscription.get("status") or "")
+    price_id = _subscription_price_id(subscription)
+    user_id = (
+        str((subscription.get("metadata") or {}).get("supabase_user_id") or "")
+        or fallback_user_id
+        or _get_user_id_by_stripe_customer(customer_id)
+    )
+    if not user_id:
+        logger.warning("Stripe subscription %s has no mapped user id", subscription_id)
+        return
+    active = subscription_status in {"active", "trialing"}
+    is_pro_price = bool(settings.stripe_price_pro_monthly and price_id == settings.stripe_price_pro_monthly)
+    plan = "pro" if active and is_pro_price else "free"
+    _update_billing_profile(
+        user_id,
+        plan=plan,
+        customer_id=customer_id,
+        subscription_id=subscription_id,
+        subscription_status=subscription_status,
+        price_id=price_id,
+    )
 
 
 def _agent_state_stub_for_api(user_id: str | None) -> AgentState:
@@ -843,7 +1015,7 @@ def _check_free_limit(user_id: str | None):
 
 @app.post("/api/sessions/stream")
 async def create_session_stream(request: Request, body: SessionCreate):
-    user_id = _get_current_user(request)
+    user_id = _require_user(request)
     _check_free_limit(user_id)
 
     session_id = str(uuid.uuid4())[:8]
@@ -932,7 +1104,8 @@ async def create_session_stream(request: Request, body: SessionCreate):
 
 @app.get("/api/sessions")
 async def list_sessions(request: Request):
-    user_id = _get_current_user(request)
+    """List sessions for the authenticated user (JWT sub). Requires auth when Supabase JWT is configured."""
+    user_id = _require_user(request)
     conn = _db()
     if conn:
         with conn.cursor() as cur:
@@ -975,7 +1148,7 @@ async def list_sessions(request: Request):
 
 @app.post("/api/sessions")
 async def create_session(request: Request, body: SessionCreate):
-    user_id = _get_current_user(request)
+    user_id = _require_user(request)
     _check_free_limit(user_id)
 
     session_id = str(uuid.uuid4())[:8]
@@ -1300,6 +1473,94 @@ async def put_saved_resumes(request: Request, body: PutResumesRequest):
     return SavedResumesResponse(default_id=str(doc["default_id"]), items=items)
 
 
+@app.post("/api/billing/checkout")
+async def create_billing_checkout(request: Request):
+    """Create an authenticated Stripe Checkout Session for the Pro monthly plan."""
+    user_id = _get_current_user(request)
+    if not user_id or user_id == "anonymous":
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if not settings.stripe_price_pro_monthly:
+        raise HTTPException(status_code=503, detail="Stripe Pro price is not configured")
+
+    conn = _db()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Profile storage unavailable")
+
+    _ensure_profile(user_id)
+    profile = _get_profile(user_id) or {}
+    origin = _primary_frontend_origin()
+    stripe = _stripe_api()
+    params: dict[str, Any] = {
+        "mode": "subscription",
+        "client_reference_id": user_id,
+        "line_items": [{"price": settings.stripe_price_pro_monthly, "quantity": 1}],
+        "success_url": f"{origin}/app/settings?billing=success&session_id={{CHECKOUT_SESSION_ID}}",
+        "cancel_url": f"{origin}/app/settings?billing=cancelled",
+        "allow_promotion_codes": True,
+        "metadata": {"supabase_user_id": user_id},
+        "subscription_data": {"metadata": {"supabase_user_id": user_id}},
+    }
+    customer_id = str(profile.get("stripe_customer_id") or "")
+    if customer_id:
+        params["customer"] = customer_id
+
+    session = stripe.checkout.Session.create(**params)
+    return {"url": session.url}
+
+
+@app.post("/api/billing/portal")
+async def create_billing_portal(request: Request):
+    """Create a Stripe Customer Portal Session for managing the user's subscription."""
+    user_id = _get_current_user(request)
+    if not user_id or user_id == "anonymous":
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    profile = _get_profile(user_id) or {}
+    customer_id = str(profile.get("stripe_customer_id") or "")
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="No Stripe customer is linked to this profile")
+
+    stripe = _stripe_api()
+    return_url = settings.stripe_customer_portal_return_url.strip() or f"{_primary_frontend_origin()}/app/settings"
+    portal = stripe.billing_portal.Session.create(customer=customer_id, return_url=return_url)
+    return {"url": portal.url}
+
+
+@app.post("/api/billing/webhook")
+async def stripe_webhook(request: Request):
+    """Handle Stripe subscription lifecycle events and keep profile entitlements in sync."""
+    if not settings.stripe_webhook_secret:
+        raise HTTPException(status_code=503, detail="Stripe webhook is not configured")
+    stripe = _stripe_api()
+    payload = await request.body()
+    signature = request.headers.get("stripe-signature", "")
+    try:
+        event = stripe.Webhook.construct_event(payload, signature, settings.stripe_webhook_secret)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid Stripe payload") from None
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid Stripe signature") from None
+
+    event_type = str(event.get("type") or "")
+    obj = (event.get("data") or {}).get("object") or {}
+
+    if event_type == "checkout.session.completed":
+        user_id = str((obj.get("metadata") or {}).get("supabase_user_id") or obj.get("client_reference_id") or "")
+        customer_id = str(obj.get("customer") or "")
+        subscription_id = str(obj.get("subscription") or "")
+        if user_id and customer_id:
+            _ensure_profile(user_id)
+            _update_billing_profile(user_id, plan="free", customer_id=customer_id)
+        if subscription_id:
+            subscription = stripe.Subscription.retrieve(subscription_id, expand=["items.data.price"])
+            _sync_subscription_to_profile(subscription, fallback_user_id=user_id or None)
+
+    elif event_type in {"customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"}:
+        _sync_subscription_to_profile(obj)
+
+    return {"received": True}
+
+
 @app.get("/api/profile/me")
 async def get_me(request: Request):
     """Return current user profile with daily usage stats."""
@@ -1325,10 +1586,32 @@ async def get_me(request: Request):
         "authenticated": False,
         "daily_sessions_used": 0,
         "daily_limit": FREE_DAILY_LIMIT,
+        "theme": "",
         "llm_model": "",
         "llm_model_effective": settings.openai_model,
         "llm_model_choices": model_choices_for_api("free"),
     }
+
+
+@app.put("/api/profile/theme")
+async def put_theme(request: Request, body: ThemeUpdate):
+    """Persist the signed-in user's light/dark appearance preference."""
+    user_id = _get_current_user(request)
+    if not user_id or user_id == "anonymous":
+        raise HTTPException(status_code=401, detail="Authentication required")
+    profile = _get_profile(user_id)
+    if not profile:
+        raise HTTPException(status_code=400, detail="Profile not found")
+    conn = _db()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Profile storage unavailable")
+    _ensure_profile(user_id)
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE profiles SET theme = %s, updated_at = now() WHERE id = %s",
+            (body.theme, user_id),
+        )
+    return {"theme": body.theme}
 
 
 @app.put("/api/profile/llm-model")
