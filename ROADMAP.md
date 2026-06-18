@@ -8,6 +8,7 @@
 | Topic | Canonical doc |
 |-------|---------------|
 | What we are building next (this file) | `ROADMAP.md` |
+| Where any feature/function lives (locator) | [`docs/CODEBASE_MAP.md`](docs/CODEBASE_MAP.md) |
 | Launch readiness runbook + gates | [`GO_LIVE_GTM.md`](GO_LIVE_GTM.md) |
 | Launch-day checklist | [`docs/soft-launch-checklist.md`](docs/soft-launch-checklist.md) |
 | Stripe setup (test + live) | [`docs/stripe-launch-runbook.md`](docs/stripe-launch-runbook.md) |
@@ -23,7 +24,7 @@
 | Area | Status | Gate |
 |------|--------|------|
 | Session-persistence fix (auth on `/api/sessions*` + backfill `user_id`) | Code done on `dev`; PR open to `main`; not in prod yet | Soft launch |
-| Dev/prod isolation | Code + dev Supabase project ready; Railway `dev` env + Vercel Preview scoping not wired | Soft launch |
+| Dev/prod isolation | Dev frontend auth fixed; dev Railway backend crash fixed (deploy SUCCESS); dev public domain 502 = Railway port routing (dashboard fix pending) | Soft launch |
 | Production live smoke | Pending: intermittent landing 403 + apex/www CORS confirmation | Soft launch |
 | GTM hygiene | Done except Google Search Console verification | Soft launch |
 | Stripe billing | Implemented in code; needs Stripe dashboard secrets (test + live) | Broader GTM |
