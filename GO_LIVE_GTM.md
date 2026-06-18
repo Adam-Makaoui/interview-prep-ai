@@ -1,6 +1,6 @@
 # InterviewIntel Go-Live / GTM Tracker
 
-This file is the repo source of truth for launch readiness. The matching Notion tracker lives in the existing **InterviewIntel — Roadmap** database and mirrors these phases for owner, status, and execution tracking.
+This is the launch-ops runbook (detailed gates, env checklists, and phases) under the consolidated roadmap. The single source of truth for priorities is [`ROADMAP.md`](ROADMAP.md); this file holds the launch execution detail. The Notion **InterviewIntel — Roadmap** database mirrors status/owners only.
 
 ## Launch Posture
 
