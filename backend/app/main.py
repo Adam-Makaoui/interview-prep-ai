@@ -1,3 +1,16 @@
+"""InterviewIntel FastAPI application -- HTTP surface for the LangGraph agent.
+
+This module is the backend entry point and owns four concerns:
+  1. HTTP routes (`@app.*`) for sessions, resumes, profiles, billing, and health.
+  2. Persistence helpers over Supabase/Postgres (`sessions` + `profiles` tables)
+     with an in-memory fallback when `DATABASE_URL` is unset (local dev).
+  3. Auth: Supabase JWT decoding (`_get_current_user` / `_require_user`).
+  4. CORS allow-listing with apex/www expansion of `FRONTEND_URL`.
+
+The agent state machine itself lives in `app.agent.graph`/`app.agent.nodes`;
+this file reads/writes its checkpoints and shapes them into API JSON via
+`_format_session`. See `docs/CODEBASE_MAP.md` for a function-level index.
+"""
 import uuid
 import json
 import logging
@@ -368,6 +381,7 @@ def _update_cached_status(sid: str, state: dict):
 
 
 def _update_session_meta(sid: str, **fields):
+    """Patch arbitrary columns on a session row (Postgres) or the in-memory index."""
     conn = _db()
     if conn and fields:
         sets = ", ".join(f"{k} = %s" for k in fields)
@@ -379,6 +393,7 @@ def _update_session_meta(sid: str, **fields):
 
 
 def _read_resume_file_raw() -> dict:
+    """Load the local resume_profile.json (legacy/local-dev resume store); {} if absent/invalid."""
     if not RESUME_PATH.exists():
         return {}
     try:
